@@ -1,3 +1,11 @@
+# Package subcommands implements a simple way for a single command to have many subcommands, each of which takes arguments and so forth.
+# https://godoc.org/github.com/google/subcommands 
+github.com/google/subcommands
+
+# Package vestigo implements a performant, stand-alone, HTTP compliant URL Router for go web applications.
+# https://godoc.org/github.com/husobee/vestigo
+github.com/husobee/vestigo
+
 # Package redis is a client for the Redis database.
 # https://godoc.org/github.com/garyburd/redigo/redis
 github.com/garyburd/redigo/redis
