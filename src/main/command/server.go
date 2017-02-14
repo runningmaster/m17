@@ -3,7 +3,8 @@ package command
 import (
 	"context"
 	"flag"
-	"log"
+
+	"main/server"
 
 	"github.com/google/subcommands"
 )
@@ -28,12 +29,23 @@ func newServerCommand() subcommands.Command {
 }
 
 func (c *serverCommand) setFlags(f *flag.FlagSet) {
-	f.StringVar(&c.flagAddr, "addr", "http://127.0.0.1:8080", "Host server addres")
-	f.StringVar(&c.flagRedis, "redis", "redis://127.0.0.1:6379", "Redis server address")
-	f.StringVar(&c.flagSecret, "secret", "masterkey", "Default secret key")
+	f.StringVar(&c.flagAddr,
+		"addr",
+		"http://127.0.0.1:8080",
+		"Host server addres",
+	)
+	f.StringVar(&c.flagRedis,
+		"redis",
+		"redis://127.0.0.1:6379",
+		"Redis server address",
+	)
+	f.StringVar(&c.flagSecret,
+		"secret",
+		"masterkey",
+		"Default secret key",
+	)
 }
 
 func (c *serverCommand) execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) error {
-	log.Println("execute server", c.flagRedis)
-	return nil
+	return server.ListenAndServe("")
 }

@@ -19,7 +19,7 @@ func newVersionCommand() subcommands.Command {
 	c := &versionCommand{
 		baseCommand: baseCommand{
 			name:  "version",
-			synop: "print versionr",
+			synop: "print version",
 			usage: "Print version to stdout",
 		},
 	}
@@ -28,7 +28,11 @@ func newVersionCommand() subcommands.Command {
 }
 
 func (c *versionCommand) setFlags(f *flag.FlagSet) {
-	f.BoolVar(&c.flagFull, "full", false, "print full version with build info")
+	f.BoolVar(&c.flagFull,
+		"full",
+		false,
+		"print full version with build info",
+	)
 }
 
 func (c *versionCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) error {
