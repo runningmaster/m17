@@ -34,7 +34,6 @@ type baseCommand struct {
 	name  string
 	synop string
 	usage string
-	err   error
 }
 
 // Execute executes the command.
@@ -88,7 +87,7 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...inte
 // overrideFlagsEnv overrides flags from environment variables
 func (c *baseCommand) overrideFlagsEnv(f *flag.FlagSet) error {
 	var err error
-	f.Visit(func(f *flag.Flag) {
+	f.VisitAll(func(f *flag.Flag) {
 		env := os.Getenv(f.Name)
 		if env != "" {
 			err = f.Value.Set(env)
