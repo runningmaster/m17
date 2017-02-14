@@ -4,7 +4,7 @@ github.com/google/subcommands
 
 # Package vestigo implements a performant, stand-alone, HTTP compliant URL Router for go web applications.
 # https://godoc.org/github.com/husobee/vestigo
-github.com/husobee/vestigo
+#github.com/husobee/vestigo
 
 # Package redis is a client for the Redis database.
 # https://godoc.org/github.com/garyburd/redigo/redis
