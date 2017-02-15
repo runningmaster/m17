@@ -25,7 +25,7 @@ type executer interface {
 	execute(context.Context, *flag.FlagSet, ...interface{}) error
 }
 
-// baseCommand is base for another one
+// baseCommand is base for another one.
 type baseCommand struct {
 	cmd   interface{}
 	name  string
@@ -46,7 +46,7 @@ func (c *baseCommand) Synopsis() string {
 // Usage returns a long string explaining the command and giving usage
 // information.
 func (c *baseCommand) Usage() string {
-	return fmt.Sprintf("%s:\n\t%s", c.Name(), c.usage)
+	return fmt.Sprintf("%s [<flags>]:\n\t%s\n", c.Name(), c.usage)
 }
 
 // SetFlags adds the flags for this command to the specified set.
@@ -56,7 +56,7 @@ func (c *baseCommand) SetFlags(f *flag.FlagSet) {
 	}
 }
 
-// overrideFlagsEnv overrides flags from environment variables
+// overrideFlagsEnv overrides flags from environment variables.
 func (c *baseCommand) overrideFlagsEnv(f *flag.FlagSet) error {
 	var err error
 	f.VisitAll(func(f *flag.Flag) {

@@ -3,10 +3,15 @@ package command
 import (
 	"context"
 	"flag"
+	"log"
+	"net/http"
+	"net/url"
+	"time"
 
-	"main/server"
+	"main/version"
 
 	"github.com/google/subcommands"
+	"github.com/tylerb/graceful"
 )
 
 type serverCommand struct {
@@ -47,5 +52,31 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 }
 
 func (c *serverCommand) execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) error {
-	return server.ListenAndServe("")
+	s, err := newServer(c.flagAddr, nil, nil)
+	if err != nil {
+		return err
+	}
+	return s.ListenAndServe()
+}
+
+// newServer returns *graceful.Server.
+func newServer(addr string, h http.Handler, l *log.Logger) (*graceful.Server, error) {
+	u, err := url.Parse(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if l != nil {
+		l.Printf("%s is now ready to accept connections on %s", version.AppName(), u.Host)
+	}
+
+	return &graceful.Server{
+			Server: &http.Server{
+				Addr:    u.Host,
+				Handler: h,
+			},
+			Timeout: 5 * time.Second,
+			Logger:  l,
+		},
+		nil
 }
