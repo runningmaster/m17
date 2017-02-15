@@ -2,6 +2,11 @@
 # https://godoc.org/github.com/google/subcommands 
 github.com/google/subcommands
 
+
+# Graceful is a Go 1.3+ package enabling graceful shutdown of http.Handler servers.
+# https://godoc.org/github.com/tylerb/graceful
+github.com/tylerb/graceful
+
 # Package vestigo implements a performant, stand-alone, HTTP compliant URL Router for go web applications.
 # https://godoc.org/github.com/husobee/vestigo
 #github.com/husobee/vestigo
