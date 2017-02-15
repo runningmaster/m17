@@ -19,7 +19,7 @@ func newVersionCommand() subcommands.Command {
 	c := &versionCommand{
 		baseCommand: baseCommand{
 			name:  "version",
-			synop: "print version",
+			brief: "print version",
 			usage: "Print version to stdout",
 		},
 	}

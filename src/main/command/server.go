@@ -20,7 +20,7 @@ func newServerCommand() subcommands.Command {
 	c := &serverCommand{
 		baseCommand: baseCommand{
 			name:  "server",
-			synop: "start server",
+			brief: "start server",
 			usage: "Start HTTP server",
 		},
 	}

@@ -29,7 +29,7 @@ type executer interface {
 type baseCommand struct {
 	cmd   interface{}
 	name  string
-	synop string
+	brief string
 	usage string
 }
 
@@ -40,7 +40,7 @@ func (c *baseCommand) Name() string {
 
 // Synopsis returns a short string (less than one line) describing the command.
 func (c *baseCommand) Synopsis() string {
-	return c.synop
+	return c.brief
 }
 
 // Usage returns a long string explaining the command and giving usage
