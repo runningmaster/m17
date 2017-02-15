@@ -3,22 +3,19 @@ package command
 import (
 	"context"
 	"flag"
-	"log"
-	"net/http"
-	"net/url"
 	"time"
 
-	"main/version"
+	"main/api"
 
 	"github.com/google/subcommands"
-	"github.com/tylerb/graceful"
 )
 
 type serverCommand struct {
 	baseCommand
-	flagAddr   string
-	flagRedis  string
-	flagSecret string
+	flagAddr    string
+	flagRedis   string
+	flagSecret  string
+	flagTimeout time.Duration
 }
 
 func newServerCommand() subcommands.Command {
@@ -49,34 +46,22 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 		"masterkey",
 		"Default secret key",
 	)
+	f.DurationVar(&c.flagTimeout,
+		"timeout",
+		5*time.Second,
+		"Server timeout",
+	)
 }
 
-func (c *serverCommand) execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) error {
-	s, err := newServer(c.flagAddr, nil, nil)
+func (c *serverCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) error {
+	r, err := api.NewHTTPRouter(c.flagSecret, nil)
+	if err != nil {
+		return err
+	}
+
+	s, err := api.NewHTTPServer(c.flagAddr, r, c.flagTimeout, nil)
 	if err != nil {
 		return err
 	}
 	return s.ListenAndServe()
-}
-
-// newServer returns *graceful.Server.
-func newServer(addr string, h http.Handler, l *log.Logger) (*graceful.Server, error) {
-	u, err := url.Parse(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	if l != nil {
-		l.Printf("%s is now ready to accept connections on %s", version.AppName(), u.Host)
-	}
-
-	return &graceful.Server{
-			Server: &http.Server{
-				Addr:    u.Host,
-				Handler: h,
-			},
-			Timeout: 5 * time.Second,
-			Logger:  l,
-		},
-		nil
 }
