@@ -25,6 +25,7 @@ func NewRedisPool(addr string, m int, d time.Duration) (*redis.Pool, error) {
 }
 
 /*
+// TODO: change *log.Logger to interface when Go1.9 will released.
 func WaitRedisFromDisk(p *redis.Pool, d time.Duration, l *log.Logger) error {
 	c := p.Get()
 	defer c.Close()

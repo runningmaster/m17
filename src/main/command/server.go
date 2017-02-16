@@ -5,6 +5,7 @@ import (
 	"flag"
 	"time"
 
+	"main/api"
 	"main/client"
 	"main/router"
 	"main/server"
@@ -70,6 +71,11 @@ func (c *serverCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interfa
 	}
 
 	r, err := router.NewHTTPRouter()
+	if err != nil {
+		return err
+	}
+
+	err = api.Init(r, nil)
 	if err != nil {
 		return err
 	}
