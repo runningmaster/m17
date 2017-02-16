@@ -5,7 +5,10 @@ import (
 	"flag"
 	"time"
 
-	"main/api"
+	"main/client"
+	"main/router"
+	"main/server"
+	"main/version"
 
 	"github.com/google/subcommands"
 )
@@ -15,6 +18,7 @@ type serverCommand struct {
 	flagAddr    string
 	flagRedis   string
 	flagSecret  string
+	flagMaxIdle int
 	flagTimeout time.Duration
 }
 
@@ -46,22 +50,33 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 		"masterkey",
 		"Default secret key",
 	)
+	f.IntVar(&c.flagMaxIdle,
+		"maxidle",
+		128,
+		"Server timeout",
+	)
 	f.DurationVar(&c.flagTimeout,
 		"timeout",
-		5*time.Second,
+		60*time.Second,
 		"Server timeout",
 	)
 }
 
 func (c *serverCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	r, err := api.NewHTTPRouter(c.flagSecret, nil)
+	_, err := client.NewRedisPool(c.flagRedis, c.flagMaxIdle, c.flagTimeout)
 	if err != nil {
 		return err
 	}
 
-	s, err := api.NewHTTPServer(c.flagAddr, r, c.flagTimeout, nil)
+	r, err := router.NewHTTPRouter()
 	if err != nil {
 		return err
 	}
-	return s.ListenAndServe()
+
+	g, err := server.NewHTTPGraceful(c.flagAddr, version.AppName(), c.flagTimeout, r, nil)
+	if err != nil {
+		return err
+	}
+
+	return g.ListenAndServe()
 }

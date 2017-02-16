@@ -7,10 +7,14 @@ github.com/google/subcommands
 # https://godoc.org/github.com/tylerb/graceful
 github.com/tylerb/graceful
 
-# Package vestigo implements a performant, stand-alone, HTTP compliant URL Router for go web applications.
-# https://godoc.org/github.com/husobee/vestigo
-#github.com/husobee/vestigo
+# Lightning Fast HTTP Multiplexer
+# https://godoc.org/github.com/go-zoo/bone
+#http://go-zoo.github.io/bone
 
 # Package redis is a client for the Redis database.
 # https://godoc.org/github.com/garyburd/redigo/redis
 github.com/garyburd/redigo/redis
+
+# Package errors provides simple error handling primitives.
+# https://godoc.org/github.com/pkg/errors
+#github.com/pkg/errors

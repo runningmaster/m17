@@ -13,6 +13,7 @@ func main() {
 	flag.Parse()
 
 	ctx := context.Background()
+	// TODO: logger pass to context
 	code, err := command.Execute(ctx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error: ", err)
