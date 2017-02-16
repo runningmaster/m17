@@ -8,18 +8,19 @@ import (
 	"main/client"
 	"main/router"
 	"main/server"
-	"main/version"
 
 	"github.com/google/subcommands"
 )
 
 type serverCommand struct {
 	baseCommand
-	flagAddr    string
-	flagRedis   string
-	flagSecret  string
-	flagMaxIdle int
-	flagTimeout time.Duration
+	flag struct {
+		addr    string
+		redis   string
+		secret  string
+		maxIdle int
+		timeout time.Duration
+	}
 }
 
 func newServerCommand() subcommands.Command {
@@ -30,32 +31,32 @@ func newServerCommand() subcommands.Command {
 			usage: "Start HTTP server",
 		},
 	}
-	c.cmd = c
+	c.base = c
 	return c
 }
 
 func (c *serverCommand) setFlags(f *flag.FlagSet) {
-	f.StringVar(&c.flagAddr,
+	f.StringVar(&c.flag.addr,
 		"addr",
 		"http://127.0.0.1:8080",
 		"Host server addres",
 	)
-	f.StringVar(&c.flagRedis,
+	f.StringVar(&c.flag.redis,
 		"redis",
 		"redis://127.0.0.1:6379",
 		"Redis server address",
 	)
-	f.StringVar(&c.flagSecret,
+	f.StringVar(&c.flag.secret,
 		"secret",
 		"masterkey",
 		"Default secret key",
 	)
-	f.IntVar(&c.flagMaxIdle,
+	f.IntVar(&c.flag.maxIdle,
 		"maxidle",
 		128,
 		"Server timeout",
 	)
-	f.DurationVar(&c.flagTimeout,
+	f.DurationVar(&c.flag.timeout,
 		"timeout",
 		60*time.Second,
 		"Server timeout",
@@ -63,7 +64,7 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 }
 
 func (c *serverCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	_, err := client.NewRedisPool(c.flagRedis, c.flagMaxIdle, c.flagTimeout)
+	_, err := client.NewRedisPool(c.flag.redis, c.flag.maxIdle, c.flag.timeout)
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,7 @@ func (c *serverCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interfa
 		return err
 	}
 
-	g, err := server.NewHTTPGraceful(c.flagAddr, version.AppName(), c.flagTimeout, r, nil)
+	g, err := server.NewHTTPGraceful(c.flag.addr, c.appName(), c.flag.timeout, r, nil)
 	if err != nil {
 		return err
 	}

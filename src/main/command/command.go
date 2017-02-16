@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"main/version"
+
 	"github.com/google/subcommands"
 )
 
@@ -27,10 +29,14 @@ type executer interface {
 
 // baseCommand is base for another one.
 type baseCommand struct {
-	cmd   interface{}
+	base  interface{}
 	name  string
 	brief string
 	usage string
+}
+
+func (c *baseCommand) appName() string {
+	return version.AppName()
 }
 
 // Name returns the name of the command.
@@ -51,7 +57,7 @@ func (c *baseCommand) Usage() string {
 
 // SetFlags adds the flags for this command to the specified set.
 func (c *baseCommand) SetFlags(f *flag.FlagSet) {
-	if v, ok := c.cmd.(flagSetter); ok {
+	if v, ok := c.base.(flagSetter); ok {
 		v.setFlags(f)
 	}
 }
@@ -77,7 +83,7 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet,
 	args ...interface{}) subcommands.ExitStatus {
 
 	var err error
-	if v, ok := c.cmd.(executer); ok {
+	if v, ok := c.base.(executer); ok {
 		err = c.overrideFlagsEnv(f)
 		if err == nil {
 			err = v.execute(ctx, f, args...)

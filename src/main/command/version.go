@@ -23,7 +23,7 @@ func newVersionCommand() subcommands.Command {
 			usage: "Print version to stdout",
 		},
 	}
-	c.cmd = c
+	c.base = c
 	return c
 }
 
