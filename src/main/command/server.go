@@ -7,7 +7,6 @@ import (
 
 	"main/api"
 	"main/client"
-	"main/router"
 	"main/server"
 
 	"github.com/google/subcommands"
@@ -64,23 +63,18 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 	)
 }
 
-func (c *serverCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) error {
+func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) error {
 	_, err := client.NewRedisPool(c.flag.redis, c.flag.maxIdle, c.flag.timeout)
 	if err != nil {
 		return err
 	}
 
-	r, err := router.NewHTTPRouter()
+	h, err := api.New(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	err = api.Init(r, nil)
-	if err != nil {
-		return err
-	}
-
-	g, err := server.NewHTTPGraceful(c.flag.addr, c.appName(), c.flag.timeout, r, nil)
+	g, err := server.New(c.flag.addr, c.appName(), c.flag.timeout, h, nil)
 	if err != nil {
 		return err
 	}

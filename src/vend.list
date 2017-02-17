@@ -9,7 +9,15 @@ github.com/tylerb/graceful
 
 # Lightning Fast HTTP Multiplexer
 # https://godoc.org/github.com/go-zoo/bone
-#http://go-zoo.github.io/bone
+#github.com/go-zoo/bone
+
+# Package vestigo implements a performant, stand-alone, HTTP compliant URL Router for go web applications. 
+# https://godoc.org/github.com/husobee/vestigo
+#github.com/husobee/vestigo
+
+# Package httprouter is a trie based high performance HTTP request router.
+# https://godoc.org/github.com/julienschmidt/httprouter
+#github.com/julienschmidt/httprouter
 
 # Package redis is a client for the Redis database.
 # https://godoc.org/github.com/garyburd/redigo/redis

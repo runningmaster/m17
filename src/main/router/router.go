@@ -2,41 +2,32 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
-type Router interface {
+type HTTPRouter interface {
 	http.Handler
-	Add(string, string, http.HandlerFunc)
-	Set404(http.HandlerFunc)
-	Set405(http.HandlerFunc)
+	Add(string, string, http.Handler)
+	Set404(http.Handler)
+	Set405(http.Handler)
 }
 
-type serveMux struct {
-	//mux
+type ParamKey struct {
+	Name string
 }
 
-// NewHTTPRouter returns router as http.Handler.
-func NewHTTPRouter() (Router, error) {
-	return nil, nil
-}
-
-func ContextParam(ctx context.Context, key string) string {
-	return ""
-}
-
-func (m *serveMux) Add(method, path string, h http.HandlerFunc) {
-	//
-}
-
-func (m *serveMux) Set404(h http.HandlerFunc) {
-	//
-}
-
-func (m *serveMux) Set405(h http.HandlerFunc) {
-	//
-}
-
-func (m *serveMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//m.mux.ServeHTTP(w, r)
+// New returns router as http.Handler.
+func New(ctx context.Context, name string) (HTTPRouter, error) {
+	err := fmt.Errorf("%s not implemented", name)
+	switch name {
+	case "bone":
+		return newMuxBone(ctx), nil
+	case "httprouter":
+		return newMuxHTTPRouter(ctx), nil
+	case "vestigo":
+		return newMuxVestigo(ctx), nil
+	default:
+		return nil, err
+	}
 }
