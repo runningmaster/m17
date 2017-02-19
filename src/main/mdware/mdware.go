@@ -6,7 +6,6 @@ import (
 )
 
 // Pipe joins several middleware in one pipeline.
-// Pipe treats nil as http.DefaultServeMux.
 func Pipe(pipes ...func(http.Handler) http.Handler) http.Handler {
 	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 	for i := len(pipes) - 1; i >= 0; i-- {
@@ -14,6 +13,20 @@ func Pipe(pipes ...func(http.Handler) http.Handler) http.Handler {
 	}
 
 	return h
+}
+
+// Err4xx is wrapper for NotFound and MethodNotAllowed error handlers
+func Err4xx(code int) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			msg := fmt.Sprintf("%d %s", code, http.StatusText(code))
+			http.Error(w, msg, code)
+
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // Head puts to context FIXME
@@ -26,7 +39,9 @@ func Head(genUUID func() string) func(http.Handler) http.Handler {
 				uuid = genUUID()
 			}
 			fmt.Println("HeadMDWare", uuid)
-			next.ServeHTTP(w, r.WithContext(ctx))
+
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
 		})
 	}
 }
@@ -36,7 +51,8 @@ func Tail(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		fmt.Println("TailMDWare")
-		next.ServeHTTP(w, r.WithContext(ctx))
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -48,8 +64,8 @@ func Wrap(h http.HandlerFunc) func(http.Handler) http.Handler {
 			fmt.Println("WrapMDWare")
 			h(w, r) // stdh
 
-			*r = *r.WithContext(ctx)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
 		})
 	}
 }

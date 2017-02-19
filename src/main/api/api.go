@@ -2,47 +2,58 @@ package api
 
 import (
 	"context"
-	"net/http"
-
 	"fmt"
+	"net/http"
+	"strings"
+
 	"main/logger"
-	"main/mdware"
+	m "main/mdware"
 	"main/router"
 )
 
-// Init inits package.
+type routeTable map[string]http.Handler
+
+var table = routeTable{
+	"GET /:foo/bar":  m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
+	"GET /test/:foo": m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
+}
+
+// New returns API inits package.
 func New(ctx context.Context, l logger.Logger) (http.Handler, error) {
-	r, err := router.New(ctx, "httprouter")
+
+	// make redis pool here
+	return makeHTTPRouter(ctx, table)
+}
+
+func makeHTTPRouter(ctx context.Context, t routeTable) (router.HTTPRouter, error) {
+	r, err := router.New(ctx, router.MuxBone)
 	if err != nil {
 		return nil, err
 	}
-	// make redis pool here
-	registerHTTPHandlers(r)
+
+	for k, v := range t {
+		s := strings.Split(k, " ") // [m,p]
+		r.Add(s[0], s[1], v)
+	}
+
+	r.Set404(m.Pipe(m.Err4xx(http.StatusNotFound), m.Tail))
+	r.Set405(m.Pipe(m.Err4xx(http.StatusMethodNotAllowed), m.Tail))
+
 	return r, nil
-}
-
-func registerHTTPHandlers(r router.HTTPRouter) {
-	head := mdware.Head(nil)
-	tail := mdware.Tail
-	r.Add("GET", "/test/:name/foo", mdware.Pipe(head, mdware.Wrap(test), tail))
-
-	r.Set404(mdware.Pipe(mdware.Wrap(err4xx(http.StatusNotFound)), mdware.Tail))
-	r.Set405(mdware.Pipe(mdware.Wrap(err4xx(http.StatusMethodNotAllowed)), mdware.Tail))
 }
 
 func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	key := router.ParamKey{Name: "name"}
-	v, _ := ctx.Value(key).(string)
-	fmt.Fprintf(w, "Hello, World! From test handler! Param: %s\n", v)
+
+	fmt.Fprintf(w, "Hello, World! From test handler!\n")
+	fmt.Fprintf(w, "Param foo: %s\n", router.ContextParamValue(ctx, "foo"))
+	fmt.Fprintf(w, "Query foo: %s\n", router.ContextQueryValue(ctx, "foo"))
+	v, _ := ctx.Value("foo").(string)
+	fmt.Fprintf(w, "Value foo: %s\n", v)
 	*r = *r.WithContext(ctx)
 }
 
-func err4xx(code int) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		msg := fmt.Sprintf("%d %s", code, http.StatusText(code))
-		http.Error(w, msg, code)
-		*r = *r.WithContext(ctx)
-	}
+func ping(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	*r = *r.WithContext(ctx)
 }

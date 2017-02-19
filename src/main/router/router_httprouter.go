@@ -26,9 +26,15 @@ func (m *muxHTTPRouter) Add(method, path string, h http.Handler) {
 	m.mux.Handle(method, path,
 		func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			ctx := r.Context()
+
 			for i := range p {
-				ctx = context.WithValue(ctx, ParamKey{p[i].Key}, p[i].Value)
+				ctx = WithParamValue(ctx, p[i].Key, p[i].Value)
 			}
+
+			for k := range r.URL.Query() {
+				ctx = WithQueryValue(ctx, k, r.URL.Query().Get(k))
+			}
+
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 		})
@@ -43,7 +49,6 @@ func (m *muxHTTPRouter) Set405(h http.Handler) {
 }
 
 func (m *muxHTTPRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	r = r.WithContext(ctx)
+	r = r.WithContext(m.ctx)
 	m.mux.ServeHTTP(w, r)
 }
