@@ -10,13 +10,13 @@ type contextParamKey struct {
 	name string
 }
 
-// WithParamValue returns a new context based on the provided parent ctx.
-func WithParamValue(ctx context.Context, key, val string) context.Context {
+// ContextWithParamValue returns a new context based on the provided parent ctx.
+func ContextWithParamValue(ctx context.Context, key, val string) context.Context {
 	return context.WithValue(ctx, contextParamKey{key}, val)
 }
 
-// ContextParamValue returns the first value associated with the given key.
-func ContextParamValue(ctx context.Context, key string) string {
+// ParamValueFromContext returns the first value associated with the given key.
+func ParamValueFromContext(ctx context.Context, key string) string {
 	ctxKey := contextParamKey{key}
 	if v, ok := ctx.Value(ctxKey).(string); ok {
 		return v
@@ -30,13 +30,13 @@ type contextQueryKey struct {
 	name string
 }
 
-// WithQueryValue returns a new context based on the provided parent ctx.
-func WithQueryValue(ctx context.Context, key, val string) context.Context {
+// ContextWithQueryValue returns a new context based on the provided parent ctx.
+func ContextWithQueryValue(ctx context.Context, key, val string) context.Context {
 	return context.WithValue(ctx, contextQueryKey{key}, val)
 }
 
-// ContextQueryValue returns the first value associated with the given key.
-func ContextQueryValue(ctx context.Context, key string) string {
+// QueryValueFromContext returns the first value associated with the given key.
+func QueryValueFromContext(ctx context.Context, key string) string {
 	ctxKey := contextQueryKey{key}
 	if v, ok := ctx.Value(ctxKey).(string); ok {
 		return v

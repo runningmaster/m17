@@ -10,14 +10,14 @@ import (
 // Its associated value should be a redis.Pool.
 type contextClientRedisKey struct{}
 
-// WithRedisPool returns a new context based on the provided parent ctx.
-func WithRedisPool(ctx context.Context, v *redis.Pool) context.Context {
+// ContextWithRedisPool returns a new context based on the provided parent ctx.
+func ContextWithRedisPool(ctx context.Context, v *redis.Pool) context.Context {
 	ctxKey := contextClientRedisKey{}
 	return context.WithValue(ctx, ctxKey, v)
 }
 
-// ContextRedisConn returns the redis.Conn value associated with the given key.
-func ContextRedisConn(ctx context.Context) redis.Conn {
+// RedisConnFromContext returns the redis.Conn value associated with the given key.
+func RedisConnFromContext(ctx context.Context) redis.Conn {
 	ctxKey := contextClientRedisKey{}
 	if v, ok := ctx.Value(ctxKey).(*redis.Pool); ok {
 		return v.Get()

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"main/client"
 	"main/logger"
@@ -14,22 +15,26 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-type routeTable map[string]http.Handler
-
-var table = routeTable{
+var routeTable = map[string]http.Handler{
 	"GET /:foo/bar":   m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
 	"GET /test/:foo":  m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
 	"GET /redis/ping": m.Pipe(m.Head(nil), m.Wrap(ping), m.Tail),
+}
+
+type RedisConfig struct {
+	Addr    string
+	MaxIdle int
+	Timeout time.Duration
 }
 
 // NewHandler returns HTTP API handler.
 func NewHandler(ctx context.Context) (http.Handler, error) {
 
 	// make redis pool here
-	return makeHTTPRouter(ctx, table)
+	return makeHTTPRouter(ctx, routeTable)
 }
 
-func makeHTTPRouter(ctx context.Context, t routeTable) (router.HTTPRouter, error) {
+func makeHTTPRouter(ctx context.Context, t map[string]http.Handler) (router.HTTPRouter, error) {
 	r, err := router.New(ctx, router.MuxBone)
 	if err != nil {
 		return nil, err
@@ -63,8 +68,8 @@ func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	fmt.Fprintf(w, "Hello, World! From test handler!\n")
-	fmt.Fprintf(w, "Param foo: %s\n", router.ContextParamValue(ctx, "foo"))
-	fmt.Fprintf(w, "Query foo: %s\n", router.ContextQueryValue(ctx, "foo"))
+	fmt.Fprintf(w, "Param foo: %s\n", router.ParamValueFromContext(ctx, "foo"))
+	fmt.Fprintf(w, "Query foo: %s\n", router.QueryValueFromContext(ctx, "foo"))
 	v, _ := ctx.Value("foo").(string)
 	fmt.Fprintf(w, "Value foo: %s\n", v)
 	*r = *r.WithContext(ctx)
@@ -72,7 +77,7 @@ func test(w http.ResponseWriter, r *http.Request) {
 
 func ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log := logger.ContextLogger(ctx)
+	log := logger.FromContext(ctx)
 
 	res, err := redisPing(ctx)
 	if err != nil {
@@ -86,7 +91,7 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func redisPing(ctx context.Context) ([]byte, error) {
-	cli := client.ContextRedisConn(ctx)
+	cli := client.RedisConnFromContext(ctx)
 	defer cli.Close()
 
 	return redis.Bytes(cli.Do("PING"))

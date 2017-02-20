@@ -68,7 +68,7 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 	if err != nil {
 		return err
 	}
-	ctx = client.WithRedisPool(ctx, r)
+	ctx = client.ContextWithRedisPool(ctx, r)
 
 	h, err := api.NewHandler(ctx)
 	if err != nil {

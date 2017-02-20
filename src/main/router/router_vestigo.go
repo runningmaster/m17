@@ -34,11 +34,11 @@ func (m *muxVestigo) Add(method, path string, h http.Handler) error {
 
 		p := vestigo.TrimmedParamNames(r)
 		for i := range p {
-			ctx = WithParamValue(ctx, p[i], vestigo.Param(r, p[i]))
+			ctx = ContextWithParamValue(ctx, p[i], vestigo.Param(r, p[i]))
 		}
 
 		for k := range r.URL.Query() {
-			ctx = WithQueryValue(ctx, k, r.URL.Query().Get(k))
+			ctx = ContextWithQueryValue(ctx, k, r.URL.Query().Get(k))
 		}
 
 		r = r.WithContext(ctx)

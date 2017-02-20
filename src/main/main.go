@@ -13,7 +13,7 @@ func main() {
 	flag.Parse()
 
 	log := logger.New()
-	ctx := logger.WithLogger(context.Background(), log)
+	ctx := logger.ContextWithLogger(context.Background(), log)
 
 	code, err := command.Execute(ctx)
 	if err != nil {

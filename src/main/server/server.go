@@ -28,14 +28,14 @@ func ListenAndServe(ctx context.Context, addr string, d time.Duration, h http.Ha
 	signal.Notify(ch, os.Interrupt, os.Kill)
 	go listenForShutdown(ctx, srv, ch)
 
-	log := logger.ContextLogger(ctx)
+	log := logger.FromContext(ctx)
 	log.Printf(" now ready to accept connections on %s", u.Host)
 	return srv.ListenAndServe()
 }
 
 func listenForShutdown(ctx context.Context, srv *http.Server, ch <-chan os.Signal) {
 	<-ch
-	log := logger.ContextLogger(ctx)
+	log := logger.FromContext(ctx)
 	log.Printf("\ntrying to shutdown...")
 	err := srv.Shutdown(ctx)
 	if err != nil {
