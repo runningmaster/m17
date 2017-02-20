@@ -64,20 +64,16 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 }
 
 func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	_, err := client.NewRedisPool(c.flag.redis, c.flag.maxIdle, c.flag.timeout)
+	r, err := client.NewRedisPool(c.flag.redis, c.flag.maxIdle, c.flag.timeout)
+	if err != nil {
+		return err
+	}
+	ctx = client.WithRedisPool(ctx, r)
+
+	h, err := api.NewHandler(ctx)
 	if err != nil {
 		return err
 	}
 
-	h, err := api.New(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	g, err := server.New(c.flag.addr, c.appName(), c.flag.timeout, h, nil)
-	if err != nil {
-		return err
-	}
-
-	return g.ListenAndServe()
+	return server.ListenAndServe(ctx, c.flag.addr, c.flag.timeout, h)
 }

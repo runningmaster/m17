@@ -3,20 +3,21 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 
 	"main/command"
+	"main/logger"
 )
 
 func main() {
 	flag.Parse()
 
-	ctx := context.Background()
-	// TODO: logger pass to context
+	log := logger.New()
+	ctx := logger.WithLogger(context.Background(), log)
+
 	code, err := command.Execute(ctx)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error: ", err)
+		log.Printf("%v", err)
 	}
 	os.Exit(code)
 }

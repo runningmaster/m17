@@ -1,33 +1,44 @@
 package server
 
 import (
-	"log"
+	"context"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"time"
 
-	"github.com/tylerb/graceful"
+	"main/logger"
 )
 
-// New returns *graceful.Server with http.Handler.
-// TODO: change *log.Logger to interface when Go1.9 will released.
-func New(addr, name string, d time.Duration, h http.Handler, l *log.Logger) (*graceful.Server, error) {
+// ListenAndServe returns *graceful.Server with http.Handler.
+func ListenAndServe(ctx context.Context, addr string, d time.Duration, h http.Handler) error {
 	u, err := url.Parse(addr)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if l != nil {
-		l.Printf("%s is now ready to accept connections on %s", name, u.Host)
+	srv := &http.Server{
+		Addr:        u.Host,
+		Handler:     h,
+		IdleTimeout: d,
 	}
 
-	return &graceful.Server{
-			Server: &http.Server{
-				Addr:    u.Host,
-				Handler: h,
-			},
-			Timeout: d,
-			Logger:  l,
-		},
-		nil
+	ch := make(chan os.Signal)
+	signal.Notify(ch, os.Interrupt, os.Kill)
+	go listenForShutdown(ctx, srv, ch)
+
+	log := logger.ContextLogger(ctx)
+	log.Printf(" now ready to accept connections on %s", u.Host)
+	return srv.ListenAndServe()
+}
+
+func listenForShutdown(ctx context.Context, srv *http.Server, ch <-chan os.Signal) {
+	<-ch
+	log := logger.ContextLogger(ctx)
+	log.Printf("\ntrying to shutdown...")
+	err := srv.Shutdown(ctx)
+	if err != nil {
+		log.Printf("%v", err)
+	}
 }

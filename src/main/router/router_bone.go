@@ -30,7 +30,12 @@ func newMuxBone(ctx context.Context) HTTPRouter {
 	}
 }
 
-func (m *muxBone) Add(method, path string, h http.Handler) {
+func (m *muxBone) Add(method, path string, h http.Handler) error {
+	err := validateAddParams(method, path, h)
+	if err != nil {
+		return err
+	}
+
 	m.mux.Register(method, path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -47,22 +52,28 @@ func (m *muxBone) Add(method, path string, h http.Handler) {
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	}))
+
+	return nil
 }
 
-func (m *muxBone) Set404(h http.Handler) {
+func (m *muxBone) Set404(h http.Handler) error {
+	if h == nil {
+		return fmt.Errorf("%v handler", h)
+	}
+
 	m.mux.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		metod := r.Method
+		method := r.Method
 		var allowedMethods []string
-		for _, v := range []string{"GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"} {
-			if v == metod {
+		for k := range methodMap {
+			if k == method {
 				continue
 			}
-			r.Method = v
+			r.Method = k
 			if route := m.mux.GetRequestRoute(r); len(route) > 0 && route[0] == '/' {
-				allowedMethods = append(allowedMethods, v)
+				allowedMethods = append(allowedMethods, k)
 			}
 		}
-		r.Method = metod
+		r.Method = method
 
 		if len(allowedMethods) > 0 {
 			w.Header().Add("Allow", strings.Join(allowedMethods, ","))
@@ -73,10 +84,16 @@ func (m *muxBone) Set404(h http.Handler) {
 		h.ServeHTTP(w, r)
 	}))
 
+	return nil
 }
 
-func (m *muxBone) Set405(h http.Handler) {
+func (m *muxBone) Set405(h http.Handler) error {
+	if h == nil {
+		return fmt.Errorf("%v handler", h)
+	}
+
 	m.set405 = h
+	return nil
 }
 
 func (m *muxBone) ServeHTTP(w http.ResponseWriter, r *http.Request) {

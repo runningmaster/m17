@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/husobee/vestigo"
@@ -22,7 +23,12 @@ func newMuxVestigo(ctx context.Context) HTTPRouter {
 	}
 }
 
-func (m *muxVestigo) Add(method, path string, h http.Handler) {
+func (m *muxVestigo) Add(method, path string, h http.Handler) error {
+	err := validateAddParams(method, path, h)
+	if err != nil {
+		return err
+	}
+
 	m.mux.Add(method, path, func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -38,15 +44,26 @@ func (m *muxVestigo) Add(method, path string, h http.Handler) {
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})
+
+	return nil
 }
 
-func (m *muxVestigo) Set404(h http.Handler) {
+func (m *muxVestigo) Set404(h http.Handler) error {
+	if h == nil {
+		return fmt.Errorf("%v handler", h)
+	}
+
 	vestigo.CustomNotFoundHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)
 	})
+	return nil
 }
 
-func (m *muxVestigo) Set405(h http.Handler) {
+func (m *muxVestigo) Set405(h http.Handler) error {
+	if h == nil {
+		return fmt.Errorf("%v handler", h)
+	}
+
 	vestigo.CustomMethodNotAllowedHandlerFunc(
 		func(allowedMethods string) func(w http.ResponseWriter, r *http.Request) {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +71,7 @@ func (m *muxVestigo) Set405(h http.Handler) {
 				h.ServeHTTP(w, r)
 			}
 		})
+	return nil
 }
 
 func (m *muxVestigo) ServeHTTP(w http.ResponseWriter, r *http.Request) {

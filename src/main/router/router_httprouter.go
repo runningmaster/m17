@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -22,7 +23,12 @@ func newMuxHTTPRouter(ctx context.Context) HTTPRouter {
 	}
 }
 
-func (m *muxHTTPRouter) Add(method, path string, h http.Handler) {
+func (m *muxHTTPRouter) Add(method, path string, h http.Handler) error {
+	err := validateAddParams(method, path, h)
+	if err != nil {
+		return err
+	}
+
 	m.mux.Handle(method, path,
 		func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			ctx := r.Context()
@@ -38,14 +44,26 @@ func (m *muxHTTPRouter) Add(method, path string, h http.Handler) {
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 		})
+
+	return nil
 }
 
-func (m *muxHTTPRouter) Set404(h http.Handler) {
+func (m *muxHTTPRouter) Set404(h http.Handler) error {
+	if h == nil {
+		return fmt.Errorf("%v handler", h)
+	}
+
 	m.mux.NotFound = h
+	return nil
 }
 
-func (m *muxHTTPRouter) Set405(h http.Handler) {
+func (m *muxHTTPRouter) Set405(h http.Handler) error {
+	if h == nil {
+		return fmt.Errorf("%v handler", h)
+	}
+
 	m.mux.MethodNotAllowed = h
+	return nil
 }
 
 func (m *muxHTTPRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
