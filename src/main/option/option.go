@@ -1,13 +1,17 @@
 package option
 
-// Fn is a function on the options for a package.
-type Fn func(interface{}) error
+type Receiver interface {
+	Receive(...Fn) error
+}
+
+// Fn is a function for setting option into package.
+type Fn func(Receiver) error
 
 // Receive receives options for a package from athoter package.
-func Receive(receiver interface{}, options ...Fn) error {
+func Receive(r Receiver, options ...Fn) error {
 	var err error
 	for i := range options {
-		err = options[i](receiver)
+		err = options[i](r)
 		if err != nil {
 			return err
 		}

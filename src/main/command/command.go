@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"main/logger"
 	"main/option"
 	"main/version"
 
@@ -99,13 +100,16 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...inte
 
 // workaround for getting error from specific commands.
 var errExec error
+var logExec logger.Logger
 
 // Execute finds and executes the specific command.
 func Execute(ctx context.Context, options ...option.Fn) (int, error) {
-	err := option.Receive(nil, options...)
+	opt := &optionReceiver{}
+	err := opt.Receive(options...)
 	if err != nil {
 		return int(subcommands.ExitFailure), err
 	}
+	logExec = opt.log
 
 	status := subcommands.Execute(ctx)
 	return int(status), errExec

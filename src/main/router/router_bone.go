@@ -20,13 +20,9 @@ type muxBone struct {
 }
 
 func newMuxBone(ctx context.Context) HTTPRouter {
-	if ctx == nil {
-		panic("nil context")
-	}
 	return &muxBone{
-		ctx,
-		bone.New(),
-		nil,
+		ctx: ctx,
+		mux: bone.New(),
 	}
 }
 

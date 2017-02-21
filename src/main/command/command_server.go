@@ -86,9 +86,9 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 
 	h, err := api.NewHandler(
 		ctx,
-		api.Router()
+		//api.Router()
 		api.Redis(r),
-		api.Logger(l),
+		api.Logger(logExec),
 	)
 	if err != nil {
 		return err
@@ -99,6 +99,6 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		server.Address(c.flag.addr),
 		server.Timeout(c.flag.timeout),
 		server.Handler(h),
-		server.Logger(log),
+		server.Logger(logExec),
 	)
 }

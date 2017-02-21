@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"main/logger"
+	"main/option"
 )
 
 // MuxKind is kind of multipexers for HTTP routing.
@@ -32,6 +35,8 @@ var methodMap = map[string]struct{}{
 	"PATCH":   struct{}{},
 	"OPTIONS": struct{}{},
 }
+
+var log logger.Logger
 
 // String is satisfy fmt.Stringer interface.
 func (m MuxKind) String() string {
@@ -62,11 +67,14 @@ type HTTPRouter interface {
 }
 
 // New returns router as http.Handler.
-func New(ctx context.Context, mux MuxKind) (HTTPRouter, error) {
-	if ctx == nil {
-		panic("nil context")
+func New(ctx context.Context, options ...option.Fn) (HTTPRouter, error) {
+	opt := &optionReceiver{}
+	err := opt.Receive(options...)
+	if err != nil {
+		return nil, err
 	}
 
+	mux := opt.muxKind
 	switch mux {
 	case MuxBone:
 		return newMuxBone(ctx), nil

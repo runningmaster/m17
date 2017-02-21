@@ -18,8 +18,8 @@ type muxVestigo struct {
 
 func newMuxVestigo(ctx context.Context) HTTPRouter {
 	return &muxVestigo{
-		ctx,
-		vestigo.NewRouter(),
+		ctx: ctx,
+		mux: vestigo.NewRouter(),
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"main/logger"
 	m "main/mdware"
+	"main/option"
 	"main/router"
 )
 
@@ -18,13 +18,14 @@ var routeTable = map[string]http.Handler{
 }
 
 // NewHandler returns HTTP API handler.
-func NewHandler(ctx context.Context) (http.Handler, error) {
+func NewHandler(ctx context.Context, options ...option.Fn) (http.Handler, error) {
 
 	// make redis pool here
 	return makeHTTPRouter(ctx, routeTable)
 }
 
 func makeHTTPRouter(ctx context.Context, t map[string]http.Handler) (router.HTTPRouter, error) {
+
 	r, err := router.New(ctx, router.MuxBone)
 	if err != nil {
 		return nil, err
@@ -67,15 +68,12 @@ func test(w http.ResponseWriter, r *http.Request) {
 
 func ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log := logger.FromContext(ctx)
 
 	res, err := redisPing(ctx)
 	if err != nil {
-		log.Printf("redis error: %v\n", err)
 		fmt.Fprintf(w, "redis error: %v\n", err)
 
 	}
-	log.Printf("redis result: %v\n", string(res))
 	fmt.Fprintf(w, "redis result: %v\n", string(res))
 	*r = *r.WithContext(ctx)
 }

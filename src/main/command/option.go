@@ -1,31 +1,18 @@
 package command
 
 import (
-	"fmt"
-	"io/ioutil"
-
+	"main/logger"
 	"main/option"
 )
 
-type logger interface {
-	Printf(string, ...interface{})
+type optionReceiver struct {
+	log logger.Logger
 }
-
-type loggerFn func()
-
-func (l loggerFn) Printf(f string, a ...interface{}) {
-	fmt.Fprintf(ioutil.Discard, f, a)
-}
-
-var log logger = loggerFn(nil)
 
 // Logger sets logger from packages on another side.
-func Logger(l logger) option.Fn {
-	return func(_ interface{}) error {
-		if l == nil {
-			return fmt.Errorf("%v logger", l)
-		}
-		log = l
-		return nil
+func Logger(l logger.Logger) option.Fn {
+	return func(r option.Receiver) error {
+		v, _ := v.(*optionReceiver)
+		return v.SetLogger(l)
 	}
 }

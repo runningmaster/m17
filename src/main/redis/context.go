@@ -12,14 +12,12 @@ type contextClientRedisKey struct{}
 
 // ContextWithRedisPool returns a new context based on the provided parent ctx.
 func ContextWithRedisPool(ctx context.Context, v *redis.Pool) context.Context {
-	ctxKey := contextClientRedisKey{}
-	return context.WithValue(ctx, ctxKey, v)
+	return context.WithValue(ctx, contextClientRedisKey{}, v)
 }
 
 // RedisConnFromContext returns the redis.Conn value associated with the given key.
 func RedisConnFromContext(ctx context.Context) redis.Conn {
-	ctxKey := contextClientRedisKey{}
-	if v, ok := ctx.Value(ctxKey).(*redis.Pool); ok {
+	if v, ok := ctx.Value(contextClientRedisKey{}).(*redis.Pool); ok {
 		return v.Get()
 	}
 	panic("redis.Pool not found")

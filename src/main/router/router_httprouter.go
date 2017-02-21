@@ -18,8 +18,8 @@ type muxHTTPRouter struct {
 
 func newMuxHTTPRouter(ctx context.Context) HTTPRouter {
 	return &muxHTTPRouter{
-		ctx,
-		httprouter.New(),
+		ctx: ctx,
+		mux: httprouter.New(),
 	}
 }
 

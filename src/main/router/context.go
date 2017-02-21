@@ -17,11 +17,8 @@ func ContextWithParamValue(ctx context.Context, key, val string) context.Context
 
 // ParamValueFromContext returns the first value associated with the given key.
 func ParamValueFromContext(ctx context.Context, key string) string {
-	ctxKey := contextParamKey{key}
-	if v, ok := ctx.Value(ctxKey).(string); ok {
-		return v
-	}
-	return ""
+	v, _ := ctx.Value(contextParamKey{key}).(string)
+	return v
 }
 
 // contextQueryKey is a unique type to prevent assignment.
@@ -37,9 +34,6 @@ func ContextWithQueryValue(ctx context.Context, key, val string) context.Context
 
 // QueryValueFromContext returns the first value associated with the given key.
 func QueryValueFromContext(ctx context.Context, key string) string {
-	ctxKey := contextQueryKey{key}
-	if v, ok := ctx.Value(ctxKey).(string); ok {
-		return v
-	}
-	return ""
+	v, _ := ctx.Value(contextQueryKey{key}).(string)
+	return v
 }
