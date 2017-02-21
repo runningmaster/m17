@@ -6,10 +6,20 @@ import (
 	"time"
 
 	"main/api"
-	"main/client"
+	"main/redis"
 	"main/server"
 
 	"github.com/google/subcommands"
+)
+
+const (
+	defaultRedisAddress = "redis://127.0.0.1:6379"
+	defaultRedisMaxIdle = 128
+	defaultRedisTimeout = 60 * time.Second
+
+	defaultServerAddress = "http://127.0.0.1:8080"
+	defaultServerSecret  = "masterkey"
+	defaultServerTimeout = 60 * time.Second
 )
 
 type serverCommand struct {
@@ -38,42 +48,57 @@ func newServerCommand() subcommands.Command {
 func (c *serverCommand) setFlags(f *flag.FlagSet) {
 	f.StringVar(&c.flag.addr,
 		"addr",
-		"http://127.0.0.1:8080",
+		defaultServerAddress,
 		"Host server addres",
 	)
 	f.StringVar(&c.flag.redis,
 		"redis",
-		"redis://127.0.0.1:6379",
+		defaultRedisAddress,
 		"Redis server address",
 	)
 	f.StringVar(&c.flag.secret,
 		"secret",
-		"masterkey",
+		defaultServerSecret,
 		"Default secret key",
 	)
 	f.IntVar(&c.flag.maxIdle,
 		"maxidle",
-		128,
+		defaultRedisMaxIdle,
 		"Server timeout",
 	)
 	f.DurationVar(&c.flag.timeout,
 		"timeout",
-		60*time.Second,
+		defaultRedisTimeout,
 		"Server timeout",
 	)
 }
 
 func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	r, err := client.NewRedisPool(c.flag.redis, c.flag.maxIdle, c.flag.timeout)
+	r, err := redis.NewPool(
+		ctx,
+		redis.Address(c.flag.redis),
+		redis.MaxIdle(c.flag.maxIdle),
+		redis.Timeout(c.flag.timeout),
+	)
 	if err != nil {
 		return err
 	}
-	ctx = client.ContextWithRedisPool(ctx, r)
 
-	h, err := api.NewHandler(ctx)
+	h, err := api.NewHandler(
+		ctx,
+		api.Router()
+		api.Redis(r),
+		api.Logger(l),
+	)
 	if err != nil {
 		return err
 	}
 
-	return server.ListenAndServe(ctx, c.flag.addr, c.flag.timeout, h)
+	return server.ListenAndServe(
+		ctx,
+		server.Address(c.flag.addr),
+		server.Timeout(c.flag.timeout),
+		server.Handler(h),
+		server.Logger(log),
+	)
 }

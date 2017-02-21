@@ -12,10 +12,10 @@ import (
 func main() {
 	flag.Parse()
 
+	ctx := context.Background()
 	log := logger.New()
-	ctx := logger.ContextWithLogger(context.Background(), log)
 
-	code, err := command.Execute(ctx)
+	code, err := command.Execute(ctx, command.Logger(log))
 	if err != nil {
 		log.Printf("%v", err)
 	}

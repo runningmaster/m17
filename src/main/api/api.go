@@ -5,26 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
-	"main/client"
 	"main/logger"
 	m "main/mdware"
 	"main/router"
-
-	"github.com/garyburd/redigo/redis"
 )
 
 var routeTable = map[string]http.Handler{
 	"GET /:foo/bar":   m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
 	"GET /test/:foo":  m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
 	"GET /redis/ping": m.Pipe(m.Head(nil), m.Wrap(ping), m.Tail),
-}
-
-type RedisConfig struct {
-	Addr    string
-	MaxIdle int
-	Timeout time.Duration
 }
 
 // NewHandler returns HTTP API handler.
@@ -91,8 +81,5 @@ func ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func redisPing(ctx context.Context) ([]byte, error) {
-	cli := client.RedisConnFromContext(ctx)
-	defer cli.Close()
-
-	return redis.Bytes(cli.Do("PING"))
+	return nil, nil
 }

@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -10,6 +12,12 @@ import (
 // See https://groups.google.com/forum/#!topic/golang-dev/F3l9Iz1JX4g for details.
 type Logger interface {
 	Printf(string, ...interface{})
+}
+
+type loggerFunc func()
+
+func (l loggerFunc) Printf(f string, a ...interface{}) {
+	fmt.Fprintf(ioutil.Discard, f, a)
 }
 
 // New returns the implementation of Logger interface.

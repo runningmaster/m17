@@ -10,9 +10,13 @@ import (
 	"github.com/google/subcommands"
 )
 
+const (
+	defaultShowMeta = false
+)
+
 type versionCommand struct {
 	baseCommand
-	flagFull bool
+	flagShowMeta bool
 }
 
 func newVersionCommand() subcommands.Command {
@@ -28,16 +32,16 @@ func newVersionCommand() subcommands.Command {
 }
 
 func (c *versionCommand) setFlags(f *flag.FlagSet) {
-	f.BoolVar(&c.flagFull,
-		"full",
-		false,
-		"print full version with build info",
+	f.BoolVar(&c.flagShowMeta,
+		"meta",
+		defaultShowMeta,
+		"print full version with build metadata",
 	)
 }
 
 func (c *versionCommand) execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) error {
 	v := version.String()
-	if c.flagFull {
+	if c.flagShowMeta {
 		v = version.WithBuildInfo()
 	}
 	fmt.Println(v)

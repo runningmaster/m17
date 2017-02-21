@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"main/option"
 	"main/version"
 
 	"github.com/google/subcommands"
@@ -79,9 +80,7 @@ func (c *baseCommand) overrideFlagsEnv(f *flag.FlagSet) error {
 }
 
 // Execute executes the command and returns an ExitStatus.
-func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet,
-	args ...interface{}) subcommands.ExitStatus {
-
+func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 	var err error
 	if v, ok := c.base.(executer); ok {
 		err = c.overrideFlagsEnv(f)
@@ -98,11 +97,16 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet,
 	return subcommands.ExitSuccess
 }
 
-// workaround
+// workaround for getting error from specific commands.
 var errExec error
 
-// Execute executes the command.
-func Execute(ctx context.Context) (int, error) {
+// Execute finds and executes the specific command.
+func Execute(ctx context.Context, options ...option.Fn) (int, error) {
+	err := option.Receive(nil, options...)
+	if err != nil {
+		return int(subcommands.ExitFailure), err
+	}
+
 	status := subcommands.Execute(ctx)
 	return int(status), errExec
 }
