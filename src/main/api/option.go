@@ -7,11 +7,6 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-/*
-	api.Router(r),
-	api.Redis(p),
-*/
-
 type logger interface {
 	Printf(string, ...interface{})
 }

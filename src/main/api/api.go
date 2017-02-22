@@ -48,6 +48,10 @@ func New(ctx context.Context, options ...func(*Option) error) (*API, error) {
 		return nil, err
 	}
 
+	if defaultOption.redisPool == nil {
+		panic("must redis")
+	}
+
 	return &API{
 			mux:    multiplexer,
 			err404: err404,
