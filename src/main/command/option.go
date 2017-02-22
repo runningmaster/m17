@@ -1,18 +1,33 @@
 package command
 
-import (
-	"main/logger"
-	"main/option"
-)
-
-type optionReceiver struct {
-	log logger.Logger
+type logger interface {
+	Printf(string, ...interface{})
 }
 
-// Logger sets logger from packages on another side.
-func Logger(l logger.Logger) option.Fn {
-	return func(r option.Receiver) error {
-		v, _ := v.(*optionReceiver)
-		return v.SetLogger(l)
+type Option struct {
+	log logger
+}
+
+var defaultOption = &Option{}
+
+func (o *Option) setLogger(l logger) error {
+	o.log = l
+	return nil
+}
+
+func (o *Option) override(options ...func(*Option) error) error {
+	var err error
+	for i := range options {
+		err = options[i](o)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Logger(l logger) func(*Option) error {
+	return func(o *Option) error {
+		return o.setLogger(l)
 	}
 }

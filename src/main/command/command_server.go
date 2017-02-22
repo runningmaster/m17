@@ -6,20 +6,11 @@ import (
 	"time"
 
 	"main/api"
-	"main/redis"
+	"main/redispool"
+	"main/router"
 	"main/server"
 
 	"github.com/google/subcommands"
-)
-
-const (
-	defaultRedisAddress = "redis://127.0.0.1:6379"
-	defaultRedisMaxIdle = 128
-	defaultRedisTimeout = 60 * time.Second
-
-	defaultServerAddress = "http://127.0.0.1:8080"
-	defaultServerSecret  = "masterkey"
-	defaultServerTimeout = 60 * time.Second
 )
 
 type serverCommand struct {
@@ -48,48 +39,63 @@ func newServerCommand() subcommands.Command {
 func (c *serverCommand) setFlags(f *flag.FlagSet) {
 	f.StringVar(&c.flag.addr,
 		"addr",
-		defaultServerAddress,
+		"http://127.0.0.1:8080",
 		"Host server addres",
 	)
 	f.StringVar(&c.flag.redis,
 		"redis",
-		defaultRedisAddress,
+		"redis://127.0.0.1:6379",
 		"Redis server address",
 	)
 	f.StringVar(&c.flag.secret,
 		"secret",
-		defaultServerSecret,
+		"masterkey",
 		"Default secret key",
 	)
 	f.IntVar(&c.flag.maxIdle,
 		"maxidle",
-		defaultRedisMaxIdle,
+		128,
 		"Server timeout",
 	)
 	f.DurationVar(&c.flag.timeout,
 		"timeout",
-		defaultRedisTimeout,
+		60*time.Second,
 		"Server timeout",
 	)
 }
 
 func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	r, err := redis.NewPool(
+	l := defaultOption.log
+	p, err := redispool.New(
 		ctx,
-		redis.Address(c.flag.redis),
-		redis.MaxIdle(c.flag.maxIdle),
-		redis.Timeout(c.flag.timeout),
+		redispool.Address(c.flag.redis),
+		redispool.MaxIdle(c.flag.maxIdle),
+		redispool.Timeout(c.flag.timeout),
+		redispool.Logger(l),
 	)
 	if err != nil {
 		return err
 	}
 
-	h, err := api.NewHandler(
+	a, err := api.New(
 		ctx,
-		//api.Router()
-		api.Redis(r),
-		api.Logger(logExec),
+		api.Redis(p),
+		api.Logger(l),
 	)
+	if err != nil {
+		return err
+	}
+
+	r, err := router.New(
+		ctx,
+		router.HTTPRouter,
+		router.Logger(l),
+	)
+	if err != nil {
+		return err
+	}
+
+	h, err := a.WithRouter(r)
 	if err != nil {
 		return err
 	}
@@ -99,6 +105,6 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		server.Address(c.flag.addr),
 		server.Timeout(c.flag.timeout),
 		server.Handler(h),
-		server.Logger(logExec),
+		server.Logger(l),
 	)
 }

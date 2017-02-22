@@ -8,15 +8,15 @@ import (
 	"github.com/husobee/vestigo"
 )
 
-// Make sure the Router conforms with the HTTPRouter interface
-var _ HTTPRouter = newMuxVestigo(context.Background())
+// Make sure the Router conforms with the Router interface
+var _ Router = newMuxVestigo(context.Background())
 
 type muxVestigo struct {
 	ctx context.Context
 	mux *vestigo.Router
 }
 
-func newMuxVestigo(ctx context.Context) HTTPRouter {
+func newMuxVestigo(ctx context.Context) Router {
 	return &muxVestigo{
 		ctx: ctx,
 		mux: vestigo.NewRouter(),

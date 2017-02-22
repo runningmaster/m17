@@ -4,26 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"main/logger"
-	"main/option"
 )
 
-// MuxKind is kind of multipexers for HTTP routing.
-type MuxKind int
+type kindMux int
 
 const (
-	// MuxBone is
-	// github.com/go-zoo/bone
-	MuxBone MuxKind = iota
-
-	// MuxHTTPRouter is
-	// github.com/julienschmidt/httprouter
-	MuxHTTPRouter
-
-	// MuxVestigo is
-	// github.com/husobee/vestigo
-	MuxVestigo
+	kindBone kindMux = iota
+	kindHTTPRouter
+	kindVestigo
 )
 
 var methodMap = map[string]struct{}{
@@ -36,24 +24,22 @@ var methodMap = map[string]struct{}{
 	"OPTIONS": struct{}{},
 }
 
-var log logger.Logger
-
 // String is satisfy fmt.Stringer interface.
-func (m MuxKind) String() string {
-	switch m {
-	case MuxBone:
+func (kind kindMux) String() string {
+	switch kind {
+	case kindBone:
 		return "bone"
-	case MuxHTTPRouter:
+	case kindHTTPRouter:
 		return "httprouter"
-	case MuxVestigo:
+	case kindVestigo:
 		return "vestigo"
 	default:
 		return ("unknown multipexer")
 	}
 }
 
-// HTTPRouter is interface for implementing in API pakage.
-type HTTPRouter interface {
+// Router is interface for implementing in API pakage.
+type Router interface {
 	http.Handler
 
 	// Add adds a method/handler combination to the router.
@@ -66,24 +52,23 @@ type HTTPRouter interface {
 	Set405(http.Handler) error
 }
 
-// New returns router as http.Handler.
-func New(ctx context.Context, options ...option.Fn) (HTTPRouter, error) {
-	opt := &optionReceiver{}
-	err := opt.Receive(options...)
+// New returns interface Router.
+func New(ctx context.Context, options ...func(*Option) error) (Router, error) {
+	err := defaultOption.override(options...)
 	if err != nil {
 		return nil, err
 	}
 
-	mux := opt.muxKind
-	switch mux {
-	case MuxBone:
+	kind := defaultOption.kind
+	switch kind {
+	case kindBone:
 		return newMuxBone(ctx), nil
-	case MuxHTTPRouter:
+	case kindHTTPRouter:
 		return newMuxHTTPRouter(ctx), nil
-	case MuxVestigo:
+	case kindVestigo:
 		return newMuxVestigo(ctx), nil
 	default:
-		return nil, fmt.Errorf("%s not implemented", mux)
+		return nil, fmt.Errorf("%s not implemented", kind)
 	}
 }
 

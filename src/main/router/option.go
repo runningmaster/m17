@@ -1,39 +1,59 @@
 package router
 
 import (
-	"main/logger"
-	"main/option"
+	"io/ioutil"
+	"log"
 )
 
-type optionReceiver struct {
-	muxKind MuxKind
-	log     logger.Logger
+type logger interface {
+	Printf(string, ...interface{})
 }
 
-func (o *optionReceiver) SetLogger(l logger.Logger) error {
+type Option struct {
+	log  logger
+	kind kindMux
+}
+
+var defaultOption = &Option{
+	log:  log.New(ioutil.Discard, "", 0),
+	kind: kindHTTPRouter,
+}
+
+func (o *Option) setLogger(l logger) error {
 	o.log = l
 	return nil
 }
 
-func (o *optionReceiver) SetKind(k MuxKind) error {
-	o.muxKind = k
+func (o *Option) setKind(k kindMux) error {
+	o.kind = k
 	return nil
 }
 
-func (o *optionReceiver) Receive(options ...option.Fn) error {
-	return option.Receive(o, options...)
+func (o *Option) override(options ...func(*Option) error) error {
+	var err error
+	for i := range options {
+		err = options[i](o)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func Kind(k MuxKind) option.Fn {
-	return func(r option.Receiver) error {
-		v, _ := r.(*optionReceiver)
-		return v.SetKind(k)
+func Logger(l logger) func(*Option) error {
+	return func(o *Option) error {
+		return o.setLogger(l)
 	}
 }
 
-func Logger(l logger.Logger) option.Fn {
-	return func(r option.Receiver) error {
-		v, _ := r.(*optionReceiver)
-		return v.SetLogger(l)
-	}
+func Bone(o *Option) error {
+	return o.setKind(kindBone)
+}
+
+func HTTPRouter(o *Option) error {
+	return o.setKind(kindHTTPRouter)
+}
+
+func Vestigo(o *Option) error {
+	return o.setKind(kindVestigo)
 }

@@ -1,22 +1,27 @@
-package redis
+package redispool
 
 import (
+	"context"
 	"net/url"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
 
-// NewRedisPool returns connection pool to Redis Server.
-func NewRedisPool(addr string, m int, d time.Duration) (*redis.Pool, error) {
-	u, err := url.Parse(addr)
+// New returns connection pool to Redis Server.
+func New(_ context.Context, options ...func(*Option) error) (*redis.Pool, error) {
+	err := defaultOption.override(options...)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(defaultOption.address)
 	if err != nil {
 		return nil, err
 	}
 
 	return &redis.Pool{
-			MaxIdle:     m,
-			IdleTimeout: d,
+			MaxIdle:     defaultOption.maxIdle,
+			IdleTimeout: defaultOption.timeout,
 			Dial: func() (redis.Conn, error) {
 				return redis.Dial("tcp", u.Host)
 			},

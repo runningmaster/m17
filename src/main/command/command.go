@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"main/logger"
-	"main/option"
 	"main/version"
 
 	"github.com/google/subcommands"
@@ -100,16 +98,13 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...inte
 
 // workaround for getting error from specific commands.
 var errExec error
-var logExec logger.Logger
 
 // Execute finds and executes the specific command.
-func Execute(ctx context.Context, options ...option.Fn) (int, error) {
-	opt := &optionReceiver{}
-	err := opt.Receive(options...)
+func Execute(ctx context.Context, options ...func(*Option) error) (int, error) {
+	err := defaultOption.override(options...)
 	if err != nil {
 		return int(subcommands.ExitFailure), err
 	}
-	logExec = opt.log
 
 	status := subcommands.Execute(ctx)
 	return int(status), errExec

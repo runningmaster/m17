@@ -6,33 +6,19 @@ import (
 	"net/http"
 	"strings"
 
-	m "main/mdware"
-	"main/option"
 	"main/router"
 )
 
-var routeTable = map[string]http.Handler{
-	"GET /:foo/bar":   m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
-	"GET /test/:foo":  m.Pipe(m.Head(nil), m.Wrap(test), m.Tail),
-	"GET /redis/ping": m.Pipe(m.Head(nil), m.Wrap(ping), m.Tail),
+type API struct {
+	mux    map[string]http.Handler
+	err404 http.Handler
+	err405 http.Handler
 }
 
-// NewHandler returns HTTP API handler.
-func NewHandler(ctx context.Context, options ...option.Fn) (http.Handler, error) {
-
-	// make redis pool here
-	return makeHTTPRouter(ctx, routeTable)
-}
-
-func makeHTTPRouter(ctx context.Context, t map[string]http.Handler) (router.HTTPRouter, error) {
-
-	r, err := router.New(ctx, router.MuxBone)
-	if err != nil {
-		return nil, err
-	}
-
+func (a *API) WithRouter(r router.Router) (router.Router, error) {
 	var s []string
-	for k, v := range t {
+	var err error
+	for k, v := range a.mux {
 		s = strings.Split(k, " ")
 		if len(s) != 2 {
 			panic("invalid pair method-path")
@@ -43,16 +29,31 @@ func makeHTTPRouter(ctx context.Context, t map[string]http.Handler) (router.HTTP
 		}
 	}
 
-	err = r.Set404(m.Pipe(m.Err4xx(http.StatusNotFound), m.Tail))
+	err = r.Set404(a.err404)
 	if err != nil {
 		return nil, err
 	}
 
-	err = r.Set405(m.Pipe(m.Err4xx(http.StatusMethodNotAllowed), m.Tail))
+	err = r.Set405(a.err405)
 	if err != nil {
 		return nil, err
 	}
 	return r, nil
+}
+
+// New returns API.
+func New(ctx context.Context, options ...func(*Option) error) (*API, error) {
+	err := defaultOption.override(options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &API{
+			mux:    multiplexer,
+			err404: err404,
+			err405: err405,
+		},
+		nil
 }
 
 func test(w http.ResponseWriter, r *http.Request) {

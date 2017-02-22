@@ -1,9 +1,8 @@
-package server
+package redispool
 
 import (
 	"io/ioutil"
 	"log"
-	"net/http"
 	"time"
 )
 
@@ -14,15 +13,15 @@ type logger interface {
 type Option struct {
 	log     logger
 	address string
+	maxIdle int
 	timeout time.Duration
-	handler http.Handler
 }
 
 var defaultOption = &Option{
 	log:     log.New(ioutil.Discard, "", 0),
-	address: "http://127.0.0.1:8080",
+	address: "redis://127.0.0.1:6379",
+	maxIdle: 128,
 	timeout: 60 * time.Second,
-	handler: http.DefaultServeMux,
 }
 
 func (o *Option) setLogger(l logger) error {
@@ -35,13 +34,13 @@ func (o *Option) setAddress(a string) error {
 	return nil
 }
 
-func (o *Option) setTimeout(t time.Duration) error {
-	o.timeout = t
+func (o *Option) setMaxIdle(m int) error {
+	o.maxIdle = m
 	return nil
 }
 
-func (o *Option) setHandler(h http.Handler) error {
-	o.handler = h
+func (o *Option) setTimeout(t time.Duration) error {
+	o.timeout = t
 	return nil
 }
 
@@ -68,14 +67,14 @@ func Address(a string) func(*Option) error {
 	}
 }
 
-func Timeout(t time.Duration) func(*Option) error {
+func MaxIdle(m int) func(*Option) error {
 	return func(o *Option) error {
-		return o.setTimeout(t)
+		return o.setMaxIdle(m)
 	}
 }
 
-func Handler(h http.Handler) func(*Option) error {
+func Timeout(t time.Duration) func(*Option) error {
 	return func(o *Option) error {
-		return o.setHandler(h)
+		return o.setTimeout(t)
 	}
 }

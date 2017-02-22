@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
 	"strings"
 
 	"github.com/go-zoo/bone"
 )
 
-// Make sure the Router conforms with the HTTPRouter interface
-var _ HTTPRouter = newMuxBone(context.Background())
+// Make sure the Router conforms with the Router interface
+var _ Router = newMuxBone(context.Background())
 
 type muxBone struct {
 	ctx    context.Context
@@ -19,7 +18,7 @@ type muxBone struct {
 	set405 http.Handler // Bone does not support MethodNotAllowed handler
 }
 
-func newMuxBone(ctx context.Context) HTTPRouter {
+func newMuxBone(ctx context.Context) Router {
 	return &muxBone{
 		ctx: ctx,
 		mux: bone.New(),

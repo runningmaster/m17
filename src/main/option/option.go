@@ -1,5 +1,6 @@
 package option
 
+// Receiver confirms the possibility to receive options.
 type Receiver interface {
 	Receive(...Fn) error
 }

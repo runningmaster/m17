@@ -8,15 +8,15 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// Make sure the Router conforms with the HTTPRouter interface
-var _ HTTPRouter = newMuxHTTPRouter(context.Background())
+// Make sure the Router conforms with the Router interface
+var _ Router = newMuxHTTPRouter(context.Background())
 
 type muxHTTPRouter struct {
 	ctx context.Context
 	mux *httprouter.Router
 }
 
-func newMuxHTTPRouter(ctx context.Context) HTTPRouter {
+func newMuxHTTPRouter(ctx context.Context) Router {
 	return &muxHTTPRouter{
 		ctx: ctx,
 		mux: httprouter.New(),
