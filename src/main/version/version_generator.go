@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"go/format"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -77,7 +76,7 @@ func main() {
 	}
 
 	outputName := os.Getenv("GOPACKAGE") + string(os.PathSeparator) + *flagFile
-	log.Println("Generated", outputName)
+	fmt.Printf("Generated %s\n", outputName)
 }
 
 func panicWithErr(err error) {
