@@ -6,7 +6,26 @@ import (
 	"net/http"
 
 	"main/router"
+
+	"github.com/garyburd/redigo/redis"
 )
+
+type redisPool interface {
+	Get() redis.Conn
+}
+
+func uuid() string {
+	println("\tuuid")
+	return "UUIDMustBeHereFIXME"
+}
+
+func auth(key string) bool {
+	println("\tauth")
+	if key != "" {
+		return false
+	}
+	return true
+}
 
 func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -19,18 +38,22 @@ func test(w http.ResponseWriter, r *http.Request) {
 	*r = *r.WithContext(ctx)
 }
 
-func ping(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func ping(p redisPool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 
-	res, err := redisPing(ctx)
-	if err != nil {
-		fmt.Fprintf(w, "redis error: %v\n", err)
+		res, err := redisPing(ctx, p.Get())
+		if err != nil {
+			// withFail
+			fmt.Fprintf(w, "redis error: %v\n", err)
 
+		}
+		fmt.Fprintf(w, "redis result: %v\n", string(res))
+		*r = *r.WithContext(ctx)
 	}
-	fmt.Fprintf(w, "redis result: %v\n", string(res))
-	*r = *r.WithContext(ctx)
 }
 
-func redisPing(ctx context.Context) ([]byte, error) {
-	return nil, nil
+func redisPing(_ context.Context, c redis.Conn) ([]byte, error) {
+	defer c.Close()
+	return redis.Bytes(c.Do("PING"))
 }

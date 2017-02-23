@@ -39,12 +39,12 @@ func newServerCommand() subcommands.Command {
 func (c *serverCommand) setFlags(f *flag.FlagSet) {
 	f.StringVar(&c.flag.addr,
 		"addr",
-		"http://127.0.0.1:8080",
+		"http://localhost:8080",
 		"Host server addres",
 	)
 	f.StringVar(&c.flag.redis,
 		"redis",
-		"redis://127.0.0.1:6379",
+		"redis://localhost:6379",
 		"Redis server address",
 	)
 	f.StringVar(&c.flag.secret,
@@ -65,7 +65,7 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 }
 
 func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	p, err := redispool.New(
+	redis, err := redispool.New(
 		redispool.Address(c.flag.redis),
 		redispool.MaxIdle(c.flag.maxIdle),
 		redispool.IdleTimeout(c.flag.timeout),
@@ -74,12 +74,11 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		return err
 	}
 
-	mux := router.NewMuxHTTPRouter(ctx)
 	h, err := api.Handler(
 		ctx,
 		log,
-		mux,
-		p,
+		router.NewMuxVestigo(ctx),
+		redis,
 	)
 	if err != nil {
 		return err
