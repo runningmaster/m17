@@ -89,23 +89,24 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...inte
 	}
 
 	if err != nil {
-		errExec = err
+		errCommandExec = err
 		return subcommands.ExitFailure
 	}
 
 	return subcommands.ExitSuccess
 }
 
-// workaround for getting error from specific commands.
-var errExec error
+type logger interface {
+	Printf(string, ...interface{})
+}
+
+// workaround for passing to specific commands.
+var errCommandExec error
+var log logger
 
 // Execute finds and executes the specific command.
-func Execute(ctx context.Context, options ...func(*Option) error) (int, error) {
-	err := defaultOption.override(options...)
-	if err != nil {
-		return int(subcommands.ExitFailure), err
-	}
-
+func Execute(ctx context.Context, l logger) (int, error) {
+	log = l
 	status := subcommands.Execute(ctx)
-	return int(status), errExec
+	return int(status), errCommandExec
 }

@@ -65,46 +65,31 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 }
 
 func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	l := defaultOption.log
 	p, err := redispool.New(
-		ctx,
 		redispool.Address(c.flag.redis),
 		redispool.MaxIdle(c.flag.maxIdle),
-		redispool.Timeout(c.flag.timeout),
-		redispool.Logger(l),
+		redispool.IdleTimeout(c.flag.timeout),
 	)
 	if err != nil {
 		return err
 	}
 
-	a, err := api.New(
+	mux := router.NewMuxHTTPRouter(ctx)
+	h, err := api.Handler(
 		ctx,
-		api.Redis(p),
-		api.Logger(l),
+		log,
+		mux,
+		p,
 	)
-	if err != nil {
-		return err
-	}
-
-	r, err := router.New(
-		ctx,
-		router.HTTPRouter,
-		router.Logger(l),
-	)
-	if err != nil {
-		return err
-	}
-
-	h, err := a.WithRouter(r)
 	if err != nil {
 		return err
 	}
 
 	return server.ListenAndServe(
 		ctx,
+		log,
 		server.Address(c.flag.addr),
-		server.Timeout(c.flag.timeout),
 		server.Handler(h),
-		server.Logger(l),
+		server.IdleTimeout(c.flag.timeout),
 	)
 }

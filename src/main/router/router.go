@@ -6,38 +6,6 @@ import (
 	"net/http"
 )
 
-type kindMux int
-
-const (
-	kindBone kindMux = iota
-	kindHTTPRouter
-	kindVestigo
-)
-
-var methodMap = map[string]struct{}{
-	"GET":     struct{}{},
-	"POST":    struct{}{},
-	"PUT":     struct{}{},
-	"DELETE":  struct{}{},
-	"HEAD":    struct{}{},
-	"PATCH":   struct{}{},
-	"OPTIONS": struct{}{},
-}
-
-// String is satisfy fmt.Stringer interface.
-func (kind kindMux) String() string {
-	switch kind {
-	case kindBone:
-		return "bone"
-	case kindHTTPRouter:
-		return "httprouter"
-	case kindVestigo:
-		return "vestigo"
-	default:
-		return ("unknown multipexer")
-	}
-}
-
 // Router is interface for implementing in API pakage.
 type Router interface {
 	http.Handler
@@ -52,36 +20,77 @@ type Router interface {
 	Set405(http.Handler) error
 }
 
-// New returns interface Router.
-func New(ctx context.Context, options ...func(*Option) error) (Router, error) {
-	err := defaultOption.override(options...)
-	if err != nil {
-		return nil, err
-	}
-
-	kind := defaultOption.kind
-	switch kind {
-	case kindBone:
-		return newMuxBone(ctx), nil
-	case kindHTTPRouter:
-		return newMuxHTTPRouter(ctx), nil
-	case kindVestigo:
-		return newMuxVestigo(ctx), nil
-	default:
-		return nil, fmt.Errorf("%s not implemented", kind)
-	}
+// New returns interface Router based on "bone" multiplexer.
+func NewMuxBone(ctx context.Context) Router {
+	return newMuxBone(ctx)
 }
+
+// New returns interface Router based on "httprouter" multiplexer.
+func NewMuxHTTPRouter(ctx context.Context) Router {
+	return newMuxHTTPRouter(ctx)
+}
+
+// New returns interface Router based on "vestigo" multiplexer.
+func NewMuxVestigo(ctx context.Context) Router {
+	return newMuxVestigo(ctx)
+}
+
+var (
+	methodMap = map[string]struct{}{
+		"GET":     struct{}{},
+		"POST":    struct{}{},
+		"PUT":     struct{}{},
+		"DELETE":  struct{}{},
+		"HEAD":    struct{}{},
+		"PATCH":   struct{}{},
+		"OPTIONS": struct{}{},
+	}
+	formatErrInvalidValue = "%%v is invalid value"
+)
 
 func validateAddParams(method string, path string, h http.Handler) error {
 	if _, ok := methodMap[method]; !ok {
-		return fmt.Errorf("%v is invalid method", method)
+		return fmt.Errorf(formatErrInvalidValue, method)
 	}
 	if path[0] != '/' {
-		return fmt.Errorf("%v is invalid path", path)
+		return fmt.Errorf(formatErrInvalidValue, path)
 	}
 	if h == nil {
-		return fmt.Errorf("%v is invalid handler", h)
+		return fmt.Errorf(formatErrInvalidValue, h)
 	}
-
 	return nil
+}
+
+// contextParamKey is a unique type to prevent assignment.
+// Its associated value should be a string.
+type contextParamKey struct {
+	name string
+}
+
+// ContextWithParamValue returns a new context based on the provided parent ctx.
+func ContextWithParamValue(ctx context.Context, key, val string) context.Context {
+	return context.WithValue(ctx, contextParamKey{key}, val)
+}
+
+// ParamValueFromContext returns the first value associated with the given key.
+func ParamValueFromContext(ctx context.Context, key string) string {
+	v, _ := ctx.Value(contextParamKey{key}).(string)
+	return v
+}
+
+// contextQueryKey is a unique type to prevent assignment.
+// Its associated value should be a string.
+type contextQueryKey struct {
+	name string
+}
+
+// ContextWithQueryValue returns a new context based on the provided parent ctx.
+func ContextWithQueryValue(ctx context.Context, key, val string) context.Context {
+	return context.WithValue(ctx, contextQueryKey{key}, val)
+}
+
+// QueryValueFromContext returns the first value associated with the given key.
+func QueryValueFromContext(ctx context.Context, key string) string {
+	v, _ := ctx.Value(contextQueryKey{key}).(string)
+	return v
 }
