@@ -2,11 +2,6 @@
 # https://godoc.org/github.com/google/subcommands 
 github.com/google/subcommands
 
-
-# Graceful is a Go 1.3+ package enabling graceful shutdown of http.Handler servers.
-# https://godoc.org/github.com/tylerb/graceful
-github.com/tylerb/graceful
-
 # Lightning Fast HTTP Multiplexer
 # https://godoc.org/github.com/go-zoo/bone
 github.com/go-zoo/bone
