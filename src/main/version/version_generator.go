@@ -76,7 +76,7 @@ func main() {
 	}
 
 	outputName := os.Getenv("GOPACKAGE") + string(os.PathSeparator) + *flagFile
-	fmt.Printf("Generated %s\n", outputName)
+	fmt.Printf("go:generate -> %s\n", outputName)
 }
 
 func panicWithErr(err error) {
