@@ -14,8 +14,8 @@ import (
 	//"github.com/rogpeppe/fastuuid"
 )
 
-// pipe joins several middleware in one pipeline.
-func pipe(pipes ...func(http.Handler) http.Handler) http.Handler {
+// use joins several middleware in one pipeline.
+func use(pipes ...func(http.Handler) http.Handler) http.Handler {
 	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// tail code may be here
 	})

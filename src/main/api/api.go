@@ -17,16 +17,16 @@ type logger interface {
 // Handler returns http.Handler based on given router.
 func Handler(ctx context.Context, l logger, r router.Router, p *redis.Pool) (http.Handler, error) {
 	api := prepareAPI(l, p)
-	err404 := pipe(err4xx(http.StatusNotFound), tail(l))
-	err405 := pipe(err4xx(http.StatusMethodNotAllowed), tail(l))
+	err404 := use(err4xx(http.StatusNotFound), tail(l))
+	err405 := use(err4xx(http.StatusMethodNotAllowed), tail(l))
 	return prepareRouter(r, api, err404, err405)
 }
 
 func prepareAPI(l logger, p *redis.Pool) map[string]http.Handler {
 	return map[string]http.Handler{
-		"GET /:foo/bar":   pipe(head, auth, gzip, read, body(test), tail(l)),
-		"GET /test/:foo":  pipe(head, auth, gzip, read, body(test), tail(l)),
-		"GET /redis/ping": pipe(head, auth, gzip, read, body(ping(p)), tail(l)),
+		"GET /:foo/bar":   use(head, auth, gzip, read, body(test), tail(l)),
+		"GET /test/:foo":  use(head, auth, gzip, read, body(test), tail(l)),
+		"GET /redis/ping": use(head, auth, gzip, read, body(ping(p)), tail(l)),
 	}
 }
 
