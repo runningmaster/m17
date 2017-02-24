@@ -5,10 +5,11 @@ import (
 	"flag"
 	"time"
 
+	"internal/redispool"
+	"internal/router"
+	"internal/server"
+
 	"main/api"
-	"main/redispool"
-	"main/router"
-	"main/server"
 
 	"github.com/google/subcommands"
 )

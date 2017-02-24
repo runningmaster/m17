@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"main/router"
+	"internal/router"
 
 	"github.com/garyburd/redigo/redis"
 )

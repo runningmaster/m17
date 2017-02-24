@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"main/router"
+	"internal/router"
 
 	"github.com/garyburd/redigo/redis"
 )

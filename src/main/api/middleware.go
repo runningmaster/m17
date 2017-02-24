@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"main/gzippool"
+	"internal/gzippool"
 
 	"github.com/nats-io/nuid"
 	//"github.com/rogpeppe/fastuuid"
