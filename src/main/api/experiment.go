@@ -14,19 +14,6 @@ type redisPool interface {
 	Get() redis.Conn
 }
 
-func uuid() string {
-	println("\tuuid")
-	return "UUIDMustBeHereFIXME"
-}
-
-func xxxx(key string) bool {
-	println("\tauth")
-	if key != "" {
-		return false
-	}
-	return true
-}
-
 func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

@@ -1,23 +1,26 @@
 # Package subcommands implements a simple way for a single command to have many subcommands, each of which takes arguments and so forth.
-# https://godoc.org/github.com/google/subcommands 
 github.com/google/subcommands
 
 # Lightning Fast HTTP Multiplexer
-# https://godoc.org/github.com/go-zoo/bone
 github.com/go-zoo/bone
 
 # Package vestigo implements a performant, stand-alone, HTTP compliant URL Router for go web applications. 
-# https://godoc.org/github.com/husobee/vestigo
 github.com/husobee/vestigo
 
 # Package httprouter is a trie based high performance HTTP request router.
-# https://godoc.org/github.com/julienschmidt/httprouter
 github.com/julienschmidt/httprouter
 
 # Package redis is a client for the Redis database.
-# https://godoc.org/github.com/garyburd/redigo/redis
 github.com/garyburd/redigo/redis
 
+# Package fastuuid provides fast UUID generation of 192 bit universally unique identifiers.
+#github.com/rogpeppe/fastuuid
+
+# A unique identifier generator that is high performance, very fast, and tries to be entropy pool friendly.
+github.com/nats-io/nuid
+
+# This package is based on an optimized Deflate function, which is used by gzip/zip/zlib packages.
+github.com/klauspost/compress/gzip
+
 # Package errors provides simple error handling primitives.
-# https://godoc.org/github.com/pkg/errors
 #github.com/pkg/errors

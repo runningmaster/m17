@@ -24,9 +24,9 @@ func Handler(ctx context.Context, l logger, r router.Router, p *redis.Pool) (htt
 
 func prepareAPI(l logger, p *redis.Pool) map[string]http.Handler {
 	return map[string]http.Handler{
-		"GET /:foo/bar":   pipe(head(uuid), auth(nil), gzip, wrap(test), tail(l)),
-		"GET /test/:foo":  pipe(head(uuid), auth(nil), gzip, wrap(test), tail(l)),
-		"GET /redis/ping": pipe(head(uuid), auth(nil), gzip, wrap(ping(p)), tail(l)),
+		"GET /:foo/bar":   pipe(head, auth, gzip, read, body(test), tail(l)),
+		"GET /test/:foo":  pipe(head, auth, gzip, read, body(test), tail(l)),
+		"GET /redis/ping": pipe(head, auth, gzip, read, body(ping(p)), tail(l)),
 	}
 }
 

@@ -2,7 +2,16 @@ package api
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net"
 	"net/http"
+	"strings"
+	"time"
+
+	"main/gzippool"
+
+	"github.com/nats-io/nuid"
+	//"github.com/rogpeppe/fastuuid"
 )
 
 // pipe joins several middleware in one pipeline.
@@ -16,7 +25,7 @@ func pipe(pipes ...func(http.Handler) http.Handler) http.Handler {
 	return h
 }
 
-// err4xx is wrapper for NotFound and MethodNotAllowed error handlers
+// err4xx is wrapper for NotFound and MethodNotAllowed error handlers.
 func err4xx(code int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -30,88 +39,121 @@ func err4xx(code int) func(http.Handler) http.Handler {
 	}
 }
 
-// auth puts to context FIXME
-func auth(authFn func(string) bool) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			println("auth")
-			ctx := r.Context()
-
-			if authFn != nil {
-				authFn("")
-			}
-
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
-		})
+func mineHost(r *http.Request) string {
+	var v string
+	if v = r.Header.Get("X-Forwarded-For"); v == "" {
+		if v = r.Header.Get("X-Real-IP"); v == "" {
+			v = r.RemoteAddr
+		}
 	}
+
+	v, _, _ = net.SplitHostPort(v)
+	return v
 }
 
-// head puts to context FIXME
-func head(uuidFn func() string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			println("head")
-			ctx := r.Context()
-
-			if uuidFn != nil {
-				uuidFn()
-			}
-
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func gzip(next http.Handler) http.Handler {
+func head(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		println("gzip")
 		ctx := r.Context()
-		/*
-			err := failFrom(ctx)
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
+		err := errorFromContext(ctx)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
 
-			if gziputil.InString(r.Header.Get("Content-Encoding")) {
-				z, err := gziputil.GetReader()
-				if err != nil {
-					ctx = withFail(ctx, err)
-				}
-				defer func() { _ = gziputil.PutReader(z) }()
-				err = z.Reset(r.Body)
-				if err != nil {
-					ctx = withFail(ctx, err)
-				}
-				r.Body = z
-			}
+		ctx = contextWithTime(ctx, time.Now())
+		ctx = contextWithHost(ctx, mineHost(r))
+		ctx = contextWithUser(ctx, r.UserAgent())
+		ctx = contextWithUUID(ctx, nuid.Next())
 
-			if gziputil.InString(r.Header.Get("Accept-Encoding")) {
-				z, err := gziputil.GetWriter()
-				if err != nil {
-					ctx = withFail(ctx, err)
-				}
-				defer func() { _ = gziputil.PutWriter(z) }()
-				z.Reset(w)
-				w = gziputil.ResponseWriter{Writer: z, ResponseWriter: w}
-				w.Header().Add("Vary", "Accept-Encoding")
-				w.Header().Set("Content-Encoding", "gzip")
-			}
-		*/
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
 }
 
-// tail puts to context FIXME
-func tail(log logger) func(http.Handler) http.Handler {
+func auth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errorFromContext(ctx)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// TODO:
+		// authFunc()
+		// here
+
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func gzip(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errorFromContext(ctx)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			z := gzippool.GetReader()
+			defer gzippool.PutReader(z)
+
+			_ = z.Reset(r.Body)
+			r.Body = z
+		}
+
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			z := gzippool.GetWriter()
+			defer gzippool.PutWriter(z)
+
+			z.Reset(w)
+			w = gzippool.NewResponseWriter(z, w)
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Add("Vary", "Accept-Encoding")
+		}
+
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func read(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errorFromContext(ctx)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			ctx = contextWithError(ctx, err)
+			println(err)
+		}
+		ctx = contextWithClen(ctx, int64(len(b)))
+		ctx = contextWithData(ctx, b)
+		_ = r.Body.Close()
+
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func body(h http.HandlerFunc) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
+			err := errorFromContext(ctx)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-			log.Printf("tail\n")
+			h(w, r) // stdh
 
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
@@ -119,26 +161,32 @@ func tail(log logger) func(http.Handler) http.Handler {
 	}
 }
 
-// tail ends habdlers pipeline.
-//func tail(next http.Handler) http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		ctx := r.Context()
-//		fmt.Println("TailMDWare")
-//		r = r.WithContext(ctx)
-//		next.ServeHTTP(w, r)
-//	})
-//}
-
-// wrap is wrapper for user http.HandlerFunc
-func wrap(h http.HandlerFunc) func(http.Handler) http.Handler {
+func tail(log logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			fmt.Println("WrapMDWare")
-			h(w, r) // stdh
+			if log == nil {
+				panic(fmt.Sprintf("%v log", log))
+			}
 
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
+			ctx := r.Context()
+			err := errorFromContext(ctx)
+			if err != nil {
+				log.Printf("Error: %s\n", err.Error())
+				return
+			}
+
+			log.Printf(
+				"%s %s %s %s %d\n",
+				timeFromContext(ctx),
+				hostFromContext(ctx),
+				userFromContext(ctx),
+				uuidFromContext(ctx),
+				clenFromContext(ctx),
+			)
+
+			// The End
+			//r = r.WithContext(ctx)
+			//next.ServeHTTP(w, r)
 		})
 	}
 }

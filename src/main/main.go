@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -17,8 +16,6 @@ type logger interface {
 	Printf(string, ...interface{})
 }
 
-var _ logger = log.New(ioutil.Discard, "", 0)
-
 // common pattern:
 // main -> command(flags, env) -> some deps -> router -> api -> server.ListenAndServe()
 func main() {
@@ -26,6 +23,8 @@ func main() {
 
 	ctx := context.Background()
 	log := log.New(os.Stderr, "", log.LstdFlags)
+	var _ logger = log // check interface
+
 	if isSystemdBasedOS() {
 		log.SetFlags(0)
 	}
