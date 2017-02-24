@@ -30,17 +30,32 @@ func err4xx(code int) func(http.Handler) http.Handler {
 	}
 }
 
+// auth puts to context FIXME
+func auth(authFn func(string) bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			println("auth")
+			ctx := r.Context()
+
+			if authFn != nil {
+				authFn("")
+			}
+
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // head puts to context FIXME
-func head(uuid func() string, auth func(string) bool) func(http.Handler) http.Handler {
+func head(uuidFn func() string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			println("head")
 			ctx := r.Context()
-			if uuid != nil {
-				uuid()
-			}
-			if auth != nil {
-				auth("")
+
+			if uuidFn != nil {
+				uuidFn()
 			}
 
 			r = r.WithContext(ctx)

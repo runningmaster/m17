@@ -19,7 +19,7 @@ func uuid() string {
 	return "UUIDMustBeHereFIXME"
 }
 
-func auth(key string) bool {
+func xxxx(key string) bool {
 	println("\tauth")
 	if key != "" {
 		return false
