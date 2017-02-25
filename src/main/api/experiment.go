@@ -10,7 +10,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-type redisPool interface {
+type redisConner interface {
 	Get() redis.Conn
 }
 
@@ -25,11 +25,11 @@ func test(w http.ResponseWriter, r *http.Request) {
 	*r = *r.WithContext(ctx)
 }
 
-func ping(p redisPool) http.HandlerFunc {
+func ping(c redisConner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		res, err := redisPing(ctx, p.Get())
+		res, err := redisPing(ctx, c.Get())
 		if err != nil {
 			// withFail
 			fmt.Fprintf(w, "redis error: %v\n", err)

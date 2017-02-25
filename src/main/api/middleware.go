@@ -14,14 +14,37 @@ import (
 	//"github.com/rogpeppe/fastuuid"
 )
 
-// use joins several middleware in one pipeline.
-func use(pipes ...func(http.Handler) http.Handler) http.Handler {
-	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// tail code may be here
-	})
+type pipe struct {
+	headPipe []func(http.Handler) http.Handler
+	tailPipe []func(http.Handler) http.Handler
+}
+
+func (p *pipe) head(pipes ...func(http.Handler) http.Handler) {
+	for i := range pipes {
+		p.headPipe = append(p.headPipe, pipes[i])
+	}
+}
+
+func (p *pipe) tail(pipes ...func(http.Handler) http.Handler) {
+	for i := range pipes {
+		p.tailPipe = append(p.tailPipe, pipes[i])
+	}
+}
+
+// join joins several middleware in one pipeline.
+func (p *pipe) join(pipes ...func(http.Handler) http.Handler) http.Handler {
+	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+
+	for i := len(p.tailPipe) - 1; i >= 0; i-- {
+		h = p.tailPipe[i](h)
+	}
 	for i := len(pipes) - 1; i >= 0; i-- {
 		h = pipes[i](h)
 	}
+	for i := len(p.headPipe) - 1; i >= 0; i-- {
+		h = p.headPipe[i](h)
+	}
+
 	return h
 }
 
@@ -30,8 +53,9 @@ func err4xx(code int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			msg := fmt.Sprintf("%d %s", code, http.StatusText(code))
-			http.Error(w, msg, code)
+
+			err := fmt.Errorf("%d %s", code, http.StatusText(code))
+			ctx = contextWithError(ctx, err)
 
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
@@ -39,19 +63,7 @@ func err4xx(code int) func(http.Handler) http.Handler {
 	}
 }
 
-func mineHost(r *http.Request) string {
-	var v string
-	if v = r.Header.Get("X-Forwarded-For"); v == "" {
-		if v = r.Header.Get("X-Real-IP"); v == "" {
-			v = r.RemoteAddr
-		}
-	}
-
-	v, _, _ = net.SplitHostPort(v)
-	return v
-}
-
-func head(next http.Handler) http.Handler {
+func uuid(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
@@ -68,6 +80,18 @@ func head(next http.Handler) http.Handler {
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
+}
+
+func mineHost(r *http.Request) string {
+	var v string
+	if v = r.Header.Get("X-Forwarded-For"); v == "" {
+		if v = r.Header.Get("X-Real-IP"); v == "" {
+			v = r.RemoteAddr
+		}
+	}
+
+	v, _, _ = net.SplitHostPort(v)
+	return v
 }
 
 func auth(next http.Handler) http.Handler {
@@ -132,7 +156,6 @@ func read(next http.Handler) http.Handler {
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			ctx = contextWithError(ctx, err)
-			println(err)
 		}
 		ctx = contextWithClen(ctx, int64(len(b)))
 		ctx = contextWithData(ctx, b)
@@ -143,7 +166,7 @@ func read(next http.Handler) http.Handler {
 	})
 }
 
-func body(h http.HandlerFunc) func(http.Handler) http.Handler {
+func skipIfError(h http.HandlerFunc) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -161,7 +184,21 @@ func body(h http.HandlerFunc) func(http.Handler) http.Handler {
 	}
 }
 
-func tail(log logger) func(http.Handler) http.Handler {
+func resp(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errorFromContext(ctx)
+		if err != nil {
+			//next.ServeHTTP(w, r)
+			//return
+		}
+
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func logg(log logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if log == nil {

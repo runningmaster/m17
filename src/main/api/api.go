@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"internal/router"
-
-	"github.com/garyburd/redigo/redis"
 )
 
 type logger interface {
@@ -15,18 +13,26 @@ type logger interface {
 }
 
 // Handler returns http.Handler based on given router.
-func Handler(ctx context.Context, l logger, r router.Router, p *redis.Pool) (http.Handler, error) {
-	api := prepareAPI(l, p)
-	err404 := use(err4xx(http.StatusNotFound), tail(l))
-	err405 := use(err4xx(http.StatusMethodNotAllowed), tail(l))
+func Handler(ctx context.Context, l logger, r router.Router, c redisConner) (http.Handler, error) {
+	api := prepareAPI(l, c)
+
+	p := &pipe{}
+	p.tail(logg(l))
+	err404 := p.join(err4xx(http.StatusNotFound))
+	err405 := p.join(err4xx(http.StatusMethodNotAllowed))
+
 	return prepareRouter(r, api, err404, err405)
 }
 
-func prepareAPI(l logger, p *redis.Pool) map[string]http.Handler {
+func prepareAPI(l logger, c redisConner) map[string]http.Handler {
+	p := &pipe{}
+	p.head(uuid, auth, gzip, read)
+	p.tail(logg(l))
+
 	return map[string]http.Handler{
-		"GET /:foo/bar":   use(head, auth, gzip, read, body(test), tail(l)),
-		"GET /test/:foo":  use(head, auth, gzip, read, body(test), tail(l)),
-		"GET /redis/ping": use(head, auth, gzip, read, body(ping(p)), tail(l)),
+		"GET /:foo/bar":   p.join(skipIfError(test)),
+		"GET /test/:foo":  p.join(skipIfError(test)),
+		"GET /redis/ping": p.join(skipIfError(ping(c))),
 	}
 }
 
