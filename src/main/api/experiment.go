@@ -14,6 +14,20 @@ type redisConner interface {
 	Get() redis.Conn
 }
 
+func stdh(debugFn func() bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if debugFn == nil || !debugFn() {
+			ctx := r.Context()
+			ctx = contextWithError(ctx, fmt.Errorf("underconstruction"), http.StatusForbidden)
+			*r = *r.WithContext(ctx)
+			return
+		}
+		if h, p := http.DefaultServeMux.Handler(r); p != "" {
+			h.ServeHTTP(w, r)
+		}
+	}
+}
+
 func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -29,18 +43,16 @@ func ping(c redisConner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		res, err := redisPing(ctx, c.Get())
+		v, err := redisPing(ctx, c.Get())
 		if err != nil {
-			// withFail
-			fmt.Fprintf(w, "redis error: %v\n", err)
-
+			ctx = contextWithError(ctx, err, http.StatusInternalServerError)
 		}
-		fmt.Fprintf(w, "redis result: %v\n", string(res))
+		ctx = contextWithResult(ctx, v)
 		*r = *r.WithContext(ctx)
 	}
 }
 
-func redisPing(_ context.Context, c redis.Conn) ([]byte, error) {
+func redisPing(_ context.Context, c redis.Conn) (interface{}, error) {
 	defer c.Close()
-	return redis.Bytes(c.Do("PING"))
+	return c.Do("PING")
 }

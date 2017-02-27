@@ -18,21 +18,35 @@ func Handler(ctx context.Context, l logger, r router.Router, c redisConner) (htt
 
 	p := &pipe{}
 	p.tail(logg(l))
-	err404 := p.join(err4xx(http.StatusNotFound))
-	err405 := p.join(err4xx(http.StatusMethodNotAllowed))
+	err404 := p.join(errCode(http.StatusNotFound))
+	err405 := p.join(errCode(http.StatusMethodNotAllowed))
 
 	return prepareRouter(r, api, err404, err405)
 }
 
 func prepareAPI(l logger, c redisConner) map[string]http.Handler {
 	p := &pipe{}
-	p.head(uuid, auth, gzip, read)
-	p.tail(logg(l))
+	p.head(uuid, auth, gunzip)
+	// -> join result below will be here <-
+	p.tail(gzip, mrshl, resp, errf, logg(l))
 
 	return map[string]http.Handler{
-		"GET /:foo/bar":   p.join(skipIfError(test)),
-		"GET /test/:foo":  p.join(skipIfError(test)),
-		"GET /redis/ping": p.join(skipIfError(ping(c))),
+		"GET /:foo/bar":   p.join(wrap(http.HandlerFunc(test))),
+		"GET /test/:foo":  p.join(wrap(http.HandlerFunc(test))),
+		"GET /redis/ping": p.join(wrap(ping(c))),
+
+		// => Debug mode only, when pref.Debug == true
+		"GET /debug/vars":               p.join(wrap(stdh(nil))), // expvar
+		"GET /debug/pprof/":             p.join(wrap(stdh(nil))), // net/http/pprof
+		"GET /debug/pprof/cmdline":      p.join(wrap(stdh(nil))), // net/http/pprof
+		"GET /debug/pprof/profile":      p.join(wrap(stdh(nil))), // net/http/pprof
+		"GET /debug/pprof/symbol":       p.join(wrap(stdh(nil))), // net/http/pprof
+		"GET /debug/pprof/trace":        p.join(wrap(stdh(nil))), // net/http/pprof
+		"GET /debug/pprof/goroutine":    p.join(wrap(stdh(nil))), // runtime/pprof
+		"GET /debug/pprof/threadcreate": p.join(wrap(stdh(nil))), // runtime/pprof
+		"GET /debug/pprof/heap":         p.join(wrap(stdh(nil))), // runtime/pprof
+		"GET /debug/pprof/block":        p.join(wrap(stdh(nil))), // runtime/pprof
+
 	}
 }
 

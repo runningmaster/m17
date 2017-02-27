@@ -7,6 +7,9 @@ import (
 	"os"
 	"os/exec"
 
+	_ "expvar"
+	_ "net/http/pprof"
+
 	"main/command"
 )
 

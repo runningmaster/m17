@@ -1,10 +1,13 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,37 +51,33 @@ func (p *pipe) join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	return h
 }
 
-// err4xx is wrapper for NotFound and MethodNotAllowed error handlers.
-func err4xx(code int) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
+// errCode is wrapper for NotFound and MethodNotAllowed error handlers.
+func errCode(code int) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-
-			err := fmt.Errorf("%d %s", code, http.StatusText(code))
-			ctx = contextWithError(ctx, err)
+			ctx = contextWithError(ctx, fmt.Errorf("router this said"), code)
 
 			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
+			h.ServeHTTP(w, r)
 		})
 	}
 }
 
-func uuid(next http.Handler) http.Handler {
+func uuid(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		err := errorFromContext(ctx)
-		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		ctx = contextWithTime(ctx, time.Now())
 		ctx = contextWithHost(ctx, mineHost(r))
 		ctx = contextWithUser(ctx, r.UserAgent())
-		ctx = contextWithUUID(ctx, nuid.Next())
+		uuid := nuid.Next()
+		ctx = contextWithUUID(ctx, uuid)
+
+		w.Header().Set("X-Powered-By", fmt.Sprintf("go version %s", runtime.Version()))
+		w.Header().Set("X-Request-ID", uuid)
 
 		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(w, r)
 	})
 }
 
@@ -94,79 +93,61 @@ func mineHost(r *http.Request) string {
 	return v
 }
 
-func auth(next http.Handler) http.Handler {
+func auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		err := errorFromContext(ctx)
-		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
 
-		// TODO:
-		// authFunc()
-		// here
+		// TODO: authFunc() here
+
+		// code := http.StatusUnauthorized
+		// err := errByCode(code)
+		// ctx = contextWithError(ctx, err, code)
+
+		// code = http.StatusForbidden
+		// err := errByCode(code)
+		// ctx = contextWithError(ctx, err, code)
 
 		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(w, r)
 	})
 }
 
-func gzip(next http.Handler) http.Handler {
+func gunzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
 		if err != nil {
-			next.ServeHTTP(w, r)
+			h.ServeHTTP(w, r)
 			return
 		}
 
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			z := gzippool.GetReader()
 			defer gzippool.PutReader(z)
-
 			_ = z.Reset(r.Body)
 			r.Body = z
 		}
 
+		h.ServeHTTP(w, r)
+	})
+}
+
+func gzip(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			z := gzippool.GetWriter()
 			defer gzippool.PutWriter(z)
-
 			z.Reset(w)
 			w = gzippool.NewResponseWriter(z, w)
 			w.Header().Set("Content-Encoding", "gzip")
 			w.Header().Add("Vary", "Accept-Encoding")
 		}
 
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(w, r)
 	})
 }
 
-func read(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		err := errorFromContext(ctx)
-		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			ctx = contextWithError(ctx, err)
-		}
-		ctx = contextWithClen(ctx, int64(len(b)))
-		ctx = contextWithData(ctx, b)
-		_ = r.Body.Close()
-
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func skipIfError(h http.HandlerFunc) func(http.Handler) http.Handler {
+func wrap(h http.Handler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -176,42 +157,134 @@ func skipIfError(h http.HandlerFunc) func(http.Handler) http.Handler {
 				return
 			}
 
-			h(w, r) // stdh
+			b, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+			}
+			ctx = contextWithClen(ctx, int64(len(b)))
+			ctx = contextWithData(ctx, b)
+			_ = r.Body.Close()
 
 			r = r.WithContext(ctx)
+			h.ServeHTTP(w, r)
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-func resp(next http.Handler) http.Handler {
+func mrshl(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
 		if err != nil {
-			//next.ServeHTTP(w, r)
-			//return
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		res := resultFromContext(ctx)
+		if w.Header().Get("Content-Type") == "" {
+			b, err := json.Marshal(res)
+			if err != nil {
+				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+			} else {
+				ctx = contextWithResponse(ctx, b)
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			}
+		} else {
+			if v, ok := res.([]byte); !ok {
+				ctx = contextWithError(ctx, fmt.Errorf("%v result", v), http.StatusInternalServerError)
+			} else {
+				ctx = contextWithResponse(ctx, v)
+			}
 		}
 
 		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(w, r)
+	})
+}
+
+func resp(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errorFromContext(ctx)
+		if err != nil {
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		// skip if stdh executed
+		if cl := w.Header().Get("Content-Length"); cl != "" {
+			v, err := strconv.ParseInt(cl, 10, 64)
+			if err != nil {
+				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+			}
+			ctx = contextWithSize(ctx, v)
+
+			r = r.WithContext(ctx)
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		resp := responseFromContext(ctx)
+		if resp == nil {
+			ctx = contextWithError(ctx, fmt.Errorf("%v response", resp), http.StatusInternalServerError)
+
+			r = r.WithContext(ctx)
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		code := codeFromContext(ctx)
+		w.WriteHeader(code)
+
+		n, err := w.Write(resp)
+		if err != nil {
+			ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+		}
+		_, err = w.Write([]byte("\n"))
+		if err != nil {
+			ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+		} else {
+			n++
+		}
+		ctx = contextWithSize(ctx, int64(n))
+
+		r = r.WithContext(ctx)
+		h.ServeHTTP(w, r)
+	})
+}
+
+func errf(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errorFromContext(ctx)
+		if err != nil {
+			msg := fmt.Sprintf("%s\n", err.Error())
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+			code := codeFromContext(ctx)
+			w.WriteHeader(code)
+
+			n, err := w.Write([]byte(msg))
+			if err != nil {
+				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+			}
+			ctx = contextWithSize(ctx, int64(n))
+			r = r.WithContext(ctx)
+		}
+
+		h.ServeHTTP(w, r)
 	})
 }
 
 func logg(log logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if log == nil {
 				panic(fmt.Sprintf("%v log", log))
 			}
 
 			ctx := r.Context()
-			err := errorFromContext(ctx)
-			if err != nil {
-				log.Printf("Error: %s\n", err.Error())
-				return
-			}
-
 			log.Printf(
 				"%s %s %s %s %d\n",
 				timeFromContext(ctx),
@@ -221,9 +294,7 @@ func logg(log logger) func(http.Handler) http.Handler {
 				clenFromContext(ctx),
 			)
 
-			// The End
-			//r = r.WithContext(ctx)
-			//next.ServeHTTP(w, r)
+			h.ServeHTTP(w, r)
 		})
 	}
 }
