@@ -56,7 +56,7 @@ func errCode(code int) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			ctx = contextWithError(ctx, fmt.Errorf("router this said"), code)
+			ctx = contextWithError(ctx, fmt.Errorf("router says"), code)
 
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
@@ -147,7 +147,29 @@ func gzip(h http.Handler) http.Handler {
 	})
 }
 
-func wrap(h http.Handler) func(http.Handler) http.Handler {
+func body(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errorFromContext(ctx)
+		if err != nil || r.Method != "POST" || r.Method != "PUT" {
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			ctx = contextWithError(ctx, err, http.StatusBadRequest)
+		}
+		ctx = contextWithClen(ctx, int64(len(b)))
+		ctx = contextWithData(ctx, b)
+		_ = r.Body.Close()
+
+		r = r.WithContext(ctx)
+		h.ServeHTTP(w, r)
+	})
+}
+
+func exec(h http.Handler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -157,15 +179,6 @@ func wrap(h http.Handler) func(http.Handler) http.Handler {
 				return
 			}
 
-			b, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
-			}
-			ctx = contextWithClen(ctx, int64(len(b)))
-			ctx = contextWithData(ctx, b)
-			_ = r.Body.Close()
-
-			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 			next.ServeHTTP(w, r)
 		})

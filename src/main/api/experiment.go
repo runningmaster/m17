@@ -14,17 +14,9 @@ type redisConner interface {
 	Get() redis.Conn
 }
 
-func stdh(debugFn func() bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if debugFn == nil || !debugFn() {
-			ctx := r.Context()
-			ctx = contextWithError(ctx, fmt.Errorf("underconstruction"), http.StatusForbidden)
-			*r = *r.WithContext(ctx)
-			return
-		}
-		if h, p := http.DefaultServeMux.Handler(r); p != "" {
-			h.ServeHTTP(w, r)
-		}
+func stdh(w http.ResponseWriter, r *http.Request) {
+	if h, p := http.DefaultServeMux.Handler(r); p != "" {
+		h.ServeHTTP(w, r)
 	}
 }
 
@@ -36,7 +28,9 @@ func test(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Query foo: %s\n", router.QueryValueFromContext(ctx, "foo"))
 	v, _ := ctx.Value("foo").(string)
 	fmt.Fprintf(w, "Value foo: %s\n", v)
+
 	*r = *r.WithContext(ctx)
+
 }
 
 func ping(c redisConner) http.HandlerFunc {

@@ -26,26 +26,26 @@ func Handler(ctx context.Context, l logger, r router.Router, c redisConner) (htt
 
 func prepareAPI(l logger, c redisConner) map[string]http.Handler {
 	p := &pipe{}
-	p.head(uuid, auth, gunzip)
+	p.head(uuid, auth, gunzip, gzip, body)
 	// -> join result below will be here <-
-	p.tail(gzip, mrshl, resp, errf, logg(l))
+	p.tail(mrshl, resp, errf, logg(l))
 
 	return map[string]http.Handler{
-		"GET /:foo/bar":   p.join(wrap(http.HandlerFunc(test))),
-		"GET /test/:foo":  p.join(wrap(http.HandlerFunc(test))),
-		"GET /redis/ping": p.join(wrap(ping(c))),
+		"GET /:foo/bar":   p.join(exec(http.HandlerFunc(test))),
+		"GET /test/:foo":  p.join(exec(http.HandlerFunc(test))),
+		"GET /redis/ping": p.join(exec(ping(c))),
 
 		// => Debug mode only, when pref.Debug == true
-		"GET /debug/vars":               p.join(wrap(stdh(nil))), // expvar
-		"GET /debug/pprof/":             p.join(wrap(stdh(nil))), // net/http/pprof
-		"GET /debug/pprof/cmdline":      p.join(wrap(stdh(nil))), // net/http/pprof
-		"GET /debug/pprof/profile":      p.join(wrap(stdh(nil))), // net/http/pprof
-		"GET /debug/pprof/symbol":       p.join(wrap(stdh(nil))), // net/http/pprof
-		"GET /debug/pprof/trace":        p.join(wrap(stdh(nil))), // net/http/pprof
-		"GET /debug/pprof/goroutine":    p.join(wrap(stdh(nil))), // runtime/pprof
-		"GET /debug/pprof/threadcreate": p.join(wrap(stdh(nil))), // runtime/pprof
-		"GET /debug/pprof/heap":         p.join(wrap(stdh(nil))), // runtime/pprof
-		"GET /debug/pprof/block":        p.join(wrap(stdh(nil))), // runtime/pprof
+		"GET /debug/vars":               p.join(exec(http.HandlerFunc(stdh))), // expvar
+		"GET /debug/pprof/":             p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
+		"GET /debug/pprof/cmdline":      p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
+		"GET /debug/pprof/profile":      p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
+		"GET /debug/pprof/symbol":       p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
+		"GET /debug/pprof/trace":        p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
+		"GET /debug/pprof/goroutine":    p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
+		"GET /debug/pprof/threadcreate": p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
+		"GET /debug/pprof/heap":         p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
+		"GET /debug/pprof/block":        p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
 
 	}
 }
