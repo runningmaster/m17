@@ -3,10 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 
 	m "internal/middleware"
 	"internal/router"
+
+	"github.com/garyburd/redigo/redis"
 )
 
 func test(w http.ResponseWriter, r *http.Request) {
@@ -26,14 +29,18 @@ func ping(rdb rediser) http.HandlerFunc {
 		ctx := r.Context()
 
 		res, err := pingRedis(ctx, rdb)
-		ctx = m.ContextWithError(ctx, err, http.StatusInternalServerError)
+		if err != nil {
+			ctx = m.ContextWithError(ctx, err)
+		}
 		ctx = m.ContextWithResult(ctx, res)
 		*r = *r.WithContext(ctx)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	})
 }
 
 func pingRedis(_ context.Context, rdb rediser) (interface{}, error) {
 	c := rdb.Get()
-	defer c.Close()
-	return c.Do("PING")
+	defer func(c io.Closer) { _ = c.Close }(c)
+
+	return redis.Bytes(c.Do("PING"))
 }

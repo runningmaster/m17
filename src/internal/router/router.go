@@ -20,17 +20,17 @@ type Router interface {
 	Set405(http.Handler) error
 }
 
-// New returns interface Router based on "bone" multiplexer.
+// NewMuxBone returns interface Router based on "bone" multiplexer.
 func NewMuxBone(ctx context.Context) Router {
 	return newMuxBone(ctx)
 }
 
-// New returns interface Router based on "httprouter" multiplexer.
+// NewMuxHTTPRouter returns interface Router based on "httprouter" multiplexer.
 func NewMuxHTTPRouter(ctx context.Context) Router {
 	return newMuxHTTPRouter(ctx)
 }
 
-// New returns interface Router based on "vestigo" multiplexer.
+// NewMuxVestigo returns interface Router based on "vestigo" multiplexer.
 func NewMuxVestigo(ctx context.Context) Router {
 	return newMuxVestigo(ctx)
 }

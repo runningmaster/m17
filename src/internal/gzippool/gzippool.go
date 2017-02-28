@@ -37,7 +37,7 @@ func GetReader() *gzip.Reader {
 	return readerPool.Get().(*gzip.Reader)
 }
 
-// PutReadCloser closes reader and puts it back to the pool.
+// PutReader closes reader and puts it back to the pool.
 func PutReader(c io.Closer) {
 	if c != nil {
 		_ = c.Close()

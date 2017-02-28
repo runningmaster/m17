@@ -44,16 +44,16 @@ func prepareAPI(l logger, rdb rediser) map[string]http.Handler {
 		"GET /redis/ping": p.Join(m.Exec(ping(rdb))),
 
 		// => Debug mode only, when pref.Debug == true
-		"GET /debug/vars":               p.Join(m.Exec(m.StdH)), // expvar
-		"GET /debug/pprof/":             p.Join(m.Exec(m.StdH)), // net/http/pprof
-		"GET /debug/pprof/cmdline":      p.Join(m.Exec(m.StdH)), // net/http/pprof
-		"GET /debug/pprof/profile":      p.Join(m.Exec(m.StdH)), // net/http/pprof
-		"GET /debug/pprof/symbol":       p.Join(m.Exec(m.StdH)), // net/http/pprof
-		"GET /debug/pprof/trace":        p.Join(m.Exec(m.StdH)), // net/http/pprof
-		"GET /debug/pprof/goroutine":    p.Join(m.Exec(m.StdH)), // runtime/pprof
-		"GET /debug/pprof/threadcreate": p.Join(m.Exec(m.StdH)), // runtime/pprof
-		"GET /debug/pprof/heap":         p.Join(m.Exec(m.StdH)), // runtime/pprof
-		"GET /debug/pprof/block":        p.Join(m.Exec(m.StdH)), // runtime/pprof
+		"GET /debug/vars":               p.Join(m.Exec(m.Stdh)), // expvar
+		"GET /debug/pprof/":             p.Join(m.Exec(m.Stdh)), // net/http/pprof
+		"GET /debug/pprof/cmdline":      p.Join(m.Exec(m.Stdh)), // net/http/pprof
+		"GET /debug/pprof/profile":      p.Join(m.Exec(m.Stdh)), // net/http/pprof
+		"GET /debug/pprof/symbol":       p.Join(m.Exec(m.Stdh)), // net/http/pprof
+		"GET /debug/pprof/trace":        p.Join(m.Exec(m.Stdh)), // net/http/pprof
+		"GET /debug/pprof/goroutine":    p.Join(m.Exec(m.Stdh)), // runtime/pprof
+		"GET /debug/pprof/threadcreate": p.Join(m.Exec(m.Stdh)), // runtime/pprof
+		"GET /debug/pprof/heap":         p.Join(m.Exec(m.Stdh)), // runtime/pprof
+		"GET /debug/pprof/block":        p.Join(m.Exec(m.Stdh)), // runtime/pprof
 
 	}
 }
@@ -89,6 +89,6 @@ func uuid() string {
 	return nuid.Next()
 }
 
-func auth(r *http.Request) (int, error) {
-	return http.StatusOK, nil
+func auth(r *http.Request) (string, int, error) {
+	return "anonymous", http.StatusOK, nil
 }

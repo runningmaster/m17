@@ -14,25 +14,32 @@ import (
 	"internal/gzippool"
 )
 
+type logger interface {
+	Printf(string, ...interface{})
+}
+
+// Pipe does
 type Pipe struct {
 	before []func(http.Handler) http.Handler
-	// Join(...)
+	// Join(...) here
 	after []func(http.Handler) http.Handler
 }
 
+// BeforeJoin joins middleware handlers in order executing before Join method.
 func (p *Pipe) BeforeJoin(pipes ...func(http.Handler) http.Handler) {
 	for i := range pipes {
 		p.before = append(p.before, pipes[i])
 	}
 }
 
+// AfterJoin joins middleware handlers in order executing before Join method.
 func (p *Pipe) AfterJoin(pipes ...func(http.Handler) http.Handler) {
 	for i := range pipes {
 		p.after = append(p.after, pipes[i])
 	}
 }
 
-// Join joins several middleware in one pipeline.
+// Join joins several middlewares in one pipeline.
 func (p *Pipe) Join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
@@ -49,6 +56,7 @@ func (p *Pipe) Join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	return h
 }
 
+// Head does some actions the first in handlers pipeline.  Must be first in pipeline.
 func Head(uuidFn func() string) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -70,16 +78,18 @@ func Head(uuidFn func() string) func(http.Handler) http.Handler {
 	}
 }
 
-func Auth(authFn func(*http.Request) (int, error)) func(http.Handler) http.Handler {
+// Auth checks user's access to service.
+func Auth(authFn func(*http.Request) (string, int, error)) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if authFn != nil {
-				code, err := authFn(r)
+				ctx := r.Context()
+				name, code, err := authFn(r)
 				if err != nil {
-					ctx := r.Context()
 					ctx = contextWithError(ctx, err, code)
-					r = r.WithContext(ctx)
 				}
+				ctx = contextWithAuth(ctx, name)
+				r = r.WithContext(ctx)
 			}
 
 			h.ServeHTTP(w, r)
@@ -99,6 +109,7 @@ func mineHost(r *http.Request) string {
 	return v
 }
 
+// Gzip wraps reader and writer for decompress and ompress data.
 func Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
@@ -128,11 +139,17 @@ func Gzip(h http.Handler) http.Handler {
 	})
 }
 
+// Body reads data from Request.Body into context.Conext.
 func Body(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
-		if err != nil || r.Method != "POST" || r.Method != "PUT" {
+		if err != nil {
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		if !strings.HasPrefix(r.Method, "P") {
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -150,6 +167,7 @@ func Body(h http.Handler) http.Handler {
 	})
 }
 
+// Exec execites main user handler for registared URL.
 func Exec(v interface{}) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -174,6 +192,7 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 	}
 }
 
+// JSON makes JSON from data. Must be before response.
 func JSON(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -187,14 +206,14 @@ func JSON(h http.Handler) http.Handler {
 		if w.Header().Get("Content-Type") == "" {
 			b, err := json.Marshal(res)
 			if err != nil {
-				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+				ctx = contextWithError(ctx, err)
 			} else {
 				ctx = contextWithData(ctx, b)
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			}
 		} else {
 			if v, ok := res.([]byte); !ok {
-				ctx = contextWithError(ctx, fmt.Errorf("%v result", v), http.StatusInternalServerError)
+				ctx = contextWithError(ctx, fmt.Errorf("result must be []byte"))
 			} else {
 				ctx = contextWithData(ctx, v)
 			}
@@ -205,6 +224,7 @@ func JSON(h http.Handler) http.Handler {
 	})
 }
 
+// Resp writes result data to response.
 func Resp(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -216,11 +236,12 @@ func Resp(h http.Handler) http.Handler {
 
 		// skip if stdh executed
 		if cl := w.Header().Get("Content-Length"); cl != "" {
-			v, err := strconv.ParseInt(cl, 10, 64)
+			var val int64
+			val, err = strconv.ParseInt(cl, 10, 64)
 			if err != nil {
-				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+				ctx = contextWithError(ctx, err)
 			}
-			ctx = contextWithSize(ctx, v)
+			ctx = contextWithSize(ctx, val)
 
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
@@ -229,7 +250,7 @@ func Resp(h http.Handler) http.Handler {
 
 		data := dataFromContext(ctx)
 		if data == nil {
-			ctx = contextWithError(ctx, fmt.Errorf("%v data", data), http.StatusInternalServerError)
+			ctx = contextWithError(ctx, fmt.Errorf("%v data", data))
 
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
@@ -241,11 +262,11 @@ func Resp(h http.Handler) http.Handler {
 
 		n, err := w.Write(data)
 		if err != nil {
-			ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+			ctx = contextWithError(ctx, err)
 		}
 		_, err = w.Write([]byte("\n"))
 		if err != nil {
-			ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+			ctx = contextWithError(ctx, err)
 		} else {
 			n++
 		}
@@ -256,6 +277,7 @@ func Resp(h http.Handler) http.Handler {
 	})
 }
 
+// Fail writes error message to response. Must be after resp.
 func Fail(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -269,7 +291,7 @@ func Fail(h http.Handler) http.Handler {
 
 			n, err := w.Write([]byte(msg))
 			if err != nil {
-				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
+				ctx = contextWithError(ctx, err)
 			}
 			ctx = contextWithSize(ctx, int64(n))
 			r = r.WithContext(ctx)
@@ -292,10 +314,7 @@ func ErrCode(code int) func(http.Handler) http.Handler {
 	}
 }
 
-type logger interface {
-	Printf(string, ...interface{})
-}
-
+// Tail does some last actions (logging, send metrics). Must be in the end of pipe.
 func Tail(log logger) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -304,13 +323,22 @@ func Tail(log logger) func(http.Handler) http.Handler {
 			}
 
 			ctx := r.Context()
+			err := errorFromContext(ctx)
+			var errText string
+			if err != nil {
+				errText = fmt.Sprintf(" %s", err.Error())
+			}
 			log.Printf(
-				"%s %s %s %s %d\n",
+				"%s %s %s %s %s %d %d %d%s\n",
 				timeFromContext(ctx),
 				hostFromContext(ctx),
 				userFromContext(ctx),
 				uuidFromContext(ctx),
+				authFromContext(ctx),
 				clenFromContext(ctx),
+				sizeFromContext(ctx),
+				codeFromContext(ctx),
+				errText,
 			)
 
 			h.ServeHTTP(w, r)
@@ -318,7 +346,8 @@ func Tail(log logger) func(http.Handler) http.Handler {
 	}
 }
 
-func StdH(w http.ResponseWriter, r *http.Request) {
+// Stdh executes standard handlers regestered in http.DefaultServeMux.
+func Stdh(w http.ResponseWriter, r *http.Request) {
 	if h, p := http.DefaultServeMux.Handler(r); p != "" {
 		h.ServeHTTP(w, r)
 	}

@@ -24,17 +24,30 @@ func contextWithCode(ctx context.Context, v int) context.Context {
 
 func codeFromContext(ctx context.Context) int {
 	v, _ := ctx.Value(codeContextKey).(int)
+	if v == 0 {
+		return http.StatusOK
+	}
 	return v
 }
 
 // errorContextKey is a context key. The associated value will be of type error.
 var errorContextKey = &contextKey{"error"}
 
-func ContextWithError(ctx context.Context, err error, code int) context.Context {
-	return contextWithError(ctx, err, code)
+// ContextWithError returns context.Context with err and code.
+func ContextWithError(ctx context.Context, err error, codes ...int) context.Context {
+	return contextWithError(ctx, err, codes...)
 }
 
-func contextWithError(ctx context.Context, err error, code int) context.Context {
+func contextWithError(ctx context.Context, err error, codes ...int) context.Context {
+	if err == nil {
+		return ctx
+	}
+
+	code := http.StatusInternalServerError
+	for i := range codes {
+		code = codes[i] // last is true, amen
+	}
+
 	err = fmt.Errorf("%d %s: %s", code, http.StatusText(code), err.Error())
 	ctx = context.WithValue(ctx, errorContextKey, err)
 	return contextWithCode(ctx, code)
@@ -124,6 +137,11 @@ func contextWithBody(ctx context.Context, v []byte) context.Context {
 	return context.WithValue(ctx, bodyContextKey, v)
 }
 
+// BodyFromContext returns request body content.
+func BodyFromContext(ctx context.Context) []byte {
+	return bodyFromContext(ctx)
+}
+
 func bodyFromContext(ctx context.Context) []byte {
 	v, _ := ctx.Value(bodyContextKey).([]byte)
 	return v
@@ -132,6 +150,7 @@ func bodyFromContext(ctx context.Context) []byte {
 // resultContextKey is a context key. The associated value will be of type interface{}.
 var resultContextKey = &contextKey{"result"}
 
+// ContextWithResult returns context.Context value.
 func ContextWithResult(ctx context.Context, v interface{}) context.Context {
 	return contextWithResult(ctx, v)
 }
