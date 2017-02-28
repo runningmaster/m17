@@ -3,5 +3,5 @@
 
 go list ./... | grep -v vendor/ | xargs -L1 go generate
 go list ./... | grep -v vendor/ | xargs -L1 go fmt
-go install -race main
+go install -ldflags "-s -w" -race main
 mv -f $GOPATH/bin/main $GOPATH/bin/$PROJNAME
