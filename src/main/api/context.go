@@ -113,15 +113,15 @@ func clenFromContext(ctx context.Context) int64 {
 	return v
 }
 
-// dataContextKey is a context key. The associated value will be of type []byte.
-var dataContextKey = &contextKey{"data"}
+// bodyContextKey is a context key. The associated value will be of type []byte.
+var bodyContextKey = &contextKey{"body"}
 
-func contextWithData(ctx context.Context, v []byte) context.Context {
-	return context.WithValue(ctx, dataContextKey, v)
+func contextWithBody(ctx context.Context, v []byte) context.Context {
+	return context.WithValue(ctx, bodyContextKey, v)
 }
 
-func dataFromContext(ctx context.Context) []byte {
-	v, _ := ctx.Value(dataContextKey).([]byte)
+func bodyFromContext(ctx context.Context) []byte {
+	v, _ := ctx.Value(bodyContextKey).([]byte)
 	return v
 }
 
@@ -136,15 +136,15 @@ func resultFromContext(ctx context.Context) interface{} {
 	return ctx.Value(resultContextKey)
 }
 
-// responseContextKey is a context key. The associated value will be of type []byte.
-var responseContextKey = &contextKey{"response"}
+// dataContextKey is a context key. The associated value will be of type []byte.
+var dataContextKey = &contextKey{"data"}
 
-func contextWithResponse(ctx context.Context, v []byte) context.Context {
-	return context.WithValue(ctx, responseContextKey, v)
+func contextWithData(ctx context.Context, v []byte) context.Context {
+	return context.WithValue(ctx, dataContextKey, v)
 }
 
-func responseFromContext(ctx context.Context) []byte {
-	v, _ := ctx.Value(responseContextKey).([]byte)
+func dataFromContext(ctx context.Context) []byte {
+	v, _ := ctx.Value(dataContextKey).([]byte)
 	return v
 }
 

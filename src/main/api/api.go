@@ -18,34 +18,33 @@ func Handler(ctx context.Context, l logger, r router.Router, c redisConner) (htt
 
 	p := &pipe{}
 	p.tail(logg(l))
-	err404 := p.join(errCode(http.StatusNotFound))
-	err405 := p.join(errCode(http.StatusMethodNotAllowed))
+	err404 := p.join(codeErr(http.StatusNotFound))
+	err405 := p.join(codeErr(http.StatusMethodNotAllowed))
 
 	return prepareRouter(r, api, err404, err405)
 }
 
 func prepareAPI(l logger, c redisConner) map[string]http.Handler {
 	p := &pipe{}
-	p.head(uuid, auth, gunzip, gzip, body)
-	// -> join result below will be here <-
-	p.tail(mrshl, resp, errf, logg(l))
+	p.head(uuid, auth, gunzip, gzip, body) // before join
+	p.tail(mrshl, resp, errf, logg(l))     // after join
 
 	return map[string]http.Handler{
-		"GET /:foo/bar":   p.join(exec(http.HandlerFunc(test))),
-		"GET /test/:foo":  p.join(exec(http.HandlerFunc(test))),
+		"GET /:foo/bar":   p.join(exec(test)),
+		"GET /test/:foo":  p.join(exec(test)),
 		"GET /redis/ping": p.join(exec(ping(c))),
 
 		// => Debug mode only, when pref.Debug == true
-		"GET /debug/vars":               p.join(exec(http.HandlerFunc(stdh))), // expvar
-		"GET /debug/pprof/":             p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
-		"GET /debug/pprof/cmdline":      p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
-		"GET /debug/pprof/profile":      p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
-		"GET /debug/pprof/symbol":       p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
-		"GET /debug/pprof/trace":        p.join(exec(http.HandlerFunc(stdh))), // net/http/pprof
-		"GET /debug/pprof/goroutine":    p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
-		"GET /debug/pprof/threadcreate": p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
-		"GET /debug/pprof/heap":         p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
-		"GET /debug/pprof/block":        p.join(exec(http.HandlerFunc(stdh))), // runtime/pprof
+		"GET /debug/vars":               p.join(exec(stdh)), // expvar
+		"GET /debug/pprof/":             p.join(exec(stdh)), // net/http/pprof
+		"GET /debug/pprof/cmdline":      p.join(exec(stdh)), // net/http/pprof
+		"GET /debug/pprof/profile":      p.join(exec(stdh)), // net/http/pprof
+		"GET /debug/pprof/symbol":       p.join(exec(stdh)), // net/http/pprof
+		"GET /debug/pprof/trace":        p.join(exec(stdh)), // net/http/pprof
+		"GET /debug/pprof/goroutine":    p.join(exec(stdh)), // runtime/pprof
+		"GET /debug/pprof/threadcreate": p.join(exec(stdh)), // runtime/pprof
+		"GET /debug/pprof/heap":         p.join(exec(stdh)), // runtime/pprof
+		"GET /debug/pprof/block":        p.join(exec(stdh)), // runtime/pprof
 
 	}
 }

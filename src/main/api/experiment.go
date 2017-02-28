@@ -30,11 +30,10 @@ func test(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Value foo: %s\n", v)
 
 	*r = *r.WithContext(ctx)
-
 }
 
 func ping(c redisConner) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		v, err := redisPing(ctx, c.Get())
@@ -43,7 +42,7 @@ func ping(c redisConner) http.HandlerFunc {
 		}
 		ctx = contextWithResult(ctx, v)
 		*r = *r.WithContext(ctx)
-	}
+	})
 }
 
 func redisPing(_ context.Context, c redis.Conn) (interface{}, error) {

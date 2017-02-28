@@ -51,8 +51,8 @@ func (p *pipe) join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	return h
 }
 
-// errCode is wrapper for NotFound and MethodNotAllowed error handlers.
-func errCode(code int) func(http.Handler) http.Handler {
+// codeErr is wrapper for NotFound and MethodNotAllowed error handlers.
+func codeErr(code int) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -161,7 +161,7 @@ func body(h http.Handler) http.Handler {
 			ctx = contextWithError(ctx, err, http.StatusBadRequest)
 		}
 		ctx = contextWithClen(ctx, int64(len(b)))
-		ctx = contextWithData(ctx, b)
+		ctx = contextWithBody(ctx, b)
 		_ = r.Body.Close()
 
 		r = r.WithContext(ctx)
@@ -169,7 +169,7 @@ func body(h http.Handler) http.Handler {
 	})
 }
 
-func exec(h http.Handler) func(http.Handler) http.Handler {
+func exec(v interface{}) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -179,7 +179,15 @@ func exec(h http.Handler) func(http.Handler) http.Handler {
 				return
 			}
 
-			h.ServeHTTP(w, r)
+			switch h := v.(type) {
+			case http.HandlerFunc:
+				h(w, r)
+			case http.Handler:
+				h.ServeHTTP(w, r)
+			default:
+				panic("unknown handler")
+			}
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -200,14 +208,14 @@ func mrshl(h http.Handler) http.Handler {
 			if err != nil {
 				ctx = contextWithError(ctx, err, http.StatusInternalServerError)
 			} else {
-				ctx = contextWithResponse(ctx, b)
+				ctx = contextWithData(ctx, b)
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			}
 		} else {
 			if v, ok := res.([]byte); !ok {
 				ctx = contextWithError(ctx, fmt.Errorf("%v result", v), http.StatusInternalServerError)
 			} else {
-				ctx = contextWithResponse(ctx, v)
+				ctx = contextWithData(ctx, v)
 			}
 		}
 
@@ -238,9 +246,9 @@ func resp(h http.Handler) http.Handler {
 			return
 		}
 
-		resp := responseFromContext(ctx)
-		if resp == nil {
-			ctx = contextWithError(ctx, fmt.Errorf("%v response", resp), http.StatusInternalServerError)
+		data := dataFromContext(ctx)
+		if data == nil {
+			ctx = contextWithError(ctx, fmt.Errorf("%v data", data), http.StatusInternalServerError)
 
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
@@ -250,7 +258,7 @@ func resp(h http.Handler) http.Handler {
 		code := codeFromContext(ctx)
 		w.WriteHeader(code)
 
-		n, err := w.Write(resp)
+		n, err := w.Write(data)
 		if err != nil {
 			ctx = contextWithError(ctx, err, http.StatusInternalServerError)
 		}
