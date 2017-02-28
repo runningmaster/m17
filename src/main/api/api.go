@@ -5,46 +5,55 @@ import (
 	"net/http"
 	"strings"
 
+	m "internal/middleware"
 	"internal/router"
+
+	"github.com/garyburd/redigo/redis"
+	"github.com/nats-io/nuid"
+	//"github.com/rogpeppe/fastuuid"
 )
 
 type logger interface {
 	Printf(string, ...interface{})
 }
 
-// Handler returns http.Handler based on given router.
-func Handler(ctx context.Context, l logger, r router.Router, c redisConner) (http.Handler, error) {
-	api := prepareAPI(l, c)
+type rediser interface {
+	Get() redis.Conn
+}
 
-	p := &pipe{}
-	p.tail(logg(l))
-	err404 := p.join(codeErr(http.StatusNotFound))
-	err405 := p.join(codeErr(http.StatusMethodNotAllowed))
+// Handler returns http.Handler based on given router.
+func Handler(ctx context.Context, l logger, r router.Router, rdb rediser) (http.Handler, error) {
+	api := prepareAPI(l, rdb)
+
+	p := &m.Pipe{}
+	p.AfterJoin(m.Tail(l))
+	err404 := p.Join(m.ErrCode(http.StatusNotFound))
+	err405 := p.Join(m.ErrCode(http.StatusMethodNotAllowed))
 
 	return prepareRouter(r, api, err404, err405)
 }
 
-func prepareAPI(l logger, c redisConner) map[string]http.Handler {
-	p := &pipe{}
-	p.head(uuid, auth, gunzip, gzip, body) // before join
-	p.tail(mrshl, resp, errf, logg(l))     // after join
+func prepareAPI(l logger, rdb rediser) map[string]http.Handler {
+	p := &m.Pipe{}
+	p.BeforeJoin(m.Head(uuid), m.Auth(auth), m.Gzip, m.Body)
+	p.AfterJoin(m.JSON, m.Resp, m.Fail, m.Tail(l))
 
 	return map[string]http.Handler{
-		"GET /:foo/bar":   p.join(exec(test)),
-		"GET /test/:foo":  p.join(exec(test)),
-		"GET /redis/ping": p.join(exec(ping(c))),
+		"GET /:foo/bar":   p.Join(m.Exec(test)),
+		"GET /test/:foo":  p.Join(m.Exec(test)),
+		"GET /redis/ping": p.Join(m.Exec(ping(rdb))),
 
 		// => Debug mode only, when pref.Debug == true
-		"GET /debug/vars":               p.join(exec(stdh)), // expvar
-		"GET /debug/pprof/":             p.join(exec(stdh)), // net/http/pprof
-		"GET /debug/pprof/cmdline":      p.join(exec(stdh)), // net/http/pprof
-		"GET /debug/pprof/profile":      p.join(exec(stdh)), // net/http/pprof
-		"GET /debug/pprof/symbol":       p.join(exec(stdh)), // net/http/pprof
-		"GET /debug/pprof/trace":        p.join(exec(stdh)), // net/http/pprof
-		"GET /debug/pprof/goroutine":    p.join(exec(stdh)), // runtime/pprof
-		"GET /debug/pprof/threadcreate": p.join(exec(stdh)), // runtime/pprof
-		"GET /debug/pprof/heap":         p.join(exec(stdh)), // runtime/pprof
-		"GET /debug/pprof/block":        p.join(exec(stdh)), // runtime/pprof
+		"GET /debug/vars":               p.Join(m.Exec(m.StdH)), // expvar
+		"GET /debug/pprof/":             p.Join(m.Exec(m.StdH)), // net/http/pprof
+		"GET /debug/pprof/cmdline":      p.Join(m.Exec(m.StdH)), // net/http/pprof
+		"GET /debug/pprof/profile":      p.Join(m.Exec(m.StdH)), // net/http/pprof
+		"GET /debug/pprof/symbol":       p.Join(m.Exec(m.StdH)), // net/http/pprof
+		"GET /debug/pprof/trace":        p.Join(m.Exec(m.StdH)), // net/http/pprof
+		"GET /debug/pprof/goroutine":    p.Join(m.Exec(m.StdH)), // runtime/pprof
+		"GET /debug/pprof/threadcreate": p.Join(m.Exec(m.StdH)), // runtime/pprof
+		"GET /debug/pprof/heap":         p.Join(m.Exec(m.StdH)), // runtime/pprof
+		"GET /debug/pprof/block":        p.Join(m.Exec(m.StdH)), // runtime/pprof
 
 	}
 }
@@ -74,4 +83,12 @@ func prepareRouter(r router.Router, api map[string]http.Handler, err404, err405 
 	}
 
 	return r, nil
+}
+
+func uuid() string {
+	return nuid.Next()
+}
+
+func auth(r *http.Request) (int, error) {
+	return http.StatusOK, nil
 }

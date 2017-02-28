@@ -1,4 +1,4 @@
-package api
+package middleware
 
 import (
 	"encoding/json"
@@ -12,73 +12,79 @@ import (
 	"time"
 
 	"internal/gzippool"
-
-	"github.com/nats-io/nuid"
-	//"github.com/rogpeppe/fastuuid"
 )
 
-type pipe struct {
-	headPipe []func(http.Handler) http.Handler
-	tailPipe []func(http.Handler) http.Handler
+type Pipe struct {
+	before []func(http.Handler) http.Handler
+	// Join(...)
+	after []func(http.Handler) http.Handler
 }
 
-func (p *pipe) head(pipes ...func(http.Handler) http.Handler) {
+func (p *Pipe) BeforeJoin(pipes ...func(http.Handler) http.Handler) {
 	for i := range pipes {
-		p.headPipe = append(p.headPipe, pipes[i])
+		p.before = append(p.before, pipes[i])
 	}
 }
 
-func (p *pipe) tail(pipes ...func(http.Handler) http.Handler) {
+func (p *Pipe) AfterJoin(pipes ...func(http.Handler) http.Handler) {
 	for i := range pipes {
-		p.tailPipe = append(p.tailPipe, pipes[i])
+		p.after = append(p.after, pipes[i])
 	}
 }
 
-// join joins several middleware in one pipeline.
-func (p *pipe) join(pipes ...func(http.Handler) http.Handler) http.Handler {
+// Join joins several middleware in one pipeline.
+func (p *Pipe) Join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
-	for i := len(p.tailPipe) - 1; i >= 0; i-- {
-		h = p.tailPipe[i](h)
+	for i := len(p.after) - 1; i >= 0; i-- {
+		h = p.after[i](h)
 	}
 	for i := len(pipes) - 1; i >= 0; i-- {
 		h = pipes[i](h)
 	}
-	for i := len(p.headPipe) - 1; i >= 0; i-- {
-		h = p.headPipe[i](h)
+	for i := len(p.before) - 1; i >= 0; i-- {
+		h = p.before[i](h)
 	}
 
 	return h
 }
 
-// codeErr is wrapper for NotFound and MethodNotAllowed error handlers.
-func codeErr(code int) func(http.Handler) http.Handler {
+func Head(uuidFn func() string) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			ctx = contextWithError(ctx, fmt.Errorf("router says"), code)
+			ctx = contextWithTime(ctx, time.Now())
+			ctx = contextWithHost(ctx, mineHost(r))
+			ctx = contextWithUser(ctx, r.UserAgent())
 
+			if uuidFn != nil {
+				uuid := uuidFn()
+				ctx = contextWithUUID(ctx, uuid)
+				w.Header().Set("X-Request-ID", uuid)
+			}
+
+			w.Header().Set("X-Powered-By", fmt.Sprintf("go version %s", runtime.Version()))
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 		})
 	}
 }
 
-func uuid(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		ctx = contextWithTime(ctx, time.Now())
-		ctx = contextWithHost(ctx, mineHost(r))
-		ctx = contextWithUser(ctx, r.UserAgent())
-		uuid := nuid.Next()
-		ctx = contextWithUUID(ctx, uuid)
+func Auth(authFn func(*http.Request) (int, error)) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if authFn != nil {
+				code, err := authFn(r)
+				if err != nil {
+					ctx := r.Context()
+					ctx = contextWithError(ctx, err, code)
+					r = r.WithContext(ctx)
+				}
+			}
 
-		w.Header().Set("X-Powered-By", fmt.Sprintf("go version %s", runtime.Version()))
-		w.Header().Set("X-Request-ID", uuid)
-
-		r = r.WithContext(ctx)
-		h.ServeHTTP(w, r)
-	})
+			h.ServeHTTP(w, r)
+		})
+	}
 }
 
 func mineHost(r *http.Request) string {
@@ -93,47 +99,22 @@ func mineHost(r *http.Request) string {
 	return v
 }
 
-func auth(h http.Handler) http.Handler {
+func Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		// TODO: authFunc() here
-
-		// code := http.StatusUnauthorized
-		// err := errByCode(code)
-		// ctx = contextWithError(ctx, err, code)
-
-		// code = http.StatusForbidden
-		// err := errByCode(code)
-		// ctx = contextWithError(ctx, err, code)
-
-		r = r.WithContext(ctx)
-		h.ServeHTTP(w, r)
-	})
-}
-
-func gunzip(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		err := errorFromContext(ctx)
-		if err != nil {
-			h.ServeHTTP(w, r)
-			return
-		}
-
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			ctx := r.Context()
+			err := errorFromContext(ctx)
+			if err != nil {
+				h.ServeHTTP(w, r)
+				return
+			}
+
 			z := gzippool.GetReader()
 			defer gzippool.PutReader(z)
 			_ = z.Reset(r.Body)
 			r.Body = z
 		}
 
-		h.ServeHTTP(w, r)
-	})
-}
-
-func gzip(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			z := gzippool.GetWriter()
 			defer gzippool.PutWriter(z)
@@ -147,7 +128,7 @@ func gzip(h http.Handler) http.Handler {
 	})
 }
 
-func body(h http.Handler) http.Handler {
+func Body(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
@@ -169,7 +150,7 @@ func body(h http.Handler) http.Handler {
 	})
 }
 
-func exec(v interface{}) func(http.Handler) http.Handler {
+func Exec(v interface{}) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -193,7 +174,7 @@ func exec(v interface{}) func(http.Handler) http.Handler {
 	}
 }
 
-func mrshl(h http.Handler) http.Handler {
+func JSON(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
@@ -224,7 +205,7 @@ func mrshl(h http.Handler) http.Handler {
 	})
 }
 
-func resp(h http.Handler) http.Handler {
+func Resp(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
@@ -275,7 +256,7 @@ func resp(h http.Handler) http.Handler {
 	})
 }
 
-func errf(h http.Handler) http.Handler {
+func Fail(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
@@ -298,7 +279,24 @@ func errf(h http.Handler) http.Handler {
 	})
 }
 
-func logg(log logger) func(http.Handler) http.Handler {
+// ErrCode is wrapper for NotFound and MethodNotAllowed error handlers.
+func ErrCode(code int) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			ctx = contextWithError(ctx, fmt.Errorf("router says"), code)
+
+			r = r.WithContext(ctx)
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+type logger interface {
+	Printf(string, ...interface{})
+}
+
+func Tail(log logger) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if log == nil {
@@ -317,5 +315,11 @@ func logg(log logger) func(http.Handler) http.Handler {
 
 			h.ServeHTTP(w, r)
 		})
+	}
+}
+
+func StdH(w http.ResponseWriter, r *http.Request) {
+	if h, p := http.DefaultServeMux.Handler(r); p != "" {
+		h.ServeHTTP(w, r)
 	}
 }

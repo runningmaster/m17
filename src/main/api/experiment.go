@@ -5,20 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	m "internal/middleware"
 	"internal/router"
-
-	"github.com/garyburd/redigo/redis"
 )
-
-type redisConner interface {
-	Get() redis.Conn
-}
-
-func stdh(w http.ResponseWriter, r *http.Request) {
-	if h, p := http.DefaultServeMux.Handler(r); p != "" {
-		h.ServeHTTP(w, r)
-	}
-}
 
 func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -32,20 +21,19 @@ func test(w http.ResponseWriter, r *http.Request) {
 	*r = *r.WithContext(ctx)
 }
 
-func ping(c redisConner) http.HandlerFunc {
+func ping(rdb rediser) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		v, err := redisPing(ctx, c.Get())
-		if err != nil {
-			ctx = contextWithError(ctx, err, http.StatusInternalServerError)
-		}
-		ctx = contextWithResult(ctx, v)
+		res, err := pingRedis(ctx, rdb)
+		ctx = m.ContextWithError(ctx, err, http.StatusInternalServerError)
+		ctx = m.ContextWithResult(ctx, res)
 		*r = *r.WithContext(ctx)
 	})
 }
 
-func redisPing(_ context.Context, c redis.Conn) (interface{}, error) {
+func pingRedis(_ context.Context, rdb rediser) (interface{}, error) {
+	c := rdb.Get()
 	defer c.Close()
 	return c.Do("PING")
 }

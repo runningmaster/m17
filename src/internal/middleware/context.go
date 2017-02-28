@@ -1,4 +1,4 @@
-package api
+package middleware
 
 import (
 	"context"
@@ -29,6 +29,10 @@ func codeFromContext(ctx context.Context) int {
 
 // errorContextKey is a context key. The associated value will be of type error.
 var errorContextKey = &contextKey{"error"}
+
+func ContextWithError(ctx context.Context, err error, code int) context.Context {
+	return contextWithError(ctx, err, code)
+}
 
 func contextWithError(ctx context.Context, err error, code int) context.Context {
 	err = fmt.Errorf("%d %s: %s", code, http.StatusText(code), err.Error())
@@ -127,6 +131,10 @@ func bodyFromContext(ctx context.Context) []byte {
 
 // resultContextKey is a context key. The associated value will be of type interface{}.
 var resultContextKey = &contextKey{"result"}
+
+func ContextWithResult(ctx context.Context, v interface{}) context.Context {
+	return contextWithResult(ctx, v)
+}
 
 func contextWithResult(ctx context.Context, v interface{}) context.Context {
 	return context.WithValue(ctx, resultContextKey, v)
