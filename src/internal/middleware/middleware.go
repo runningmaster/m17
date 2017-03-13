@@ -179,7 +179,7 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 			}
 
 			switch h := v.(type) {
-			case http.HandlerFunc:
+			case func(http.ResponseWriter, *http.Request):
 				h(w, r)
 			case http.Handler:
 				h.ServeHTTP(w, r)
