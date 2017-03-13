@@ -1,14 +1,15 @@
 package middleware
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"runtime"
-	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"internal/gzippool"
@@ -233,17 +234,8 @@ func Resp(h http.Handler) http.Handler {
 			h.ServeHTTP(w, r)
 			return
 		}
-
 		// skip if stdh executed
-		if cl := w.Header().Get("Content-Length"); cl != "" {
-			var val int64
-			val, err = strconv.ParseInt(cl, 10, 64)
-			if err != nil {
-				ctx = contextWithError(ctx, err)
-			}
-			ctx = contextWithSize(ctx, val)
-
-			r = r.WithContext(ctx)
+		if sizeFromContext(ctx) > 0 {
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -349,6 +341,37 @@ func Tail(log logger) func(http.Handler) http.Handler {
 // Stdh executes standard handlers regestered in http.DefaultServeMux.
 func Stdh(w http.ResponseWriter, r *http.Request) {
 	if h, p := http.DefaultServeMux.Handler(r); p != "" {
-		h.ServeHTTP(w, r)
+		ctx := r.Context()
+		shw := &stdhResponseWriter{w: w}
+		h.ServeHTTP(shw, r)
+		ctx = contextWithSize(ctx, int64(shw.n))
+		*r = *r.WithContext(ctx)
 	}
+}
+
+type stdhResponseWriter struct {
+	n uint64
+	w http.ResponseWriter
+}
+
+func (w *stdhResponseWriter) Write(b []byte) (int, error) {
+	n, err := w.w.Write(b)
+	atomic.AddUint64(&w.n, uint64(n))
+	return n, err
+}
+
+func (w *stdhResponseWriter) Header() http.Header {
+	return w.w.Header()
+}
+
+func (w *stdhResponseWriter) WriteHeader(statusCode int) {
+	w.w.WriteHeader(statusCode)
+}
+
+func (w *stdhResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return w.w.(http.Hijacker).Hijack()
+}
+
+func (w *stdhResponseWriter) Count() uint64 {
+	return atomic.LoadUint64(&w.n)
 }
