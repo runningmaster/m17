@@ -26,7 +26,7 @@ func Handler(ctx context.Context, l logger, r router.Router, rdb rediser) (http.
 	api := prepareAPI(l, rdb)
 
 	p := &m.Pipe{}
-	p.AfterJoin(m.Tail(l))
+	p.AfterJoin(m.Fail, m.Tail(l))
 	err404 := p.Join(m.ErrCode(http.StatusNotFound))
 	err405 := p.Join(m.ErrCode(http.StatusMethodNotAllowed))
 
