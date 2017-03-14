@@ -203,6 +203,12 @@ func JSON(h http.Handler) http.Handler {
 			return
 		}
 
+		// skip if stdh executed
+		if sizeFromContext(ctx) > 0 {
+			h.ServeHTTP(w, r)
+			return
+		}
+
 		res := resultFromContext(ctx)
 		if w.Header().Get("Content-Type") == "" {
 			b, err := json.Marshal(res)
@@ -234,6 +240,7 @@ func Resp(h http.Handler) http.Handler {
 			h.ServeHTTP(w, r)
 			return
 		}
+
 		// skip if stdh executed
 		if sizeFromContext(ctx) > 0 {
 			h.ServeHTTP(w, r)
