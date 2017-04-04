@@ -16,7 +16,7 @@ type logger interface {
 }
 
 // ListenAndServe starts HTTP server.
-func ListenAndServe(ctx context.Context, l logger, options ...func(*http.Server) error) error {
+func ListenAndServe(ctx context.Context, log logger, options ...func(*http.Server) error) error {
 	srv := &http.Server{}
 	err := Address(defaultURL)(srv)
 	if err != nil {
@@ -32,18 +32,15 @@ func ListenAndServe(ctx context.Context, l logger, options ...func(*http.Server)
 
 	ch := make(chan os.Signal)
 	signal.Notify(ch, os.Interrupt, os.Kill)
-	go listenForShutdown(ctx, l, srv, ch)
+	go listenForShutdown(ctx, log, srv, ch)
 	return srv.ListenAndServe()
 }
 
-func listenForShutdown(ctx context.Context, l logger, srv *http.Server, ch <-chan os.Signal) {
-	log := l
+func listenForShutdown(ctx context.Context, log logger, srv *http.Server, ch <-chan os.Signal) {
 	log.Printf("now ready to accept connections on %s", srv.Addr)
 	<-ch
 
-	log.Printf("\n")
 	log.Printf("trying to shutdown...")
-
 	err := srv.Shutdown(ctx)
 	if err != nil {
 		log.Printf("%v", err)
