@@ -1,4 +1,4 @@
-package command
+package cli
 
 import (
 	"context"
@@ -9,6 +9,10 @@ import (
 
 	"github.com/google/subcommands"
 )
+
+func init() {
+	subcommands.Register(newVersionCommand(), "")
+}
 
 type versionCommand struct {
 	baseCommand

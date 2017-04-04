@@ -1,4 +1,4 @@
-package command
+package cli
 
 import (
 	"context"
@@ -13,6 +13,10 @@ import (
 
 	"github.com/google/subcommands"
 )
+
+func init() {
+	subcommands.Register(newServerCommand(), "")
+}
 
 type serverCommand struct {
 	baseCommand
@@ -77,7 +81,7 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 
 	h, err := api.Handler(
 		ctx,
-		log,
+		c.logger,
 		router.NewMuxVestigo(ctx),
 		redis,
 	)
@@ -87,7 +91,7 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 
 	return server.ListenAndServe(
 		ctx,
-		log,
+		c.logger,
 		server.Address(c.flag.addr),
 		server.Handler(h),
 		server.IdleTimeout(c.flag.timeout),

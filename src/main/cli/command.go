@@ -1,31 +1,14 @@
-package command
+package cli
 
 import (
 	"context"
 	"flag"
 	"fmt"
 	"os"
-
-	"main/version"
+	"path/filepath"
 
 	"github.com/google/subcommands"
 )
-
-func init() {
-	subcommands.Register(subcommands.HelpCommand(), "")
-	subcommands.Register(subcommands.FlagsCommand(), "")
-	subcommands.Register(subcommands.CommandsCommand(), "")
-	subcommands.Register(newServerCommand(), "")
-	subcommands.Register(newVersionCommand(), "")
-}
-
-type flagSetter interface {
-	setFlags(*flag.FlagSet)
-}
-
-type executer interface {
-	execute(context.Context, *flag.FlagSet, ...interface{}) error
-}
 
 // baseCommand is base for another one.
 type baseCommand struct {
@@ -33,10 +16,11 @@ type baseCommand struct {
 	name  string
 	brief string
 	usage string
+	logger
 }
 
 func (c *baseCommand) appName() string {
-	return version.AppName()
+	return filepath.Base(os.Args[0])
 }
 
 // Name returns the name of the command.
@@ -80,6 +64,8 @@ func (c *baseCommand) overrideFlagsEnv(f *flag.FlagSet) error {
 
 // Execute executes the command and returns an ExitStatus.
 func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+	c.logger = makeLogger()
+
 	var err error
 	if v, ok := c.base.(executer); ok {
 		err = c.overrideFlagsEnv(f)
@@ -89,24 +75,9 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...inte
 	}
 
 	if err != nil {
-		errCommandExec = err
+		c.logger.Printf("%v", err)
 		return subcommands.ExitFailure
 	}
 
 	return subcommands.ExitSuccess
-}
-
-type logger interface {
-	Printf(string, ...interface{})
-}
-
-// workaround for passing to specific commands.
-var errCommandExec error
-var log logger
-
-// Execute finds and executes the specific command.
-func Execute(ctx context.Context, l logger) (int, error) {
-	log = l
-	status := subcommands.Execute(ctx)
-	return int(status), errCommandExec
 }
