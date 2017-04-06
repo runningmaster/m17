@@ -64,7 +64,7 @@ func (c *baseCommand) overrideFlagsEnv(f *flag.FlagSet) error {
 
 // Execute executes the command and returns an ExitStatus.
 func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
-	c.logger = makeLogger()
+	c.logger = makeLogger(isSystemdBasedOS())
 
 	var err error
 	if v, ok := c.base.(executer); ok {

@@ -10,7 +10,7 @@ import (
 	"github.com/google/subcommands"
 )
 
-var _ logger = makeLogger() // check interface
+var _ logger = makeLogger(isSystemdBasedOS()) // check interface
 
 func init() {
 	subcommands.Register(subcommands.HelpCommand(), "")
@@ -45,10 +45,11 @@ func isSystemdBasedOS() bool {
 	return exec.Command("pidof", "systemd").Run() == nil
 }
 
-func makeLogger() logger {
+// short means without timestamp
+func makeLogger(short bool) logger {
 	l := log.New(os.Stderr, "", log.LstdFlags)
 
-	if isSystemdBasedOS() {
+	if short {
 		l.SetFlags(0)
 	}
 
