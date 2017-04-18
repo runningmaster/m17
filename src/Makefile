@@ -1,22 +1,22 @@
 all: make
 
 edit:
-	cd src && ./edit.bash
+	./edit.bash
 
 lint:
-	cd src && ./lint.bash
+	./lint.bash
 
 make:
-	cd src && ./make.bash
+	./make.bash
 
 mrun:
-	cd src && ./mrun.bash
+	./mrun.bash
 
 test:
-	cd src && ./test.bash
+	./test.bash
 
 vend:
-	cd src && ./vend.bash
+	./vend.bash
 
 clean:
 	find . -type d -name "bin" -or -name "pkg" | xargs rm -rf
