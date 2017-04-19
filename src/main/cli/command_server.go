@@ -79,7 +79,7 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		return err
 	}
 
-	h, err := api.Handler(
+	h, err := api.NewHandler(
 		ctx,
 		c.logger,
 		router.NewMuxVestigo(ctx),

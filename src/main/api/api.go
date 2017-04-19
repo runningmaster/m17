@@ -21,8 +21,8 @@ type rediser interface {
 	Get() redis.Conn
 }
 
-// Handler returns http.Handler based on given router.
-func Handler(ctx context.Context, l logger, r router.Router, rdb rediser) (http.Handler, error) {
+// NewHandler returns http.Handler based on given router.
+func NewHandler(ctx context.Context, l logger, r router.Router, rdb rediser) (http.Handler, error) {
 	api := prepareAPI(l, rdb)
 
 	p := &m.Pipe{}
