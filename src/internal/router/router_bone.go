@@ -35,7 +35,6 @@ func (m *muxBone) Add(method, path string, h http.Handler) error {
 		ctx := r.Context()
 
 		p := bone.GetAllValues(r)
-		fmt.Println(p)
 		for k := range p {
 			ctx = ContextWithParamValue(ctx, k, bone.GetValue(r, k))
 		}
