@@ -57,6 +57,12 @@ func (p *Pipe) Join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	return h
 }
 
+// Join joins several middlewares in one pipeline.
+func Join(pipes ...func(http.Handler) http.Handler) http.Handler {
+	p := Pipe{}
+	return p.Join(pipes...)
+}
+
 // Head does some actions the first in handlers pipeline.  Must be first in pipeline.
 func Head(uuidFn func() string) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
@@ -203,6 +209,10 @@ func JSON(h http.Handler) http.Handler {
 			return
 		}
 
+		if w.Header().Get("Content-Type") != "" {
+			println("Content-Type", w.Header().Get("Content-Type"))
+		}
+
 		// skip if stdh executed
 		if sizeFromContext(ctx) > 0 {
 			h.ServeHTTP(w, r)
@@ -300,12 +310,12 @@ func Fail(h http.Handler) http.Handler {
 	})
 }
 
-// ErrCode is wrapper for NotFound and MethodNotAllowed error handlers.
-func ErrCode(code int) func(http.Handler) http.Handler {
+// Errc is wrapper for NotFound and MethodNotAllowed error handlers.
+func Errc(code int) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			ctx = contextWithError(ctx, fmt.Errorf("router says"), code)
+			ctx = contextWithError(ctx, fmt.Errorf("router error"), code)
 
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
