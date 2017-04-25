@@ -70,7 +70,7 @@ func (c *serverCommand) setFlags(f *flag.FlagSet) {
 }
 
 func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) error {
-	redis, err := redispool.New(
+	r, err := redispool.New(
 		redispool.Address(c.flag.redis),
 		redispool.MaxIdle(c.flag.maxIdle),
 		redispool.IdleTimeout(c.flag.timeout),
@@ -79,21 +79,25 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		return err
 	}
 
-	h, err := api.NewHandler(
-		ctx,
-		c.logger,
+	h, err := api.MustWithRouter(
 		router.NewMuxVestigo(ctx),
-		redis,
+		api.Redis(r),
+		api.Logger(c.logger),
 	)
 	if err != nil {
 		return err
 	}
 
-	return server.ListenAndServe(
+	s, err := server.MustWithContext(
 		ctx,
-		c.logger,
-		server.Address(c.flag.addr),
 		server.Handler(h),
+		server.Address(c.flag.addr),
 		server.IdleTimeout(c.flag.timeout),
+		server.Logger(c.logger),
 	)
+	if err != nil {
+		return err
+	}
+
+	return s.Start()
 }

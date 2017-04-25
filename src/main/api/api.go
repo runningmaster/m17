@@ -1,8 +1,9 @@
 package api
 
 import (
-	"context"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	m "internal/middleware"
@@ -22,42 +23,14 @@ type rediser interface {
 }
 
 type Handler struct {
-	api map[string]http.Handler
-	rdb rediser
-	rtr router.Router
+	api    map[string]http.Handler
+	err404 http.Handler
+	err405 http.Handler
+	rdb    rediser
+	log    logger
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.rtr.ServeHTTP(w, r)
-}
-
-// Redis is interface for Redis Pool Connections
-func Redis(r rediser) func(*Handler) error {
-	return func(h *Handler) error {
-		h.rdb = r
-		return nil
-	}
-}
-
-// Router is interface for HTTP Router inplementation
-func Router(r router.Router) func(*Handler) error {
-	return func(h *Handler) error {
-		h.rtr = r
-		return nil
-	}
-}
-
-// NewHandler returns http.Handler based on given router.
-func NewHandler(ctx context.Context, l logger, options ...func(*Handler) error) (http.Handler, error) {
-	h := &Handler{}
-
-	for i := range options {
-		err = options[i](h)
-		if err != nil {
-			return err
-		}
-	}
-
+func (h *Handler) prepareAPI() *Handler {
 	p := &m.Pipe{}
 	p.BeforeJoin(
 		m.Head(uuid),
@@ -69,10 +42,10 @@ func NewHandler(ctx context.Context, l logger, options ...func(*Handler) error) 
 		m.JSON,
 		m.Resp,
 		m.Fail,
-		m.Tail(l),
+		m.Tail(h.log),
 	)
 
-	api := map[string]http.Handler{
+	h.api = map[string]http.Handler{
 		"GET /:foo/bar":   p.Join(m.Exec(test)),
 		"GET /test/:foo":  p.Join(m.Exec(test)),
 		"GET /redis/ping": p.Join(m.Exec(ping(h.rdb))),
@@ -90,18 +63,16 @@ func NewHandler(ctx context.Context, l logger, options ...func(*Handler) error) 
 		"GET /debug/pprof/block":        p.Join(m.Exec(m.Stdh)), // runtime/pprof
 	}
 
-	p := &m.Pipe{}
-	p.AfterJoin(m.Fail, m.Tail(l))
-	err404 := p.Join(m.ErrCode(http.StatusNotFound))
-	err405 := p.Join(m.ErrCode(http.StatusMethodNotAllowed))
+	h.err404 = m.Join(m.Head(uuid), m.Errc(http.StatusNotFound), m.Fail, m.Tail(h.log))
+	h.err405 = m.Join(m.Head(uuid), m.Errc(http.StatusMethodNotAllowed), m.Fail, m.Tail(h.log))
 
-	return prepareRouter(r, api, err404, err405)
+	return h
 }
 
-func prepareRouter(r router.Router, api map[string]http.Handler, err404, err405 http.Handler) (router.Router, error) {
+func (h *Handler) prepareRouter(r router.Router) (router.Router, error) {
 	var s []string
 	var err error
-	for k, v := range api {
+	for k, v := range h.api {
 		s = strings.Split(k, " ")
 		if len(s) != 2 {
 			panic("api: invalid pair method-path")
@@ -112,17 +83,55 @@ func prepareRouter(r router.Router, api map[string]http.Handler, err404, err405 
 		}
 	}
 
-	err = r.Set404(err404)
+	err = r.Set404(h.err404)
 	if err != nil {
 		return nil, err
 	}
 
-	err = r.Set405(err405)
+	err = r.Set405(h.err405)
 	if err != nil {
 		return nil, err
 	}
 
 	return r, nil
+}
+
+// MustWithRouter returns http.Handler based on given router.
+func MustWithRouter(r router.Router, options ...func(*Handler) error) (router.Router, error) {
+	if r == nil {
+		panic("nil router")
+	}
+
+	h := &Handler{
+		log: log.New(os.Stderr, "", log.LstdFlags),
+		rdb: &redis.Pool{},
+	}
+
+	var err error
+	for i := range options {
+		err = options[i](h)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return h.prepareAPI().prepareRouter(r)
+}
+
+// Logger is option for passing logger interface.
+func Logger(l logger) func(*Handler) error {
+	return func(h *Handler) error {
+		h.log = l
+		return nil
+	}
+}
+
+// Redis is interface for Redis Pool Connections.
+func Redis(r rediser) func(*Handler) error {
+	return func(h *Handler) error {
+		h.rdb = r
+		return nil
+	}
 }
 
 func uuid() string {
