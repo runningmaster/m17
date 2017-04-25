@@ -29,7 +29,7 @@ func New(options ...func(*redis.Pool) error) (*redis.Pool, error) {
 	return p, nil
 }
 
-// Address is TCP address to listen on, "redis://localhost:6379" if empty
+// Address is TCP address to listen on, "redis://localhost:6379" if empty.
 func Address(a string) func(*redis.Pool) error {
 	return func(p *redis.Pool) error {
 		u, err := url.Parse(a)
