@@ -19,6 +19,14 @@ type logger interface {
 	Printf(string, ...interface{})
 }
 
+type coder interface {
+	Code() int
+}
+
+type sizer interface {
+	Size() int
+}
+
 // Pipe does
 type Pipe struct {
 	before []func(http.Handler) http.Handler
@@ -61,6 +69,39 @@ func (p *Pipe) Join(pipes ...func(http.Handler) http.Handler) http.Handler {
 func Join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	p := Pipe{}
 	return p.Join(pipes...)
+}
+
+type responseWriter struct {
+	c uint64 // status
+	n uint64 // size
+	w http.ResponseWriter
+}
+
+func (w *responseWriter) Write(b []byte) (int, error) {
+	n, err := w.w.Write(b)
+	atomic.AddUint64(&w.n, uint64(n))
+	return n, err
+}
+
+func (w *responseWriter) Header() http.Header {
+	return w.w.Header()
+}
+
+func (w *responseWriter) WriteHeader(statusCode int) {
+	atomic.AddUint64(&w.c, uint64(statusCode))
+	w.w.WriteHeader(statusCode)
+}
+
+func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return w.w.(http.Hijacker).Hijack()
+}
+
+func (w *responseWriter) Code() int {
+	return int(atomic.LoadUint64(&w.c))
+}
+
+func (w *responseWriter) Size() int {
+	return int(atomic.LoadUint64(&w.n))
 }
 
 // Head does some actions the first in handlers pipeline.  Must be first in pipeline.
@@ -185,6 +226,7 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 				return
 			}
 
+			w = &responseWriter{w: w}
 			switch h := v.(type) {
 			case func(http.ResponseWriter, *http.Request):
 				h(w, r)
@@ -194,6 +236,15 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 				panic("unknown handler")
 			}
 
+			ctx = r.Context()
+			if v, ok := w.(coder); ok && v.Code() != 0 {
+				ctx = contextWithCode(ctx, v.Code())
+			}
+			if v, ok := w.(sizer); ok && v.Size() != 0 {
+				ctx = contextWithSize(ctx, int64(v.Size()))
+			}
+
+			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -204,23 +255,13 @@ func JSON(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
-		if err != nil {
-			h.ServeHTTP(w, r)
-			return
-		}
-
-		if w.Header().Get("Content-Type") != "" {
-			println("Content-Type", w.Header().Get("Content-Type"))
-		}
-
-		// skip if stdh executed
-		if sizeFromContext(ctx) > 0 {
+		if err != nil || codeFromContext(ctx) != 0 { // skip if statusCode exists
 			h.ServeHTTP(w, r)
 			return
 		}
 
 		res := resultFromContext(ctx)
-		if w.Header().Get("Content-Type") == "" {
+		if v, ok := res.([]byte); !ok {
 			b, err := json.Marshal(res)
 			if err != nil {
 				ctx = contextWithError(ctx, err)
@@ -229,11 +270,7 @@ func JSON(h http.Handler) http.Handler {
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			}
 		} else {
-			if v, ok := res.([]byte); !ok {
-				ctx = contextWithError(ctx, fmt.Errorf("result must be []byte"))
-			} else {
-				ctx = contextWithData(ctx, v)
-			}
+			ctx = contextWithData(ctx, v)
 		}
 
 		r = r.WithContext(ctx)
@@ -246,13 +283,7 @@ func Resp(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
-		if err != nil {
-			h.ServeHTTP(w, r)
-			return
-		}
-
-		// skip if stdh executed
-		if sizeFromContext(ctx) > 0 {
+		if err != nil || codeFromContext(ctx) != 0 { // skip if statusCode exists
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -310,19 +341,6 @@ func Fail(h http.Handler) http.Handler {
 	})
 }
 
-// Errc is wrapper for NotFound and MethodNotAllowed error handlers.
-func Errc(code int) func(http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			ctx = contextWithError(ctx, fmt.Errorf("router error"), code)
-
-			r = r.WithContext(ctx)
-			h.ServeHTTP(w, r)
-		})
-	}
-}
-
 // Tail does some last actions (logging, send metrics). Must be in the end of pipe.
 func Tail(log logger) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
@@ -355,40 +373,22 @@ func Tail(log logger) func(http.Handler) http.Handler {
 	}
 }
 
-// Stdh executes standard handlers regestered in http.DefaultServeMux.
-func Stdh(w http.ResponseWriter, r *http.Request) {
-	if h, p := http.DefaultServeMux.Handler(r); p != "" {
-		ctx := r.Context()
-		shw := &stdhResponseWriter{w: w}
-		h.ServeHTTP(shw, r)
-		ctx = contextWithSize(ctx, int64(shw.n))
-		*r = *r.WithContext(ctx)
+// Errc is wrapper for NotFound and MethodNotAllowed error handlers.
+func Errc(code int) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			ctx = contextWithError(ctx, fmt.Errorf("router error"), code)
+
+			r = r.WithContext(ctx)
+			h.ServeHTTP(w, r)
+		})
 	}
 }
 
-type stdhResponseWriter struct {
-	n uint64
-	w http.ResponseWriter
-}
-
-func (w *stdhResponseWriter) Write(b []byte) (int, error) {
-	n, err := w.w.Write(b)
-	atomic.AddUint64(&w.n, uint64(n))
-	return n, err
-}
-
-func (w *stdhResponseWriter) Header() http.Header {
-	return w.w.Header()
-}
-
-func (w *stdhResponseWriter) WriteHeader(statusCode int) {
-	w.w.WriteHeader(statusCode)
-}
-
-func (w *stdhResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return w.w.(http.Hijacker).Hijack()
-}
-
-func (w *stdhResponseWriter) Count() uint64 {
-	return atomic.LoadUint64(&w.n)
+// Stdh executes standard handlers regestered in http.DefaultServeMux.
+func Stdh(w http.ResponseWriter, r *http.Request) {
+	if h, p := http.DefaultServeMux.Handler(r); p != "" {
+		h.ServeHTTP(w, r)
+	}
 }
