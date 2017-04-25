@@ -102,5 +102,3 @@ func (w responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 func (w *responseWriter) CloseNotify() <-chan bool {
 	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
-
-////////////
