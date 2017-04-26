@@ -15,6 +15,15 @@ import (
 	"internal/gzippool"
 )
 
+/*
+
+Head(uuid) > Auth(auth) > Gzip() > Body() > Exec(API) > Resp() > Fail() > Tail(log)
+
+Head(Auth(Gzip(Body(Exec(Resp(Fail(Tail)))))))
+--------------------------------------------->
+
+*/
+
 type logger interface {
 	Printf(string, ...interface{})
 }
@@ -263,10 +272,10 @@ func Resp(h http.Handler) http.Handler {
 			return
 		}
 
-		// data
+		// data, if not []byte than try marshal it
 		res := resultFromContext(ctx)
 		var data []byte
-		if v, ok := res.([]byte); !ok { // if not []byte than try marshal it
+		if v, ok := res.([]byte); !ok { //
 			data, err = json.Marshal(res)
 			if err != nil {
 				ctx = contextWithError(ctx, err)
