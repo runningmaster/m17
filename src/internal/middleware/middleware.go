@@ -239,7 +239,7 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 			ctx = r.Context()
 			if v, ok := w.(coder); ok && v.Code() != 0 {
 				ctx = contextWithCode(ctx, v.Code())
-			} else if codeFromContext(ctx) == 0 {
+			} else if codeFromContext(ctx) == 0 { // if wasn't error
 				ctx = contextWithCode(ctx, http.StatusOK)
 			}
 
@@ -263,9 +263,10 @@ func Resp(h http.Handler) http.Handler {
 			return
 		}
 
+		// data
 		res := resultFromContext(ctx)
 		var data []byte
-		if v, ok := res.([]byte); !ok {
+		if v, ok := res.([]byte); !ok { // if not []byte than try marshal it
 			data, err = json.Marshal(res)
 			if err != nil {
 				ctx = contextWithError(ctx, err)
@@ -282,13 +283,15 @@ func Resp(h http.Handler) http.Handler {
 			return
 		}
 
+		// head
 		code := codeFromContext(ctx)
 		if code == 0 {
 			code = http.StatusOK
-			ctx = contextWithCode(ctx, code) // for logging
+			ctx = contextWithCode(ctx, code) // for logging in tail
 		}
 		w.WriteHeader(code)
 
+		// body
 		n, err := w.Write(data)
 		if err != nil {
 			ctx = contextWithError(ctx, err)
@@ -301,7 +304,6 @@ func Resp(h http.Handler) http.Handler {
 				n++
 			}
 		}
-		//
 		ctx = contextWithSize(ctx, int64(n))
 
 		r = r.WithContext(ctx)

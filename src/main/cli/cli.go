@@ -24,7 +24,7 @@ type logger interface {
 	Printf(string, ...interface{})
 }
 
-type flagSetter interface {
+type flager interface {
 	setFlags(*flag.FlagSet)
 }
 

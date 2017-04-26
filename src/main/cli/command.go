@@ -41,7 +41,7 @@ func (c *baseCommand) Usage() string {
 
 // SetFlags adds the flags for this command to the specified set.
 func (c *baseCommand) SetFlags(f *flag.FlagSet) {
-	if v, ok := c.base.(flagSetter); ok {
+	if v, ok := c.base.(flager); ok {
 		v.setFlags(f)
 	}
 }

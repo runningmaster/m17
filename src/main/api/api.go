@@ -22,7 +22,6 @@ type rediser interface {
 	Get() redis.Conn
 }
 
-// Handler
 type handler struct {
 	api    map[string]http.Handler
 	err404 http.Handler
