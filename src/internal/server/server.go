@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -52,8 +53,8 @@ func MustWithContext(ctx context.Context, options ...func(*Server) error) (*Serv
 
 // Start starts HTTP server.
 func (s *Server) Start() error {
-	ch := make(chan os.Signal)
-	signal.Notify(ch, os.Interrupt, os.Kill)
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
 	go listenForShutdown(s, ch)
 

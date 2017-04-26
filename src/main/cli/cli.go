@@ -42,7 +42,7 @@ func Run() int {
 
 // systemdBasedOS returns true if systmd is running.
 func isSystemdBasedOS() bool {
-	return exec.Command("pidof", "systemd").Run() == nil
+	return exec.Command("/usr/bin/pidof", "systemd").Run() == nil
 }
 
 // short means without timestamp

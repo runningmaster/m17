@@ -22,7 +22,8 @@ type rediser interface {
 	Get() redis.Conn
 }
 
-type Handler struct {
+// Handler
+type handler struct {
 	api    map[string]http.Handler
 	err404 http.Handler
 	err405 http.Handler
@@ -30,7 +31,7 @@ type Handler struct {
 	log    logger
 }
 
-func (h *Handler) prepareAPI() *Handler {
+func (h *handler) prepareAPI() *handler {
 	p := &m.Pipe{}
 	p.BeforeJoin(
 		m.Head(uuid),
@@ -68,7 +69,7 @@ func (h *Handler) prepareAPI() *Handler {
 	return h
 }
 
-func (h *Handler) prepareRouter(r router.Router) (router.Router, error) {
+func (h *handler) prepareRouter(r router.Router) (router.Router, error) {
 	var s []string
 	var err error
 	for k, v := range h.api {
@@ -96,12 +97,12 @@ func (h *Handler) prepareRouter(r router.Router) (router.Router, error) {
 }
 
 // MustWithRouter returns http.Handler based on given router.
-func MustWithRouter(r router.Router, options ...func(*Handler) error) (router.Router, error) {
+func MustWithRouter(r router.Router, options ...func(*handler) error) (router.Router, error) {
 	if r == nil {
 		panic("nil router")
 	}
 
-	h := &Handler{
+	h := &handler{
 		log: log.New(os.Stderr, "", log.LstdFlags),
 		rdb: &redis.Pool{},
 	}
@@ -118,16 +119,16 @@ func MustWithRouter(r router.Router, options ...func(*Handler) error) (router.Ro
 }
 
 // Logger is option for passing logger interface.
-func Logger(l logger) func(*Handler) error {
-	return func(h *Handler) error {
+func Logger(l logger) func(*handler) error {
+	return func(h *handler) error {
 		h.log = l
 		return nil
 	}
 }
 
 // Redis is interface for Redis Pool Connections.
-func Redis(r rediser) func(*Handler) error {
-	return func(h *Handler) error {
+func Redis(r rediser) func(*handler) error {
+	return func(h *handler) error {
 		h.rdb = r
 		return nil
 	}
