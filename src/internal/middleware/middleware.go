@@ -239,7 +239,10 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 			ctx = r.Context()
 			if v, ok := w.(coder); ok && v.Code() != 0 {
 				ctx = contextWithCode(ctx, v.Code())
+			} else if codeFromContext(ctx) == 0 {
+				ctx = contextWithCode(ctx, http.StatusOK)
 			}
+
 			if v, ok := w.(sizer); ok && v.Size() != 0 {
 				ctx = contextWithSize(ctx, int64(v.Size()))
 			}
@@ -250,66 +253,55 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 	}
 }
 
-// JSON makes JSON from data. Must be before response.
-func JSON(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		err := errorFromContext(ctx)
-		if err != nil || codeFromContext(ctx) != 0 { // skip if statusCode exists
-			h.ServeHTTP(w, r)
-			return
-		}
-
-		res := resultFromContext(ctx)
-		if v, ok := res.([]byte); !ok {
-			b, err := json.Marshal(res)
-			if err != nil {
-				ctx = contextWithError(ctx, err)
-			} else {
-				ctx = contextWithData(ctx, b)
-				w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			}
-		} else {
-			ctx = contextWithData(ctx, v)
-		}
-
-		r = r.WithContext(ctx)
-		h.ServeHTTP(w, r)
-	})
-}
-
 // Resp writes result data to response.
 func Resp(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		err := errorFromContext(ctx)
-		if err != nil || codeFromContext(ctx) != 0 { // skip if statusCode exists
+		if err != nil || sizeFromContext(ctx) != 0 { // skip if response exists
 			h.ServeHTTP(w, r)
 			return
 		}
 
-		data := dataFromContext(ctx)
-		if data == nil {
-			ctx = contextWithError(ctx, fmt.Errorf("%v data", data))
+		res := resultFromContext(ctx)
+		var data []byte
+		if v, ok := res.([]byte); !ok {
+			data, err = json.Marshal(res)
+			if err != nil {
+				ctx = contextWithError(ctx, err)
+			} else {
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			}
+		} else {
+			data = v
+		}
 
+		if err != nil {
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 			return
 		}
 
 		code := codeFromContext(ctx)
+		if code == 0 {
+			code = http.StatusOK
+			ctx = contextWithCode(ctx, code) // for logging
+		}
 		w.WriteHeader(code)
 
 		n, err := w.Write(data)
 		if err != nil {
 			ctx = contextWithError(ctx, err)
-		}
-		_, err = w.Write([]byte("\n"))
-		if err != nil {
-			ctx = contextWithError(ctx, err)
 		} else {
-			n++
+			// prettify ?
+			_, err = w.Write([]byte("\n"))
+			if err != nil {
+				ctx = contextWithError(ctx, err)
+			} else {
+				n++
+			}
 		}
+		//
 		ctx = contextWithSize(ctx, int64(n))
 
 		r = r.WithContext(ctx)

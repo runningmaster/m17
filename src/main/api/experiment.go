@@ -34,7 +34,6 @@ func ping(rdb rediser) http.HandlerFunc {
 		}
 		ctx = m.ContextWithResult(ctx, res)
 		*r = *r.WithContext(ctx)
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	})
 }
 

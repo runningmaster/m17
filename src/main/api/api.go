@@ -39,7 +39,6 @@ func (h *Handler) prepareAPI() *Handler {
 		m.Body,
 	)
 	p.AfterJoin(
-		m.JSON,
 		m.Resp,
 		m.Fail,
 		m.Tail(h.log),

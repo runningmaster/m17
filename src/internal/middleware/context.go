@@ -24,9 +24,6 @@ func contextWithCode(ctx context.Context, v int) context.Context {
 
 func codeFromContext(ctx context.Context) int {
 	v, _ := ctx.Value(codeContextKey).(int)
-	if v == 0 {
-		return http.StatusOK
-	}
 	return v
 }
 
@@ -161,18 +158,6 @@ func contextWithResult(ctx context.Context, v interface{}) context.Context {
 
 func resultFromContext(ctx context.Context) interface{} {
 	return ctx.Value(resultContextKey)
-}
-
-// dataContextKey is a context key. The associated value will be of type []byte.
-var dataContextKey = &contextKey{"data"}
-
-func contextWithData(ctx context.Context, v []byte) context.Context {
-	return context.WithValue(ctx, dataContextKey, v)
-}
-
-func dataFromContext(ctx context.Context) []byte {
-	v, _ := ctx.Value(dataContextKey).([]byte)
-	return v
 }
 
 // sizeContextKey is a context key. The associated value will be of type int64.
