@@ -183,12 +183,12 @@ func (r *Router) find(req *http.Request) (prefix string, h http.HandlerFunc) {
 		search          = req.URL.Path
 		c               *node // Child node
 		n               int   // Param counter
-		nt              ntype // Next type
 		collectedPnames = []string{}
 	)
 
 	// Search order static > param > match-any
 	for {
+
 		if search == "" {
 			if cn.resource != nil {
 				// Found route, check if method is applicable
@@ -265,23 +265,6 @@ func (r *Router) find(req *http.Request) (prefix string, h http.HandlerFunc) {
 				}
 			}
 
-		} else {
-			// last ditch effort to match on wildcard (issue #8)
-			if cn != nil && cn.parent != nil {
-				cn = cn.parent
-				if sib := cn.findChildWithLabel(':'); sib != nil {
-					goto Param
-				}
-				if sib := cn.findChildWithLabel('*'); sib != nil {
-					goto MatchAny
-				}
-			}
-
-			if nt == ptype {
-				goto Param
-			} else if nt == mtype {
-				goto MatchAny
-			}
 		}
 
 		if search == "" {
@@ -294,12 +277,8 @@ func (r *Router) find(req *http.Request) (prefix string, h http.HandlerFunc) {
 		}
 
 		// Static node
-		c = cn.findChild(search[0], stype)
+		c = cn.findChild(search, stype)
 		if c != nil {
-			// Save next
-			if cn.label == '/' {
-				nt = ptype
-			}
 			cn = c
 			continue
 		}
@@ -308,10 +287,6 @@ func (r *Router) find(req *http.Request) (prefix string, h http.HandlerFunc) {
 
 		c = cn.findChildWithType(ptype)
 		if c != nil {
-			// Save next
-			if cn.label == '/' {
-				nt = mtype
-			}
 			cn = c
 
 			i, l := 0, len(search)
@@ -322,6 +297,11 @@ func (r *Router) find(req *http.Request) (prefix string, h http.HandlerFunc) {
 			prefix += ":"
 			n++
 			search = search[i:]
+
+			if len(cn.children) == 0 && len(search) != 0 {
+				return
+			}
+
 			continue
 		}
 
@@ -336,32 +316,27 @@ func (r *Router) find(req *http.Request) (prefix string, h http.HandlerFunc) {
 			continue
 		}
 		// last ditch effort to match on wildcard (issue #8)
-		if cn != nil && cn.label != ':' {
-			if cn.parent != nil {
-				if sib := cn.parent.findChildWithLabel(':'); sib != nil {
-					search = cn.prefix + search
-					cn = cn.parent
-					goto Param
+		var tmpsearch = search
+		for {
+			if cn != nil && cn.parent != nil && cn.prefix != ":" {
+				tmpsearch = cn.prefix + tmpsearch
+				cn = cn.parent
+				if cn.prefix == "/" {
+					var sib *node = cn.findChildWithLabel(':')
+					if sib != nil {
+						search = tmpsearch
+						goto Param
+					}
+					if sib := cn.findChildWithLabel('*'); sib != nil {
+						search = tmpsearch
+						goto MatchAny
+					}
 				}
-			}
-		}
-
-		// last ditch wildcard
-		found := false
-		for cn.parent != nil {
-			search = cn.prefix + search
-			cn = cn.parent
-			if sib := cn.findChildWithLabel('*'); sib != nil {
-				cn = sib
-				//search = ""
-				found = true
+			} else {
 				break
 			}
 		}
 
-		if found {
-			continue
-		}
 		// Not found
 		return
 	}
@@ -417,6 +392,9 @@ func (r *Router) insert(method, path string, h http.HandlerFunc, t ntype, pnames
 			cn.resource.CopyTo(nr)
 
 			n := newNode(cn.typ, cn.prefix[l:], cn, cn.children, nr, cn.pnames)
+			for i := 0; i < len(n.children); i++ {
+				n.children[i].parent = n
+			}
 
 			// Reset parent node
 			cn.typ = stype
