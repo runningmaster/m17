@@ -2,30 +2,27 @@ package server
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"internal/logger"
 )
 
 const defaultURL = "http://localhost:8080"
-
-type logger interface {
-	Printf(string, ...interface{})
-}
 
 // Server is wrapper for *http.Server with additional params.
 type Server struct {
 	ctx context.Context
 	srv *http.Server
-	log logger
+	log logger.Logger
 }
 
-// MustWithContext returns *Server with Context.
-func MustWithContext(ctx context.Context, options ...func(*Server) error) (*Server, error) {
+// NewWithContext returns *Server with Context.
+func NewWithContext(ctx context.Context, options ...func(*Server) error) (*Server, error) {
 	if ctx == nil {
 		panic("nil context")
 	}
@@ -33,7 +30,7 @@ func MustWithContext(ctx context.Context, options ...func(*Server) error) (*Serv
 	s := &Server{
 		ctx: ctx,
 		srv: &http.Server{},
-		log: log.New(os.Stderr, "", log.LstdFlags),
+		log: logger.NewDefault(),
 	}
 
 	err := Address(defaultURL)(s)
@@ -73,7 +70,7 @@ func listenForShutdown(s *Server, ch <-chan os.Signal) {
 }
 
 // Logger is option for passing logger interface.
-func Logger(l logger) func(*Server) error {
+func Logger(l logger.Logger) func(*Server) error {
 	return func(s *Server) error {
 		s.log = l
 		return nil

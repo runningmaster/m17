@@ -1,11 +1,10 @@
 package api
 
 import (
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
+	"internal/logger"
 	m "internal/middleware"
 	"internal/router"
 
@@ -13,10 +12,6 @@ import (
 	"github.com/nats-io/nuid"
 	//"github.com/rogpeppe/fastuuid"
 )
-
-type logger interface {
-	Printf(string, ...interface{})
-}
 
 type rediser interface {
 	Get() redis.Conn
@@ -27,7 +22,7 @@ type handler struct {
 	err404 http.Handler
 	err405 http.Handler
 	rdb    rediser
-	log    logger
+	log    logger.Logger
 }
 
 func (h *handler) prepareAPI() *handler {
@@ -95,14 +90,14 @@ func (h *handler) prepareRouter(r router.Router) (router.Router, error) {
 	return r, nil
 }
 
-// MustWithRouter returns http.Handler based on given router.
-func MustWithRouter(r router.Router, options ...func(*handler) error) (router.Router, error) {
+// NewWithRouter returns http.Handler based on given router.
+func NewWithRouter(r router.Router, options ...func(*handler) error) (router.Router, error) {
 	if r == nil {
 		panic("nil router")
 	}
 
 	h := &handler{
-		log: log.New(os.Stderr, "", log.LstdFlags),
+		log: logger.NewDefault(),
 		rdb: &redis.Pool{},
 	}
 
@@ -118,7 +113,7 @@ func MustWithRouter(r router.Router, options ...func(*handler) error) (router.Ro
 }
 
 // Logger is option for passing logger interface.
-func Logger(l logger) func(*handler) error {
+func Logger(l logger.Logger) func(*handler) error {
 	return func(h *handler) error {
 		h.log = l
 		return nil

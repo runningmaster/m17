@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"internal/logger"
+
 	"github.com/google/subcommands"
 )
 
@@ -16,7 +18,7 @@ type baseCommand struct {
 	name  string
 	brief string
 	usage string
-	logger
+	log   logger.Logger
 }
 
 func (c *baseCommand) appName() string {
@@ -64,7 +66,7 @@ func (c *baseCommand) overrideFlagsEnv(f *flag.FlagSet) error {
 
 // Execute executes the command and returns an ExitStatus.
 func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
-	c.logger = makeLogger(isSystemdBasedOS())
+	c.log = logger.NewDefault()
 
 	var err error
 	if v, ok := c.base.(executer); ok {
@@ -75,7 +77,7 @@ func (c *baseCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...inte
 	}
 
 	if err != nil {
-		c.logger.Printf("%v", err)
+		c.log.Printf("%v", err)
 		return subcommands.ExitFailure
 	}
 

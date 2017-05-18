@@ -79,21 +79,21 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		return err
 	}
 
-	h, err := api.MustWithRouter(
+	h, err := api.NewWithRouter(
 		router.NewMuxVestigo(ctx),
 		api.Redis(r),
-		api.Logger(c.logger),
+		api.Logger(c.log),
 	)
 	if err != nil {
 		return err
 	}
 
-	s, err := server.MustWithContext(
+	s, err := server.NewWithContext(
 		ctx,
 		server.Handler(h),
 		server.Address(c.flag.addr),
 		server.IdleTimeout(c.flag.timeout),
-		server.Logger(c.logger),
+		server.Logger(c.log),
 	)
 	if err != nil {
 		return err

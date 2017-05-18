@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"internal/gzippool"
+	"internal/logger"
 )
 
 /*
@@ -23,10 +24,6 @@ Head(Auth(Gzip(Body(Exec(Resp(Fail(Tail)))))))
 --------------------------------------------->
 
 */
-
-type logger interface {
-	Printf(string, ...interface{})
-}
 
 type coder interface {
 	Code() int
@@ -345,7 +342,7 @@ func Fail(h http.Handler) http.Handler {
 }
 
 // Tail does some last actions (logging, send metrics). Must be in the end of pipe.
-func Tail(log logger) func(http.Handler) http.Handler {
+func Tail(log logger.Logger) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if log == nil {
@@ -356,11 +353,11 @@ func Tail(log logger) func(http.Handler) http.Handler {
 			err := errorFromContext(ctx)
 			var errText string
 			if err != nil {
-				errText = fmt.Sprintf(" %s", err.Error())
+				errText = err.Error()[3:]
 			}
 			log.Printf(
 				"%s %s %s %s %s %d %d %d%s\n",
-				timeFromContext(ctx),
+				time.Now().Sub(timeFromContext(ctx)),
 				hostFromContext(ctx),
 				userFromContext(ctx),
 				uuidFromContext(ctx),
