@@ -32,6 +32,7 @@ func ping(rdb rediser) http.HandlerFunc {
 		if err != nil {
 			ctx = m.ContextWithError(ctx, err)
 		}
+
 		ctx = m.ContextWithResult(ctx, res)
 		*r = *r.WithContext(ctx)
 	})

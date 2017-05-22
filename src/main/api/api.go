@@ -19,10 +19,10 @@ type rediser interface {
 
 type handler struct {
 	api    map[string]http.Handler
-	err404 http.Handler
-	err405 http.Handler
 	rdb    rediser
 	log    logger.Logger
+	err404 http.Handler
+	err405 http.Handler
 }
 
 func (h *handler) prepareAPI() *handler {
@@ -63,7 +63,7 @@ func (h *handler) prepareAPI() *handler {
 	return h
 }
 
-func (h *handler) prepareRouter(r router.Router) (router.Router, error) {
+func (h *handler) withRouter(r router.Router) (router.Router, error) {
 	var s []string
 	var err error
 	for k, v := range h.api {
@@ -109,7 +109,7 @@ func NewWithRouter(r router.Router, options ...func(*handler) error) (router.Rou
 		}
 	}
 
-	return h.prepareAPI().prepareRouter(r)
+	return h.prepareAPI().withRouter(r)
 }
 
 // Logger is option for passing logger interface.
