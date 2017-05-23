@@ -61,36 +61,36 @@ func validateAddParams(method string, path string, h http.Handler) error {
 	return nil
 }
 
-// contextParamKey is a unique type to prevent assignment.
+// ctxParam is a unique type to prevent assignment.
 // Its associated value should be a string.
-type contextParamKey struct {
+type ctxParam struct {
 	name string
 }
 
-// ContextWithParamValue returns a new context based on the provided parent ctx.
-func ContextWithParamValue(ctx context.Context, key, val string) context.Context {
-	return context.WithValue(ctx, contextParamKey{key}, val)
+// ctxWithParamValue returns a new context based on the provided parent ctx.
+func ctxWithParamValue(ctx context.Context, key, val string) context.Context {
+	return context.WithValue(ctx, ctxParam{key}, val)
 }
 
-// ParamValueFromContext returns the first value associated with the given key.
-func ParamValueFromContext(ctx context.Context, key string) string {
-	v, _ := ctx.Value(contextParamKey{key}).(string)
+// ParamValueFrom returns the first value associated with the given key.
+func ParamValueFrom(ctx context.Context, key string) string {
+	v, _ := ctx.Value(ctxParam{key}).(string)
 	return v
 }
 
-// contextQueryKey is a unique type to prevent assignment.
+// ctxQuery is a unique type to prevent assignment.
 // Its associated value should be a string.
-type contextQueryKey struct {
+type ctxQuery struct {
 	name string
 }
 
-// ContextWithQueryValue returns a new context based on the provided parent ctx.
-func ContextWithQueryValue(ctx context.Context, key, val string) context.Context {
-	return context.WithValue(ctx, contextQueryKey{key}, val)
+// ctxWithQueryValue returns a new context based on the provided parent ctx.
+func ctxWithQueryValue(ctx context.Context, key, val string) context.Context {
+	return context.WithValue(ctx, ctxQuery{key}, val)
 }
 
-// QueryValueFromContext returns the first value associated with the given key.
-func QueryValueFromContext(ctx context.Context, key string) string {
-	v, _ := ctx.Value(contextQueryKey{key}).(string)
+// QueryValueFrom returns the first value associated with the given key.
+func QueryValueFrom(ctx context.Context, key string) string {
+	v, _ := ctx.Value(ctxQuery{key}).(string)
 	return v
 }

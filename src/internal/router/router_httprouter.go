@@ -34,11 +34,11 @@ func (m *muxHTTPRouter) Add(method, path string, h http.Handler) error {
 			ctx := r.Context()
 
 			for i := range p {
-				ctx = ContextWithParamValue(ctx, p[i].Key, p[i].Value)
+				ctx = ctxWithParamValue(ctx, p[i].Key, p[i].Value)
 			}
 
 			for k := range r.URL.Query() {
-				ctx = ContextWithQueryValue(ctx, k, r.URL.Query().Get(k))
+				ctx = ctxWithQueryValue(ctx, k, r.URL.Query().Get(k))
 			}
 
 			r = r.WithContext(ctx)

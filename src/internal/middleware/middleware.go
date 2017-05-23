@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"internal/ctxutil"
 	"internal/gzippool"
 	"internal/logger"
 )
@@ -115,13 +116,13 @@ func Head(uuidFn func() string) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			ctx = contextWithTime(ctx, time.Now())
-			ctx = contextWithHost(ctx, mineHost(r))
-			ctx = contextWithUser(ctx, r.UserAgent())
+			ctx = ctxutil.WithTime(ctx, time.Now())
+			ctx = ctxutil.WithHost(ctx, mineHost(r))
+			ctx = ctxutil.WithUser(ctx, r.UserAgent())
 
 			if uuidFn != nil {
 				uuid := uuidFn()
-				ctx = contextWithUUID(ctx, uuid)
+				ctx = ctxutil.WithUUID(ctx, uuid)
 				w.Header().Set("X-Request-ID", uuid)
 			}
 
@@ -140,9 +141,9 @@ func Auth(authFn func(*http.Request) (string, int, error)) func(http.Handler) ht
 				ctx := r.Context()
 				name, code, err := authFn(r)
 				if err != nil {
-					ctx = contextWithError(ctx, err, code)
+					ctx = ctxutil.WithError(ctx, err, code)
 				}
-				ctx = contextWithAuth(ctx, name)
+				ctx = ctxutil.WithAuth(ctx, name)
 				r = r.WithContext(ctx)
 			}
 
@@ -168,7 +169,7 @@ func Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			ctx := r.Context()
-			err := errorFromContext(ctx)
+			err := ctxutil.ErrorFrom(ctx)
 			if err != nil {
 				h.ServeHTTP(w, r)
 				return
@@ -197,7 +198,7 @@ func Gzip(h http.Handler) http.Handler {
 func Body(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		err := errorFromContext(ctx)
+		err := ctxutil.ErrorFrom(ctx)
 		if err != nil {
 			h.ServeHTTP(w, r)
 			return
@@ -210,10 +211,10 @@ func Body(h http.Handler) http.Handler {
 
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			ctx = contextWithError(ctx, err, http.StatusBadRequest)
+			ctx = ctxutil.WithError(ctx, err, http.StatusBadRequest)
 		}
-		ctx = contextWithClen(ctx, int64(len(b)))
-		ctx = contextWithBody(ctx, b)
+		ctx = ctxutil.WithCLen(ctx, int64(len(b)))
+		ctx = ctxutil.WithBody(ctx, b)
 		_ = r.Body.Close()
 
 		r = r.WithContext(ctx)
@@ -226,7 +227,7 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			err := errorFromContext(ctx)
+			err := ctxutil.ErrorFrom(ctx)
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return
@@ -244,13 +245,13 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 
 			ctx = r.Context()
 			if v, ok := w.(coder); ok && v.Code() != 0 {
-				ctx = contextWithCode(ctx, v.Code())
-			} else if codeFromContext(ctx) == 0 { // if wasn't error
-				ctx = contextWithCode(ctx, http.StatusOK)
+				ctx = ctxutil.WithCode(ctx, v.Code())
+			} else if ctxutil.CodeFrom(ctx) == 0 { // if wasn't error
+				ctx = ctxutil.WithCode(ctx, http.StatusOK)
 			}
 
 			if v, ok := w.(sizer); ok && v.Size() != 0 {
-				ctx = contextWithSize(ctx, int64(v.Size()))
+				ctx = ctxutil.WithSize(ctx, int64(v.Size()))
 			}
 
 			r = r.WithContext(ctx)
@@ -263,19 +264,19 @@ func Exec(v interface{}) func(http.Handler) http.Handler {
 func Resp(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		err := errorFromContext(ctx)
-		if err != nil || sizeFromContext(ctx) != 0 { // skip if response exists
+		err := ctxutil.ErrorFrom(ctx)
+		if err != nil || ctxutil.SizeFrom(ctx) != 0 { // skip if response exists
 			h.ServeHTTP(w, r)
 			return
 		}
 
 		// data, if not []byte than try marshal it
-		res := resultFromContext(ctx)
+		res := ctxutil.ResultFrom(ctx)
 		var data []byte
 		if v, ok := res.([]byte); !ok { //
 			data, err = json.Marshal(res)
 			if err != nil {
-				ctx = contextWithError(ctx, err)
+				ctx = ctxutil.WithError(ctx, err)
 			} else {
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			}
@@ -290,27 +291,27 @@ func Resp(h http.Handler) http.Handler {
 		}
 
 		// head
-		code := codeFromContext(ctx)
+		code := ctxutil.CodeFrom(ctx)
 		if code == 0 {
 			code = http.StatusOK
-			ctx = contextWithCode(ctx, code) // for logging in tail
+			ctx = ctxutil.WithCode(ctx, code) // for logging in tail
 		}
 		w.WriteHeader(code)
 
 		// body
 		n, err := w.Write(data)
 		if err != nil {
-			ctx = contextWithError(ctx, err)
+			ctx = ctxutil.WithError(ctx, err)
 		} else {
 			// prettify ?
 			_, err = w.Write([]byte("\n"))
 			if err != nil {
-				ctx = contextWithError(ctx, err)
+				ctx = ctxutil.WithError(ctx, err)
 			} else {
 				n++
 			}
 		}
-		ctx = contextWithSize(ctx, int64(n))
+		ctx = ctxutil.WithSize(ctx, int64(n))
 
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
@@ -321,19 +322,19 @@ func Resp(h http.Handler) http.Handler {
 func Fail(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		err := errorFromContext(ctx)
+		err := ctxutil.ErrorFrom(ctx)
 		if err != nil {
 			msg := fmt.Sprintf("%s\n", err.Error())
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-			code := codeFromContext(ctx)
+			code := ctxutil.CodeFrom(ctx)
 			w.WriteHeader(code)
 
 			n, err := w.Write([]byte(msg))
 			if err != nil {
-				ctx = contextWithError(ctx, err)
+				ctx = ctxutil.WithError(ctx, err)
 			}
-			ctx = contextWithSize(ctx, int64(n))
+			ctx = ctxutil.WithSize(ctx, int64(n))
 			r = r.WithContext(ctx)
 		}
 
@@ -350,21 +351,21 @@ func Tail(log logger.Logger) func(http.Handler) http.Handler {
 			}
 
 			ctx := r.Context()
-			err := errorFromContext(ctx)
+			err := ctxutil.ErrorFrom(ctx)
 			var errText string
 			if err != nil {
 				errText = err.Error()[3:]
 			}
 			log.Printf(
 				"%s %s %s %s %s %d %d %d%s\n",
-				time.Now().Sub(timeFromContext(ctx)),
-				hostFromContext(ctx),
-				userFromContext(ctx),
-				uuidFromContext(ctx),
-				authFromContext(ctx),
-				clenFromContext(ctx),
-				sizeFromContext(ctx),
-				codeFromContext(ctx),
+				time.Now().Sub(ctxutil.TimeFrom(ctx)),
+				ctxutil.HostFrom(ctx),
+				ctxutil.UserFrom(ctx),
+				ctxutil.UUIDFrom(ctx),
+				ctxutil.AuthFrom(ctx),
+				ctxutil.CLenFrom(ctx),
+				ctxutil.SizeFrom(ctx),
+				ctxutil.CodeFrom(ctx),
 				errText,
 			)
 
@@ -378,7 +379,7 @@ func Errc(code int) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			ctx = contextWithError(ctx, fmt.Errorf("router error"), code)
+			ctx = ctxutil.WithError(ctx, fmt.Errorf("router error"), code)
 
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)

@@ -36,11 +36,11 @@ func (m *muxBone) Add(method, path string, h http.Handler) error {
 
 		p := bone.GetAllValues(r)
 		for k := range p {
-			ctx = ContextWithParamValue(ctx, k, bone.GetValue(r, k))
+			ctx = ctxWithParamValue(ctx, k, bone.GetValue(r, k))
 		}
 
 		for k := range r.URL.Query() {
-			ctx = ContextWithQueryValue(ctx, k, r.URL.Query().Get(k))
+			ctx = ctxWithQueryValue(ctx, k, r.URL.Query().Get(k))
 		}
 
 		r = r.WithContext(ctx)

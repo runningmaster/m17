@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	m "internal/middleware"
+	"internal/ctxutil"
 	"internal/router"
 
 	"github.com/garyburd/redigo/redis"
@@ -16,8 +16,8 @@ func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	fmt.Fprintf(w, "Hello, World! From test handler!\n")
-	fmt.Fprintf(w, "Param foo: %s\n", router.ParamValueFromContext(ctx, "foo"))
-	fmt.Fprintf(w, "Query foo: %s\n", router.QueryValueFromContext(ctx, "foo"))
+	fmt.Fprintf(w, "Param foo: %s\n", router.ParamValueFrom(ctx, "foo"))
+	fmt.Fprintf(w, "Query foo: %s\n", router.QueryValueFrom(ctx, "foo"))
 	v, _ := ctx.Value("foo").(string)
 	fmt.Fprintf(w, "Value foo: %s\n", v)
 
@@ -30,10 +30,10 @@ func ping(rdb rediser) http.HandlerFunc {
 
 		res, err := pingRedis(ctx, rdb)
 		if err != nil {
-			ctx = m.ContextWithError(ctx, err)
+			ctx = ctxutil.WithError(ctx, err)
 		}
 
-		ctx = m.ContextWithResult(ctx, res)
+		ctx = ctxutil.WithResult(ctx, res)
 		*r = *r.WithContext(ctx)
 	})
 }
