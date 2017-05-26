@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"internal/logger"
-	m "internal/middleware"
+	"internal/mdware"
 	"internal/router"
 
 	"github.com/garyburd/redigo/redis"
@@ -26,39 +26,50 @@ type handler struct {
 }
 
 func (h *handler) prepareAPI() *handler {
-	p := &m.Pipe{}
+	p := &mdware.Pipe{}
 	p.BeforeJoin(
-		m.Head(uuid),
-		m.Auth(auth),
-		m.Gzip,
-		m.Body,
+		mdware.Head(uuid),
+		mdware.Auth(auth),
+		mdware.Gzip,
+		mdware.Body,
 	)
 	p.AfterJoin(
-		m.Resp,
-		m.Fail,
-		m.Tail(h.log),
+		mdware.Resp,
+		mdware.Fail,
+		mdware.Tail(h.log),
 	)
 
 	h.api = map[string]http.Handler{
-		"GET /:foo/bar":   p.Join(m.Exec(test)),
-		"GET /test/:foo":  p.Join(m.Exec(test)),
-		"GET /redis/ping": p.Join(m.Exec(ping(h.rdb))),
+		"GET /:foo/bar":   p.Join(mdware.Exec(test)),
+		"GET /test/:foo":  p.Join(mdware.Exec(test)),
+		"GET /redis/ping": p.Join(mdware.Exec(ping(h.rdb))),
 
 		// => Debug mode only, when pref.Debug == true
-		"GET /debug/vars":               p.Join(m.Exec(m.Stdh)), // expvar
-		"GET /debug/pprof/":             p.Join(m.Exec(m.Stdh)), // net/http/pprof
-		"GET /debug/pprof/cmdline":      p.Join(m.Exec(m.Stdh)), // net/http/pprof
-		"GET /debug/pprof/profile":      p.Join(m.Exec(m.Stdh)), // net/http/pprof
-		"GET /debug/pprof/symbol":       p.Join(m.Exec(m.Stdh)), // net/http/pprof
-		"GET /debug/pprof/trace":        p.Join(m.Exec(m.Stdh)), // net/http/pprof
-		"GET /debug/pprof/goroutine":    p.Join(m.Exec(m.Stdh)), // runtime/pprof
-		"GET /debug/pprof/threadcreate": p.Join(m.Exec(m.Stdh)), // runtime/pprof
-		"GET /debug/pprof/heap":         p.Join(m.Exec(m.Stdh)), // runtime/pprof
-		"GET /debug/pprof/block":        p.Join(m.Exec(m.Stdh)), // runtime/pprof
+		"GET /debug/vars":               p.Join(mdware.Exec(mdware.Stdh)), // expvar
+		"GET /debug/pprof/":             p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/cmdline":      p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/profile":      p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/symbol":       p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/trace":        p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/goroutine":    p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+		"GET /debug/pprof/threadcreate": p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+		"GET /debug/pprof/heap":         p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+		"GET /debug/pprof/block":        p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
 	}
 
-	h.err404 = m.Join(m.Head(uuid), m.Errc(http.StatusNotFound), m.Fail, m.Tail(h.log))
-	h.err405 = m.Join(m.Head(uuid), m.Errc(http.StatusMethodNotAllowed), m.Fail, m.Tail(h.log))
+	h.err404 = mdware.Join(
+		mdware.Head(uuid),
+		mdware.Errc(http.StatusNotFound),
+		mdware.Fail,
+		mdware.Tail(h.log),
+	)
+
+	h.err405 = mdware.Join(
+		mdware.Head(uuid),
+		mdware.Errc(http.StatusMethodNotAllowed),
+		mdware.Fail,
+		mdware.Tail(h.log),
+	)
 
 	return h
 }
