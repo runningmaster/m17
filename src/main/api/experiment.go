@@ -1,15 +1,11 @@
 package api
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"net/http"
 
 	"internal/ctxutil"
 	"internal/router"
-
-	"github.com/garyburd/redigo/redis"
 )
 
 func test(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +24,7 @@ func ping(rdb rediser) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		res, err := pingRedis(ctx, rdb)
+		res, err := newRedisHelper(ctx, rdb, nil).ping()
 		if err != nil {
 			ctx = ctxutil.WithError(ctx, err)
 		}
@@ -38,9 +34,16 @@ func ping(rdb rediser) http.HandlerFunc {
 	})
 }
 
-func pingRedis(_ context.Context, rdb rediser) (interface{}, error) {
-	c := rdb.Get()
-	defer func(c io.Closer) { _ = c.Close }(c)
+func upload(rdb rediser) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 
-	return redis.Bytes(c.Do("PING"))
+		res, err := newRedisHelper(ctx, rdb, nil).uploadData([]byte(r.Header.Get("Content-Meta")), ctxutil.BodyFrom(ctx))
+		if err != nil {
+			ctx = ctxutil.WithError(ctx, err)
+		}
+
+		ctx = ctxutil.WithResult(ctx, res)
+		*r = *r.WithContext(ctx)
+	})
 }

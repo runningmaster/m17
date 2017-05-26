@@ -13,10 +13,6 @@ import (
 	//"github.com/rogpeppe/fastuuid"
 )
 
-type rediser interface {
-	Get() redis.Conn
-}
-
 type handler struct {
 	api    map[string]http.Handler
 	rdb    rediser
@@ -26,35 +22,37 @@ type handler struct {
 }
 
 func (h *handler) prepareAPI() *handler {
-	p := &mdware.Pipe{}
-	p.BeforeJoin(
+	pipe := mdware.NewPipe(8)
+
+	pipe.BeforeJoin(
 		mdware.Head(uuid),
 		mdware.Auth(auth),
 		mdware.Gzip,
 		mdware.Body,
 	)
-	p.AfterJoin(
+
+	pipe.AfterJoin(
 		mdware.Resp,
 		mdware.Fail,
 		mdware.Tail(h.log),
 	)
 
 	h.api = map[string]http.Handler{
-		"GET /:foo/bar":   p.Join(mdware.Exec(test)),
-		"GET /test/:foo":  p.Join(mdware.Exec(test)),
-		"GET /redis/ping": p.Join(mdware.Exec(ping(h.rdb))),
+		"GET /:foo/bar":   pipe.Join(mdware.Exec(test)),
+		"GET /test/:foo":  pipe.Join(mdware.Exec(test)),
+		"GET /redis/ping": pipe.Join(mdware.Exec(ping(h.rdb))),
 
 		// => Debug mode only, when pref.Debug == true
-		"GET /debug/vars":               p.Join(mdware.Exec(mdware.Stdh)), // expvar
-		"GET /debug/pprof/":             p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
-		"GET /debug/pprof/cmdline":      p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
-		"GET /debug/pprof/profile":      p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
-		"GET /debug/pprof/symbol":       p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
-		"GET /debug/pprof/trace":        p.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
-		"GET /debug/pprof/goroutine":    p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
-		"GET /debug/pprof/threadcreate": p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
-		"GET /debug/pprof/heap":         p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
-		"GET /debug/pprof/block":        p.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+		"GET /debug/vars":               pipe.Join(mdware.Exec(mdware.Stdh)), // expvar
+		"GET /debug/pprof/":             pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/cmdline":      pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/profile":      pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/symbol":       pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/trace":        pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
+		"GET /debug/pprof/goroutine":    pipe.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+		"GET /debug/pprof/threadcreate": pipe.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+		"GET /debug/pprof/heap":         pipe.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+		"GET /debug/pprof/block":        pipe.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
 	}
 
 	h.err404 = mdware.Join(

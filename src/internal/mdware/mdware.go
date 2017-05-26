@@ -26,14 +26,6 @@ Head(Auth(Gzip(Body(Exec(Resp(Fail(Tail)))))))
 
 */
 
-type coder interface {
-	Code() int
-}
-
-type sizer interface {
-	Size() int
-}
-
 // Pipe does
 type Pipe struct {
 	before []func(http.Handler) http.Handler
@@ -72,10 +64,26 @@ func (p *Pipe) Join(pipes ...func(http.Handler) http.Handler) http.Handler {
 	return h
 }
 
+// NewPipe returns *Pipe with cap c.
+func NewPipe(c int) *Pipe {
+	return &Pipe{
+		before: make([]func(http.Handler) http.Handler, 0, c),
+		after:  make([]func(http.Handler) http.Handler, 0, c),
+	}
+}
+
 // Join joins several middlewares in one pipeline.
 func Join(pipes ...func(http.Handler) http.Handler) http.Handler {
-	p := Pipe{}
+	p := NewPipe(0)
 	return p.Join(pipes...)
+}
+
+type coder interface {
+	Code() int
+}
+
+type sizer interface {
+	Size() int
 }
 
 type responseWriter struct {
@@ -215,7 +223,10 @@ func Body(h http.Handler) http.Handler {
 		}
 		ctx = ctxutil.WithCLen(ctx, int64(len(b)))
 		ctx = ctxutil.WithBody(ctx, b)
-		_ = r.Body.Close()
+		err = r.Body.Close()
+		if err != nil {
+			ctx = ctxutil.WithError(ctx, err, http.StatusBadRequest)
+		}
 
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
@@ -324,12 +335,11 @@ func Fail(h http.Handler) http.Handler {
 		ctx := r.Context()
 		err := ctxutil.ErrorFrom(ctx)
 		if err != nil {
-			msg := fmt.Sprintf("%s\n", err.Error())
-			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
 			code := ctxutil.CodeFrom(ctx)
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			w.WriteHeader(code)
 
+			msg := fmt.Sprintf("%s\n", err.Error())
 			n, err := w.Write([]byte(msg))
 			if err != nil {
 				ctx = ctxutil.WithError(ctx, err)
@@ -358,7 +368,7 @@ func Tail(log logger.Logger) func(http.Handler) http.Handler {
 			}
 			log.Printf(
 				"%s %s %s %s %s %d %d %d%s\n",
-				time.Now().Sub(ctxutil.TimeFrom(ctx)),
+				time.Since(ctxutil.TimeFrom(ctx)),
 				ctxutil.HostFrom(ctx),
 				ctxutil.UserFrom(ctx),
 				ctxutil.UUIDFrom(ctx),
