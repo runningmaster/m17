@@ -100,7 +100,7 @@ func (h *handler) withRouter(r router.Router) (router.Router, error) {
 }
 
 // NewWithRouter returns http.Handler based on given router.
-func NewWithRouter(r router.Router, options ...func(*handler) error) (router.Router, error) {
+func NewWithRouter(r router.Router, options ...func(*handler) error) (http.Handler, error) {
 	if r == nil {
 		panic("nil router")
 	}
