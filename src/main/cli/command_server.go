@@ -79,6 +79,7 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		return err
 	}
 
+	// ctx will be passed to http handlers via request
 	h, err := api.NewWithRouter(
 		router.NewMuxVestigo(ctx),
 		api.Redis(r),
@@ -88,6 +89,7 @@ func (c *serverCommand) execute(ctx context.Context, _ *flag.FlagSet, _ ...inter
 		return err
 	}
 
+	// ctx will be passed to shutdown func
 	s, err := server.NewWithContext(
 		ctx,
 		server.Handler(h),

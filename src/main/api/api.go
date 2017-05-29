@@ -13,6 +13,9 @@ import (
 	//"github.com/rogpeppe/fastuuid"
 )
 
+type hellper struct {
+}
+
 type handler struct {
 	api    map[string]http.Handler
 	rdb    rediser
