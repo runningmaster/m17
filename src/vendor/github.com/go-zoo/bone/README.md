@@ -72,25 +72,6 @@ func Handler(rw http.ResponseWriter, req *http.Request) {
 
 ```
 
-## TODO
-
-- DOC
-- More Testing
-- Debugging
-- Optimisation
-
-## Contributing
-
-1. Fork it
-2. Create your feature branch (git checkout -b my-new-feature)
-3. Write Tests!
-4. Commit your changes (git commit -am 'Add some feature')
-5. Push to the branch (git push origin my-new-feature)
-6. Create new Pull Request
-
-## License
-MIT
-
 ## Blog Posts
 - http://www.peterbe.com/plog/my-favorite-go-multiplexer
 - https://harshladha.xyz/my-first-library-in-go-language-hasty-791b8e2b9e69
