@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"net/http"
 
 	"internal/logger"
 
@@ -15,17 +17,14 @@ type rediser interface {
 }
 
 type redisHelper struct {
-	ctx context.Context
-	rdb rediser
-	log logger.Logger
-}
-
-func newRedisHelper(ctx context.Context, rdb rediser, log logger.Logger) *redisHelper {
-	return &redisHelper{
-		ctx: ctx,
-		rdb: rdb,
-		log: log,
-	}
+	ctx  context.Context
+	rdb  rediser
+	log  logger.Logger
+	r    *http.Request
+	w    http.ResponseWriter
+	meta []byte
+	data []byte
+	fn   string
 }
 
 func (h *redisHelper) getConn() redis.Conn {
@@ -43,6 +42,34 @@ func (h *redisHelper) ping() (interface{}, error) {
 	return redis.Bytes(c.Do("PING"))
 }
 
-func (h *redisHelper) uploadData(meta, data []byte) (interface{}, error) {
-	return nil, nil
+func (h *redisHelper) exec() (interface{}, error) {
+	if h.fn == "" {
+		return nil, fmt.Errorf("func is empty %q", h.fn)
+	}
+
+	return nil, fmt.Errorf("unknown func %q", h.fn)
 }
+
+/*
+	"get-maker"
+	"get-maker-sync"
+	"set-maker"
+	"del-maker"
+
+	"get-class"
+	"get-class-sync"
+	"set-class"
+	"del-class"
+
+	"get-drug"
+	"get-drug-sync"
+	"set-drug"
+	"set-drug-sale"
+	"del-drug"
+
+	"get-info"
+	"get-info-sync"
+	"set-info"
+	"set-info-sale"
+	"del-info"
+*/

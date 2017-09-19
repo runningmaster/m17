@@ -23,8 +23,11 @@ func test(w http.ResponseWriter, r *http.Request) {
 func ping(rdb rediser) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-
-		res, err := newRedisHelper(ctx, rdb, nil).ping()
+		dbx := &redisHelper{
+			ctx: ctx,
+			rdb: rdb,
+		}
+		res, err := dbx.ping()
 		if err != nil {
 			ctx = ctxutil.WithError(ctx, err)
 		}
@@ -34,11 +37,22 @@ func ping(rdb rediser) http.HandlerFunc {
 	})
 }
 
-func upload(rdb rediser) http.HandlerFunc {
+func exec(rdb rediser) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		res, err := newRedisHelper(ctx, rdb, nil).uploadData([]byte(r.Header.Get("Content-Meta")), ctxutil.BodyFrom(ctx))
+		dbx := &redisHelper{
+			ctx,
+			rdb,
+			nil,
+			r,
+			w,
+			[]byte(r.Header.Get("Content-Meta")),
+			ctxutil.BodyFrom(ctx),
+			router.ParamValueFrom(ctx, "func"),
+		}
+
+		res, err := dbx.exec()
 		if err != nil {
 			ctx = ctxutil.WithError(ctx, err)
 		}
