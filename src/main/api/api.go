@@ -47,29 +47,7 @@ func (h *handler) prepareAPI() *handler {
 
 		// devel
 		"POST /devel/:func": pipe.Join(mdware.Exec(exec(h.rdb))),
-		/*
-			"POST /devel/get-maker":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/get-maker-sync": pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/set-maker":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/del-maker":      pipe.Join(mdware.Exec(exec(h.rdb))),
 
-			"POST /devel/get-class":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/get-class-sync": pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/set-class":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/del-class":      pipe.Join(mdware.Exec(exec(h.rdb))),
-
-			"POST /devel/get-drug":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/get-drug-sync": pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/set-drug":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/set-drug-sale": pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/del-drug":      pipe.Join(mdware.Exec(exec(h.rdb))),
-
-			"POST /devel/get-info":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/get-info-sync": pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/set-info":      pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/set-info-sale": pipe.Join(mdware.Exec(exec(h.rdb))),
-			"POST /devel/del-info":      pipe.Join(mdware.Exec(exec(h.rdb))),
-		*/
 		// => Debug mode only, when pref.Debug == true
 		"GET /debug/vars":               pipe.Join(mdware.Exec(mdware.Stdh)), // expvar
 		"GET /debug/pprof/":             pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof

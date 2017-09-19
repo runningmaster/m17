@@ -11,6 +11,30 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+var apiFunc = map[string]func(h *redisHelper) (interface{}, error){
+	"get-maker":      fooBar,
+	"get-maker-sync": fooBar,
+	"set-maker":      fooBar,
+	"del-maker":      fooBar,
+
+	"get-class":      fooBar,
+	"get-class-sync": fooBar,
+	"set-class":      fooBar,
+	"del-class":      fooBar,
+
+	"get-drug":      fooBar,
+	"get-drug-sync": fooBar,
+	"set-drug":      fooBar,
+	"set-drug-sale": fooBar,
+	"del-drug":      fooBar,
+
+	"get-info":      fooBar,
+	"get-info-sync": fooBar,
+	"set-info":      fooBar,
+	"set-info-sale": fooBar,
+	"del-info":      fooBar,
+}
+
 //
 type rediser interface {
 	Get() redis.Conn
@@ -43,33 +67,13 @@ func (h *redisHelper) ping() (interface{}, error) {
 }
 
 func (h *redisHelper) exec() (interface{}, error) {
-	if h.fn == "" {
-		return nil, fmt.Errorf("func is empty %q", h.fn)
+	if f, ok := apiFunc[h.fn]; ok {
+		return f(h)
 	}
 
 	return nil, fmt.Errorf("unknown func %q", h.fn)
 }
 
-/*
-	"get-maker"
-	"get-maker-sync"
-	"set-maker"
-	"del-maker"
-
-	"get-class"
-	"get-class-sync"
-	"set-class"
-	"del-class"
-
-	"get-drug"
-	"get-drug-sync"
-	"set-drug"
-	"set-drug-sale"
-	"del-drug"
-
-	"get-info"
-	"get-info-sync"
-	"set-info"
-	"set-info-sale"
-	"del-info"
-*/
+func fooBar(h *redisHelper) (interface{}, error) {
+	return fmt.Sprintf("foo bar: %s", h.fn), nil
+}
