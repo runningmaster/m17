@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"internal/csvutil"
 	"internal/logger"
@@ -60,10 +61,10 @@ func (h *redisHelper) uploadSuggestion(_, data []byte) (interface{}, error) {
 	c.Do("FT.DROP", "inn")
 	c.Do("FT.DROP", "org")
 
-	c.Do("FT.CREATE", "spc", "SCHEMA", "name", "TEXT", "SORTABLE")
-	c.Do("FT.CREATE", "atc", "SCHEMA", "name", "TEXT", "SORTABLE")
-	c.Do("FT.CREATE", "inn", "SCHEMA", "name", "TEXT", "SORTABLE")
-	c.Do("FT.CREATE", "org", "SCHEMA", "name", "TEXT", "SORTABLE")
+	c.Do("FT.CREATE", "spc", "NOOFFSETS", "NOFIELDS", "NOSCOREIDX", "NOFREQS", "SCHEMA", "name", "TEXT", "SORTABLE")
+	c.Do("FT.CREATE", "atc", "NOOFFSETS", "NOFIELDS", "NOSCOREIDX", "NOFREQS", "SCHEMA", "name", "TEXT", "SORTABLE")
+	c.Do("FT.CREATE", "inn", "NOOFFSETS", "NOFIELDS", "NOSCOREIDX", "NOFREQS", "SCHEMA", "name", "TEXT", "SORTABLE")
+	c.Do("FT.CREATE", "org", "NOOFFSETS", "NOFIELDS", "NOSCOREIDX", "NOFREQS", "SCHEMA", "name", "TEXT", "SORTABLE")
 
 	csv := csvutil.NewRecordChan(bytes.NewReader(data), ',', false, 1)
 	var err error
@@ -79,14 +80,14 @@ func (h *redisHelper) uploadSuggestion(_, data []byte) (interface{}, error) {
 
 		switch v.Record[0] {
 		case "atc":
-			//c.Do("FT.ADD", "atc", v.Record[1], "1", "FIELDS", "name", v.Record[2])
+			//c.Do("FT.ADD", "atc", v.Record[1], "1", "FIELDS", "name", strings.ToLower(v.Record[2]))
 		case "info":
-			c.Do("FT.ADD", "spc", v.Record[1], "1", "FIELDS", "name", v.Record[2])
-			fmt.Println(v.Record[2])
+			c.Do("FT.ADD", "spc", v.Record[1], "1", "FIELDS", "name", strings.ToLower(v.Record[2]))
+			fmt.Println(strings.ToLower(v.Record[2]))
 		case "inn":
-			c.Do("FT.ADD", "inn", v.Record[1], "1", "FIELDS", "name", v.Record[2])
+			c.Do("FT.ADD", "inn", v.Record[1], "1", "FIELDS", "name", strings.ToLower(v.Record[2]))
 		case "org":
-			c.Do("FT.ADD", "org", v.Record[1], "1", "FIELDS", "name", v.Record[2])
+			c.Do("FT.ADD", "org", v.Record[1], "1", "FIELDS", "name", strings.ToLower(v.Record[2]))
 		}
 		if err != nil {
 			return nil, err
@@ -119,10 +120,10 @@ func (h *redisHelper) selectSuggestion(_, data []byte) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	res, err := redis.Values(c.Do("FT.SEARCH", "spc", v.Name, "SORTBY", "name"))
+	res, err := redis.Values(c.Do("FT.SEARCH", "spc", v.Name, "NOCONTENT", "SORTBY", "name"))
 	if err != nil {
 		return nil, err
 	}
 
-	return fmt.Sprintf("%v", res[0]), nil
+	return fmt.Sprintf("%v: %v", res[0], len(res)), nil
 }
