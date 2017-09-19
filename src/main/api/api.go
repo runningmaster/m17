@@ -45,10 +45,6 @@ func (h *handler) prepareAPI() *handler {
 		"GET /test/:foo":  pipe.Join(mdware.Exec(test)),
 		"GET /redis/ping": pipe.Join(mdware.Exec(ping(h.rdb))),
 
-		// test
-		"POST /test/upload-suggestion": pipe.Join(mdware.Exec(uploadSuggestion(h.rdb))),
-		"POST /test/select-suggestion": pipe.Join(mdware.Exec(selectSuggestion(h.rdb))),
-
 		// => Debug mode only, when pref.Debug == true
 		"GET /debug/vars":               pipe.Join(mdware.Exec(mdware.Stdh)), // expvar
 		"GET /debug/pprof/":             pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof
