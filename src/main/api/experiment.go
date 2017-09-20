@@ -49,10 +49,9 @@ func exec(rdb rediser) http.HandlerFunc {
 			w,
 			[]byte(r.Header.Get("Content-Meta")),
 			ctxutil.BodyFrom(ctx),
-			router.ParamValueFrom(ctx, "func"),
 		}
 
-		res, err := dbx.exec()
+		res, err := dbx.exec(router.ParamValueFrom(ctx, "func"))
 		if err != nil {
 			ctx = ctxutil.WithError(ctx, err)
 		}
