@@ -569,3 +569,122 @@ func delSpecDEC(h *redisHelper) (interface{}, error) {
 	}
 	return v, nil
 }
+
+type jsonClass struct {
+	ID     int64  `json:"id,omitempty"`
+	IDNode int64  `json:"id_node,omitempty"`
+	IDRoot int64  `json:"id_root,omitempty"`
+	Code   string `json:"code,omitempty"`
+	Name   string `json:"name,omitempty"` // *
+	NameRU string `json:"name_ru,omitempty"`
+	NameUA string `json:"name_ua,omitempty"`
+	NameEN string `json:"name_en,omitempty"`
+}
+
+type jsonINN struct {
+	ID        int64   `json:"id,omitempty"`
+	IDSpec    []int64 `json:"id_spec,omitempty"` // *
+	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
+	Name      string  `json:"name,omitempty"` // *
+	NameRU    string  `json:"name_ru,omitempty"`
+	NameUA    string  `json:"name_ua,omitempty"`
+	NameEN    string  `json:"name_en,omitempty"`
+	Slug      string  `json:"slug,omitempty"`
+}
+
+type jsonMake struct {
+	ID        int64   `json:"id,omitempty"`
+	IDSpec    []int64 `json:"id_spec,omitempty"` // *
+	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
+	Name      string  `json:"name,omitempty"` // *
+	NameRU    string  `json:"name_ru,omitempty"`
+	NameUA    string  `json:"name_ua,omitempty"`
+	NameEN    string  `json:"name_en,omitempty"`
+	Text      string  `json:"text,omitempty"` // *
+	TextRU    string  `json:"text_ru,omitempty"`
+	TextUA    string  `json:"text_ua,omitempty"`
+	TextEN    string  `json:"text_en,omitempty"`
+	Logo      string  `json:"logo,omitempty"`
+	Slug      string  `json:"slug,omitempty"`
+}
+
+type jsonDrug struct {
+	ID         int64   `json:"id,omitempty"`
+	IDMake     int64   `json:"id_make,omitempty"`
+	IDSpecDEC  int64   `json:"id_spec_dec,omitempty"`
+	IDSpecINF  int64   `json:"id_spec_inf,omitempty"`
+	IDClassATC []int64 `json:"id_class_atc,omitempty"`
+	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
+	IDClassFSC []int64 `json:"id_class_fsc,omitempty"`
+	IDClassBFC []int64 `json:"id_class_bfc,omitempty"`
+	IDClassCFC []int64 `json:"id_class_cfc,omitempty"`
+	IDClassMPC []int64 `json:"id_class_mpc,omitempty"`
+	IDClassCSC []int64 `json:"id_class_csc,omitempty"`
+	IDClassICD []int64 `json:"id_class_icd,omitempty"`
+	Name       string  `json:"name,omitempty"` // *
+	NameRU     string  `json:"name_ru,omitempty"`
+	NameUA     string  `json:"name_ua,omitempty"`
+	NameEN     string  `json:"name_en,omitempty"`
+	Form       string  `json:"form,omitempty"` // *
+	FormRU     string  `json:"form_ru,omitempty"`
+	FormUA     string  `json:"form_ua,omitempty"`
+	FormEN     string  `json:"form_en,omitempty"`
+	Dose       string  `json:"dose,omitempty"` // *
+	DoseRU     string  `json:"dose_ru,omitempty"`
+	DoseUA     string  `json:"dose_ua,omitempty"`
+	DoseEN     string  `json:"dose_en,omitempty"`
+	Pack       string  `json:"pack,omitempty"` // *
+	PackRU     string  `json:"pack_ru,omitempty"`
+	PackUA     string  `json:"pack_ua,omitempty"`
+	PackEN     string  `json:"pack_en,omitempty"`
+	Note       string  `json:"note,omitempty"` // *
+	NoteRU     string  `json:"note_ru,omitempty"`
+	NoteUA     string  `json:"note_ua,omitempty"`
+	NoteEN     string  `json:"note_en,omitempty"`
+	Numb       string  `json:"numb,omitempty"`
+	Make       string  `json:"make,omitempty"` // *
+	MakeRU     string  `json:"make_ru,omitempty"`
+	MakeUA     string  `json:"make_ua,omitempty"`
+	MakeEN     string  `json:"make_en,omitempty"`
+}
+
+type jsonSpec struct {
+	ID         int64   `json:"id,omitempty"`
+	IDDrug     []int64 `json:"id_drug,omitempty"`
+	IDMake     []int64 `json:"id_make,omitempty"`
+	IDSpecDEC  []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`
+	IDClassATC []int64 `json:"id_class_atc,omitempty"`
+	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
+	IDClassFSC []int64 `json:"id_class_fsc,omitempty"`
+	IDClassBFC []int64 `json:"id_class_bfc,omitempty"`
+	IDClassCFC []int64 `json:"id_class_cfc,omitempty"`
+	IDClassMPC []int64 `json:"id_class_mpc,omitempty"`
+	IDClassCSC []int64 `json:"id_class_csc,omitempty"`
+	IDClassICD []int64 `json:"id_class_icd,omitempty"`
+	Name       string  `json:"name,omitempty"` // *
+	NameRU     string  `json:"name_ru,omitempty"`
+	NameUA     string  `json:"name_ua,omitempty"`
+	NameEN     string  `json:"name_en,omitempty"`
+	Head       string  `json:"head,omitempty"` // *
+	HeadRU     string  `json:"head_ru,omitempty"`
+	HeadUA     string  `json:"head_ua,omitempty"`
+	HeadEN     string  `json:"head_en,omitempty"`
+	Text       string  `json:"text,omitempty"` // *
+	TextRU     string  `json:"text_ru,omitempty"`
+	TextUA     string  `json:"text_ua,omitempty"`
+	TextEN     string  `json:"text_en,omitempty"`
+	Slug       string  `json:"slug,omitempty"`
+	ImageOrg   string  `json:"image_org,omitempty"`
+	ImageBox   string  `json:"image_box,omitempty"`
+	CreatedAt  int64   `json:"created_at,omitempty"`
+	UpdatedAt  int64   `json:"updated_at,omitempty"`
+}
+
+type jsonSale struct {
+	ID int64   `json:"id,omitempty"`
+	Q  float64 `json:"q,omitempty"`
+	V  float64 `json:"v,omitempty"`
+}
