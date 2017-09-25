@@ -14,15 +14,14 @@ import (
 )
 
 const (
-	keyClassATC = "class:atc"
-	keyClassNFC = "class:nfc"
-	keyClassFSC = "class:fsc"
-	keyClassBFC = "class:bfc"
-	keyClassCFC = "class:cfc"
-	keyClassMPC = "class:mpc"
-	keyClassCSC = "class:csc"
-	keyClassICD = "class:icd"
-	statusOK    = http.StatusOK
+	prefixClassATC = "class:atc"
+	prefixClassNFC = "class:nfc"
+	prefixClassFSC = "class:fsc"
+	prefixClassBFC = "class:bfc"
+	prefixClassCFC = "class:cfc"
+	prefixClassMPC = "class:mpc"
+	prefixClassCSC = "class:csc"
+	prefixClassICD = "class:icd"
 )
 
 var apiFunc = map[string]func(h *redisHelper) (interface{}, error){
@@ -138,6 +137,67 @@ func (h *redisHelper) exec(s string) (interface{}, error) {
 	return nil, fmt.Errorf("unknown func %q", s)
 }
 
+func (h *redisHelper) setClass(p string, v ...*jsonClass) (string, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	var err error
+	for i := range v {
+		err = c.Send("HMSET", v[i].getHMSETValues(p)...)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	err = c.Flush()
+	if err != nil {
+		return "", err
+	}
+
+	return redis.String(c.Receive())
+}
+
+func (h *redisHelper) delClass(p string, v ...int64) ([]int64, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	var err error
+	for i := range v {
+		err = c.Send("HDEL", p+":"+strconv.Itoa(int(v[i])))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = c.Flush()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range v {
+		v[i], err = redis.Int64(c.Receive())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return v, nil
+}
+
+func (h *redisHelper) getClass(p string, v ...int64) ([]*jsonClass, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	return nil, nil
+}
+
+func (h *redisHelper) getClassSyncKey(p string, v int64) ([]int64, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	return nil, nil
+}
+
 type jsonClass struct {
 	ID        int64   `json:"id,omitempty"`
 	IDNode    int64   `json:"id_node,omitempty"`
@@ -182,211 +242,177 @@ func (j *jsonClass) getHMGETValues(key string) []interface{} {
 //	return err != redis.ErrNil
 //}
 
-func getClass(h *redisHelper, key string) (interface{}, error) {
+func getClass(h *redisHelper, p string) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err
 	}
 
-	c := h.getConn()
-	defer h.delConn(c)
-
-	for i := range v {
-		_ = v[i]
-	}
-
-	out := make([]*jsonClass, len(v))
-	return out, nil
+	return h.getClass(p, v...)
 }
 
-func getClassSync(h *redisHelper, key string) (interface{}, error) {
+func getClassSync(h *redisHelper, p string) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	k, err := h.getClassSyncKey(p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.getClass(p, k...)
 }
 
-func setClass(h *redisHelper, key string) (interface{}, error) {
+func setClass(h *redisHelper, p string) (interface{}, error) {
 	var v []*jsonClass
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err
 	}
 
-	c := h.getConn()
-	defer h.delConn(c)
-
-	for i := range v {
-		err = c.Send("HMSET", v[i].getHMSETValues(key)...)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return statusOK, nil
+	return h.setClass(p, v...)
 }
 
-func delClass(h *redisHelper, key string) (interface{}, error) {
+func delClass(h *redisHelper, p string) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err
 	}
 
-	c := h.getConn()
-	defer h.delConn(c)
-
-	for i := range v {
-		err = c.Send("HDEL", key+":"+strconv.Itoa(int(v[i])))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = c.Flush()
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range v {
-		v[i], err = redis.Int64(c.Receive())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return v, nil
+	return h.delClass(p, v...)
 }
 
 func getClassATC(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassATC)
+	return getClass(h, prefixClassATC)
 }
 
 func getClassATCSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassATC)
+	return getClassSync(h, prefixClassATC)
 }
 
 func setClassATC(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassATC)
+	return setClass(h, prefixClassATC)
 }
 
 func delClassATC(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassATC)
+	return delClass(h, prefixClassATC)
 }
 
 func getClassNFC(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassNFC)
+	return getClass(h, prefixClassNFC)
 }
 
 func getClassNFCSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassNFC)
+	return getClassSync(h, prefixClassNFC)
 }
 
 func setClassNFC(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassNFC)
+	return setClass(h, prefixClassNFC)
 }
 
 func delClassNFC(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassNFC)
+	return delClass(h, prefixClassNFC)
 }
 
 func getClassFSC(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassFSC)
+	return getClass(h, prefixClassFSC)
 }
 
 func getClassFSCSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassFSC)
+	return getClassSync(h, prefixClassFSC)
 }
 
 func setClassFSC(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassFSC)
+	return setClass(h, prefixClassFSC)
 }
 
 func delClassFSC(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassFSC)
+	return delClass(h, prefixClassFSC)
 }
 
 func getClassBFC(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassBFC)
+	return getClass(h, prefixClassBFC)
 }
 
 func getClassBFCSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassBFC)
+	return getClassSync(h, prefixClassBFC)
 }
 
 func setClassBFC(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassBFC)
+	return setClass(h, prefixClassBFC)
 }
 
 func delClassBFC(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassBFC)
+	return delClass(h, prefixClassBFC)
 }
 
 func getClassCFC(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassCFC)
+	return getClass(h, prefixClassCFC)
 }
 
 func getClassCFCSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassCFC)
+	return getClassSync(h, prefixClassCFC)
 }
 
 func setClassCFC(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassCFC)
+	return setClass(h, prefixClassCFC)
 }
 
 func delClassCFC(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassCFC)
+	return delClass(h, prefixClassCFC)
 }
 
 func getClassMPC(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassMPC)
+	return getClass(h, prefixClassMPC)
 }
 
 func getClassMPCSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassMPC)
+	return getClassSync(h, prefixClassMPC)
 }
 
 func setClassMPC(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassMPC)
+	return setClass(h, prefixClassMPC)
 }
 
 func delClassMPC(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassMPC)
+	return delClass(h, prefixClassMPC)
 }
 
 func getClassCSC(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassCSC)
+	return getClass(h, prefixClassCSC)
 }
 
 func getClassCSCSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassCSC)
+	return getClassSync(h, prefixClassCSC)
 }
 
 func setClassCSC(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassCSC)
+	return setClass(h, prefixClassCSC)
 }
 
 func delClassCSC(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassCSC)
+	return delClass(h, prefixClassCSC)
 }
 
 func getClassICD(h *redisHelper) (interface{}, error) {
-	return getClass(h, keyClassICD)
+	return getClass(h, prefixClassICD)
 }
 
 func getClassICDSync(h *redisHelper) (interface{}, error) {
-	return getClassSync(h, keyClassICD)
+	return getClassSync(h, prefixClassICD)
 }
 
 func setClassICD(h *redisHelper) (interface{}, error) {
-	return setClass(h, keyClassICD)
+	return setClass(h, prefixClassICD)
 }
 
 func delClassICD(h *redisHelper) (interface{}, error) {
-	return delClass(h, keyClassICD)
+	return delClass(h, prefixClassICD)
 }
 
 func getINN(h *redisHelper) (interface{}, error) {
