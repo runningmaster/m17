@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"internal/logger"
 
@@ -137,24 +138,73 @@ func (h *redisHelper) exec(s string) (interface{}, error) {
 	return nil, fmt.Errorf("unknown func %q", s)
 }
 
-func (h *redisHelper) setClass(p string, v ...*jsonClass) (string, error) {
+func (h *redisHelper) getSyncList(p string, v int64) ([]int64, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	res, err := redis.Values(c.Do("ZRANGEBYSCORE", p+":"+"sync", v, "+inf"))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]int64, len(res))
+	for i := range res {
+		out[i], _ = redis.Int64(res[i], err)
+	}
+
+	return out, nil
+}
+
+func (h *redisHelper) getObject(p string, v listHasher) error {
 	c := h.getConn()
 	defer h.delConn(c)
 
 	var err error
-	for i := range v {
-		err = c.Send("HMSET", v[i].getHMSETValues(p)...)
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("HMGET", v.getKeyAndFields(i, p)...)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
 	err = c.Flush()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return redis.String(c.Receive())
+	var r []interface{}
+	for i := 0; i < v.len(); i++ {
+		r, err = redis.Values(c.Receive())
+		if err != nil {
+			if err == redis.ErrNil {
+				//v[i] = nil
+				continue
+			}
+			return err
+		}
+		v.setValues(i, r)
+	}
+
+	return nil
+}
+
+func (h *redisHelper) setObject(p string, v listHasher) error {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	var err error
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("HMSET", v.getKeyAndFieldValues(i, p)...)
+		if err != nil {
+			return err
+		}
+		err = c.Send("ZADD", p+":"+"sync", "CH", time.Now().Unix(), v.getID(i))
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.Flush()
 }
 
 func (h *redisHelper) delClass(p string, v ...int64) ([]int64, error) {
@@ -184,18 +234,22 @@ func (h *redisHelper) delClass(p string, v ...int64) ([]int64, error) {
 	return v, nil
 }
 
-func (h *redisHelper) getClass(p string, v ...int64) ([]*jsonClass, error) {
-	c := h.getConn()
-	defer h.delConn(c)
-
-	return nil, nil
+type ruler interface {
+	len() int
 }
 
-func (h *redisHelper) getClassSyncKey(p string, v int64) ([]int64, error) {
-	c := h.getConn()
-	defer h.delConn(c)
+type hasher interface {
+	getKeyAndFieldValues(string) []interface{}
+	getKeyAndFields(string) []interface{}
+	setValues(...interface{})
+}
 
-	return nil, nil
+type listHasher interface {
+	ruler
+	getID(int) int64
+	getKeyAndFieldValues(int, string) []interface{}
+	getKeyAndFields(int, string) []interface{}
+	setValues(int, ...interface{})
 }
 
 type jsonClass struct {
@@ -212,9 +266,9 @@ type jsonClass struct {
 	NameEN    string  `json:"name_en,omitempty"`
 }
 
-func (j *jsonClass) getHMSETValues(key string) []interface{} {
+func (j *jsonClass) getKeyAndFieldValues(p string) []interface{} {
 	return []interface{}{
-		key + ":" + strconv.Itoa(int(j.ID)),
+		p + ":" + strconv.Itoa(int(j.ID)),
 		"id", j.ID,
 		"id_node", j.IDNode,
 		"id_root", j.IDRoot,
@@ -225,9 +279,9 @@ func (j *jsonClass) getHMSETValues(key string) []interface{} {
 	}
 }
 
-func (j *jsonClass) getHMGETValues(key string) []interface{} {
+func (j *jsonClass) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
-		key + ":" + strconv.Itoa(int(j.ID)),
+		p + ":" + strconv.Itoa(int(j.ID)),
 		"id",
 		"id_node",
 		"id_root",
@@ -238,9 +292,48 @@ func (j *jsonClass) getHMGETValues(key string) []interface{} {
 	}
 }
 
-//func NotErrNil(err error) bool {
-//	return err != redis.ErrNil
-//}
+func (j *jsonClass) setValues(v ...interface{}) {
+	for i := range v {
+		switch i {
+		case 0:
+			j.ID, _ = redis.Int64(v[i], nil)
+		case 1:
+			j.IDNode, _ = redis.Int64(v[i], nil)
+		case 2:
+			j.IDRoot, _ = redis.Int64(v[i], nil)
+		case 3:
+			j.Code, _ = redis.String(v[i], nil)
+		case 4:
+			j.NameRU, _ = redis.String(v[i], nil)
+		case 5:
+			j.NameUA, _ = redis.String(v[i], nil)
+		case 6:
+			j.NameEN, _ = redis.String(v[i], nil)
+		}
+	}
+}
+
+type jsonClassList []*jsonClass
+
+func (j jsonClassList) len() int {
+	return len(j)
+}
+
+func (j jsonClassList) getID(i int) int64 {
+	return j[i].ID
+}
+
+func (j jsonClassList) getKeyAndFieldValues(i int, p string) []interface{} {
+	return j[i].getKeyAndFieldValues(p)
+}
+
+func (j jsonClassList) getKeyAndFields(i int, p string) []interface{} {
+	return j[i].getKeyAndFields(p)
+}
+
+func (j jsonClassList) setValues(i int, v ...interface{}) {
+	j[i].setValues(v...)
+}
 
 func getClass(h *redisHelper, p string) (interface{}, error) {
 	var v []int64
@@ -249,7 +342,17 @@ func getClass(h *redisHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
-	return h.getClass(p, v...)
+	out := make(jsonClassList, len(v))
+	for i := range v {
+		out[i].ID = v[i]
+	}
+
+	err = h.getObject(p, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func getClassSync(h *redisHelper, p string) (interface{}, error) {
@@ -259,22 +362,37 @@ func getClassSync(h *redisHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
-	k, err := h.getClassSyncKey(p, v)
+	l, err := h.getSyncList(p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.getClass(p, k...)
+	out := make(jsonClassList, len(l))
+	for i := range l {
+		out[i].ID = l[i]
+	}
+
+	err = h.getObject(p, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func setClass(h *redisHelper, p string) (interface{}, error) {
-	var v []*jsonClass
+	var v jsonClassList
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.setClass(p, v...)
+	err = h.setObject(p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return http.StatusText(http.StatusOK), nil
 }
 
 func delClass(h *redisHelper, p string) (interface{}, error) {
