@@ -90,6 +90,24 @@ type rediser interface {
 	Get() redis.Conn
 }
 
+type ruler interface {
+	len() int
+}
+
+type hasher interface {
+	getKey(string) string
+	getKeyAndUnixtimeID(string) []interface{}
+	getKeyAndFieldValues(string) []interface{}
+	getKeyAndFields(string) []interface{}
+	setValues(...interface{})
+}
+
+type ruleHasher interface {
+	ruler
+	elem(int) hasher
+	nill(int)
+}
+
 type dbxHelper struct {
 	ctx  context.Context
 	rdb  rediser

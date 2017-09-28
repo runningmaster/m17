@@ -103,6 +103,20 @@ func (j *jsonMaker) setValues(v ...interface{}) {
 	}
 }
 
+type jsonMakers []*jsonMaker
+
+func (j jsonMakers) len() int {
+	return len(j)
+}
+
+func (j jsonMakers) elem(i int) hasher {
+	return j[i]
+}
+
+func (j jsonMakers) nill(i int) {
+	j[i] = nil
+}
+
 func getMaker(h *dbxHelper) (interface{}, error) {
 	return jsonToInt64s(h.data)
 }
@@ -116,38 +130,21 @@ func setMaker(h *dbxHelper) (interface{}, error) {
 }
 
 func delMaker(h *dbxHelper) (interface{}, error) {
-	s, err := jsonToInt64s(h.data)
-	if err != nil {
-		return nil, err
-	}
-
-	v := int64sToMakers(s...)
-	for i := range v {
-		err = c.Send("DEL", v[i].getKey(p))
-		if err != nil {
-			return err
-		}
-		err = c.Send("ZADD", v[i].getKeyAndUnixtimeID(p)...)
-		if err != nil {
-			return err
-		}
-	}
-
-	return "OK", c.Flush()
+	return jsonToInt64s(h.data)
 }
 
 func jsonToInt64(data []byte) (int64, error) {
 	var v int64
-	err := json.Unmarshal(h.data, &v)
+	err := json.Unmarshal(data, &v)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	return v, nil
 }
 
 func jsonToInt64s(data []byte) ([]int64, error) {
 	var v []int64
-	err := json.Unmarshal(h.data, &v)
+	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +153,7 @@ func jsonToInt64s(data []byte) ([]int64, error) {
 
 func jsonToMakers(data []byte) ([]*jsonMaker, error) {
 	var v []*jsonMaker
-	err := json.Unmarshal(h.data, &v)
+	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
@@ -168,4 +165,6 @@ func int64sToMakers(v ...int64) []*jsonMaker {
 	for i := range out {
 		out[i].ID = v[i]
 	}
+
+	return out
 }
