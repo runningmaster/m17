@@ -23,7 +23,7 @@ func test(w http.ResponseWriter, r *http.Request) {
 func ping(rdb rediser) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		dbx := &redisHelper{
+		dbx := &dbxHelper{
 			ctx: ctx,
 			rdb: rdb,
 		}
@@ -41,7 +41,7 @@ func exec(rdb rediser) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		dbx := &redisHelper{
+		dbx := &dbxHelper{
 			ctx,
 			rdb,
 			nil,

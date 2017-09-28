@@ -134,7 +134,7 @@ func (j *jsonSpec) setValues(v ...interface{}) {
 	}
 }
 
-func getSpecACT(h *redisHelper) (interface{}, error) {
+func getSpecACT(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -143,7 +143,7 @@ func getSpecACT(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func getSpecACTSync(h *redisHelper) (interface{}, error) {
+func getSpecACTSync(h *dbxHelper) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -152,11 +152,11 @@ func getSpecACTSync(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func setSpecACT(h *redisHelper) (interface{}, error) {
+func setSpecACT(h *dbxHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func delSpecACT(h *redisHelper) (interface{}, error) {
+func delSpecACT(h *dbxHelper) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -165,7 +165,7 @@ func delSpecACT(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func getSpecINF(h *redisHelper) (interface{}, error) {
+func getSpecINF(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -174,7 +174,7 @@ func getSpecINF(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func getSpecINFSync(h *redisHelper) (interface{}, error) {
+func getSpecINFSync(h *dbxHelper) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -183,15 +183,15 @@ func getSpecINFSync(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func setSpecINF(h *redisHelper) (interface{}, error) {
+func setSpecINF(h *dbxHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func setSpecINFSale(h *redisHelper) (interface{}, error) {
+func setSpecINFSale(h *dbxHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func delSpecINF(h *redisHelper) (interface{}, error) {
+func delSpecINF(h *dbxHelper) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -200,7 +200,7 @@ func delSpecINF(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func getSpecDEC(h *redisHelper) (interface{}, error) {
+func getSpecDEC(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -209,7 +209,7 @@ func getSpecDEC(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func getSpecDECSync(h *redisHelper) (interface{}, error) {
+func getSpecDECSync(h *dbxHelper) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -218,16 +218,16 @@ func getSpecDECSync(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func setSpecDEC(h *redisHelper) (interface{}, error) {
+func setSpecDEC(h *dbxHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func setSpecDECSale(h *redisHelper) (interface{}, error) {
+func setSpecDECSale(h *dbxHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func delSpecDEC(h *redisHelper) (interface{}, error) {
-	var v int64
+func delSpecDEC(h *dbxHelper) (interface{}, error) {
+	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err

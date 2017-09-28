@@ -103,7 +103,49 @@ func (j *jsonMaker) setValues(v ...interface{}) {
 	}
 }
 
-func getMaker(h *redisHelper) (interface{}, error) {
+func getMaker(h *dbxHelper) (interface{}, error) {
+	return jsonToInt64s(h.data)
+}
+
+func getMakerSync(h *dbxHelper) (interface{}, error) {
+	return jsonToInt64(h.data)
+}
+
+func setMaker(h *dbxHelper) (interface{}, error) {
+	return jsonToMakers(h.data)
+}
+
+func delMaker(h *dbxHelper) (interface{}, error) {
+	s, err := jsonToInt64s(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	v := int64sToMakers(s...)
+	for i := range v {
+		err = c.Send("DEL", v[i].getKey(p))
+		if err != nil {
+			return err
+		}
+		err = c.Send("ZADD", v[i].getKeyAndUnixtimeID(p)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return "OK", c.Flush()
+}
+
+func jsonToInt64(data []byte) (int64, error) {
+	var v int64
+	err := json.Unmarshal(h.data, &v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func jsonToInt64s(data []byte) ([]int64, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -112,8 +154,8 @@ func getMaker(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func getMakerSync(h *redisHelper) (interface{}, error) {
-	var v int64
+func jsonToMakers(data []byte) ([]*jsonMaker, error) {
+	var v []*jsonMaker
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err
@@ -121,15 +163,9 @@ func getMakerSync(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func setMaker(h *redisHelper) (interface{}, error) {
-	return "OK", nil
-}
-
-func delMaker(h *redisHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
+func int64sToMakers(v ...int64) []*jsonMaker {
+	out := make([]*jsonMaker, len(v))
+	for i := range out {
+		out[i].ID = v[i]
 	}
-	return v, nil
 }

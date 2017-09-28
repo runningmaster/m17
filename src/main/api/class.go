@@ -165,7 +165,7 @@ func delclass(c redis.Conn, p string, v ...int64) error {
 	return c.Flush()
 }
 
-func getClass(h *redisHelper, p string) (interface{}, error) {
+func getClass(h *dbxHelper, p string) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -178,7 +178,7 @@ func getClass(h *redisHelper, p string) (interface{}, error) {
 	return getclass(c, p, v...)
 }
 
-func getClassSync(h *redisHelper, p string) (interface{}, error) {
+func getClassSync(h *dbxHelper, p string) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -196,7 +196,7 @@ func getClassSync(h *redisHelper, p string) (interface{}, error) {
 	return getclass(c, p, l...)
 }
 
-func setClass(h *redisHelper, p string) (interface{}, error) {
+func setClass(h *dbxHelper, p string) (interface{}, error) {
 	var v []*jsonClass
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -214,7 +214,7 @@ func setClass(h *redisHelper, p string) (interface{}, error) {
 	return "OK", nil
 }
 
-func delClass(h *redisHelper, p string) (interface{}, error) {
+func delClass(h *dbxHelper, p string) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -232,130 +232,130 @@ func delClass(h *redisHelper, p string) (interface{}, error) {
 	return "OK", nil
 }
 
-func getClassATC(h *redisHelper) (interface{}, error) {
+func getClassATC(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassATC)
 }
 
-func getClassATCSync(h *redisHelper) (interface{}, error) {
+func getClassATCSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassATC)
 }
 
-func setClassATC(h *redisHelper) (interface{}, error) {
+func setClassATC(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassATC)
 }
 
-func delClassATC(h *redisHelper) (interface{}, error) {
+func delClassATC(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassATC)
 }
 
-func getClassNFC(h *redisHelper) (interface{}, error) {
+func getClassNFC(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassNFC)
 }
 
-func getClassNFCSync(h *redisHelper) (interface{}, error) {
+func getClassNFCSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassNFC)
 }
 
-func setClassNFC(h *redisHelper) (interface{}, error) {
+func setClassNFC(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassNFC)
 }
 
-func delClassNFC(h *redisHelper) (interface{}, error) {
+func delClassNFC(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassNFC)
 }
 
-func getClassFSC(h *redisHelper) (interface{}, error) {
+func getClassFSC(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassFSC)
 }
 
-func getClassFSCSync(h *redisHelper) (interface{}, error) {
+func getClassFSCSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassFSC)
 }
 
-func setClassFSC(h *redisHelper) (interface{}, error) {
+func setClassFSC(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassFSC)
 }
 
-func delClassFSC(h *redisHelper) (interface{}, error) {
+func delClassFSC(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassFSC)
 }
 
-func getClassBFC(h *redisHelper) (interface{}, error) {
+func getClassBFC(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassBFC)
 }
 
-func getClassBFCSync(h *redisHelper) (interface{}, error) {
+func getClassBFCSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassBFC)
 }
 
-func setClassBFC(h *redisHelper) (interface{}, error) {
+func setClassBFC(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassBFC)
 }
 
-func delClassBFC(h *redisHelper) (interface{}, error) {
+func delClassBFC(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassBFC)
 }
 
-func getClassCFC(h *redisHelper) (interface{}, error) {
+func getClassCFC(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassCFC)
 }
 
-func getClassCFCSync(h *redisHelper) (interface{}, error) {
+func getClassCFCSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassCFC)
 }
 
-func setClassCFC(h *redisHelper) (interface{}, error) {
+func setClassCFC(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassCFC)
 }
 
-func delClassCFC(h *redisHelper) (interface{}, error) {
+func delClassCFC(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassCFC)
 }
 
-func getClassMPC(h *redisHelper) (interface{}, error) {
+func getClassMPC(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassMPC)
 }
 
-func getClassMPCSync(h *redisHelper) (interface{}, error) {
+func getClassMPCSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassMPC)
 }
 
-func setClassMPC(h *redisHelper) (interface{}, error) {
+func setClassMPC(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassMPC)
 }
 
-func delClassMPC(h *redisHelper) (interface{}, error) {
+func delClassMPC(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassMPC)
 }
 
-func getClassCSC(h *redisHelper) (interface{}, error) {
+func getClassCSC(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassCSC)
 }
 
-func getClassCSCSync(h *redisHelper) (interface{}, error) {
+func getClassCSCSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassCSC)
 }
 
-func setClassCSC(h *redisHelper) (interface{}, error) {
+func setClassCSC(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassCSC)
 }
 
-func delClassCSC(h *redisHelper) (interface{}, error) {
+func delClassCSC(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassCSC)
 }
 
-func getClassICD(h *redisHelper) (interface{}, error) {
+func getClassICD(h *dbxHelper) (interface{}, error) {
 	return getClass(h, prefixClassICD)
 }
 
-func getClassICDSync(h *redisHelper) (interface{}, error) {
+func getClassICDSync(h *dbxHelper) (interface{}, error) {
 	return getClassSync(h, prefixClassICD)
 }
 
-func setClassICD(h *redisHelper) (interface{}, error) {
+func setClassICD(h *dbxHelper) (interface{}, error) {
 	return setClass(h, prefixClassICD)
 }
 
-func delClassICD(h *redisHelper) (interface{}, error) {
+func delClassICD(h *dbxHelper) (interface{}, error) {
 	return delClass(h, prefixClassICD)
 }

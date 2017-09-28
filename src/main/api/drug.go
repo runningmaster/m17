@@ -160,7 +160,7 @@ func (j *jsonDrug) setValues(v ...interface{}) {
 	}
 }
 
-func getDrug(h *redisHelper) (interface{}, error) {
+func getDrug(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -169,7 +169,7 @@ func getDrug(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func getDrugSync(h *redisHelper) (interface{}, error) {
+func getDrugSync(h *dbxHelper) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -178,16 +178,16 @@ func getDrugSync(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func setDrug(h *redisHelper) (interface{}, error) {
+func setDrug(h *dbxHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func setDrugSale(h *redisHelper) (interface{}, error) {
+func setDrugSale(h *dbxHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func delDrug(h *redisHelper) (interface{}, error) {
-	var v int64
+func delDrug(h *dbxHelper) (interface{}, error) {
+	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err

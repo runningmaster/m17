@@ -72,7 +72,7 @@ func (j *jsonINN) setValues(v ...interface{}) {
 	}
 }
 
-func getINN(h *redisHelper) (interface{}, error) {
+func getINN(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -84,7 +84,7 @@ func getINN(h *redisHelper) (interface{}, error) {
 	return res, nil
 }
 
-func getINNSync(h *redisHelper) (interface{}, error) {
+func getINNSync(h *dbxHelper) (interface{}, error) {
 	var v int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -93,7 +93,7 @@ func getINNSync(h *redisHelper) (interface{}, error) {
 	return v, nil
 }
 
-func setINN(h *redisHelper) (interface{}, error) {
+func setINN(h *dbxHelper) (interface{}, error) {
 	var v []*jsonINN
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
@@ -105,8 +105,8 @@ func setINN(h *redisHelper) (interface{}, error) {
 	return "OK", nil
 }
 
-func delINN(h *redisHelper) (interface{}, error) {
-	var v int64
+func delINN(h *dbxHelper) (interface{}, error) {
+	var v []int64
 	err := json.Unmarshal(h.data, &v)
 	if err != nil {
 		return nil, err

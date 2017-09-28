@@ -11,7 +11,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-var apiFunc = map[string]func(h *redisHelper) (interface{}, error){
+var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-class-atc":      getClassATC,
 	"get-class-atc-sync": getClassATCSync,
 	"set-class-atc":      setClassATC,
@@ -90,7 +90,7 @@ type rediser interface {
 	Get() redis.Conn
 }
 
-type redisHelper struct {
+type dbxHelper struct {
 	ctx  context.Context
 	rdb  rediser
 	log  logger.Logger
@@ -101,22 +101,22 @@ type redisHelper struct {
 	//	lang string
 }
 
-func (h *redisHelper) getConn() redis.Conn {
+func (h *dbxHelper) getConn() redis.Conn {
 	return h.rdb.Get()
 }
 
-func (h *redisHelper) delConn(c io.Closer) {
+func (h *dbxHelper) delConn(c io.Closer) {
 	_ = c.Close
 }
 
-func (h *redisHelper) ping() (interface{}, error) {
+func (h *dbxHelper) ping() (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
 	return redis.Bytes(c.Do("PING"))
 }
 
-func (h *redisHelper) exec(s string) (interface{}, error) {
+func (h *dbxHelper) exec(s string) (interface{}, error) {
 	if fn, ok := apiFunc[s]; ok {
 		return fn(h)
 	}
@@ -124,7 +124,7 @@ func (h *redisHelper) exec(s string) (interface{}, error) {
 	return nil, fmt.Errorf("unknown func %q", s)
 }
 
-func (h *redisHelper) getSyncList(p string, v int64) ([]int64, error) {
+func (h *dbxHelper) getSyncList(p string, v int64) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
