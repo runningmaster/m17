@@ -93,6 +93,20 @@ func (j *jsonClass) setValues(v ...interface{}) {
 	}
 }
 
+type jsonClasses []*jsonClass
+
+func (j jsonClasses) len() int {
+	return len(j)
+}
+
+func (j jsonClasses) elem(i int) hasher {
+	return j[i]
+}
+
+func (j jsonClasses) nill(i int) {
+	j[i] = nil
+}
+
 func getclass(c redis.Conn, p string, v ...int64) ([]*jsonClass, error) {
 	out := make([]*jsonClass, len(v))
 	for i := range out {
@@ -165,9 +179,26 @@ func delclass(c redis.Conn, p string, v ...int64) error {
 	return c.Flush()
 }
 
+func jsonToClasses(data []byte) ([]*jsonClass, error) {
+	var v []*jsonClass
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func makeClasses(v ...int64) []*jsonClass {
+	out := make([]*jsonClass, len(v))
+	for i := range out {
+		out[i].ID = v[i]
+	}
+
+	return out
+}
+
 func getClass(h *dbxHelper, p string) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
+	x, err := jsonToInt64s(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +206,13 @@ func getClass(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return getclass(c, p, v...)
+	v := makeClasses(x...)
+	err = loadHashers(c, p, jsonClasses(v))
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 func getClassSync(h *dbxHelper, p string) (interface{}, error) {

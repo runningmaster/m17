@@ -134,6 +134,38 @@ func (j *jsonSpec) setValues(v ...interface{}) {
 	}
 }
 
+type jsonSpecs []*jsonSpec
+
+func (j jsonSpecs) len() int {
+	return len(j)
+}
+
+func (j jsonSpecs) elem(i int) hasher {
+	return j[i]
+}
+
+func (j jsonSpecs) nill(i int) {
+	j[i] = nil
+}
+
+func jsonToSpecs(data []byte) ([]*jsonSpec, error) {
+	var v []*jsonSpec
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func makeSpecs(v ...int64) []*jsonSpec {
+	out := make([]*jsonSpec, len(v))
+	for i := range out {
+		out[i].ID = v[i]
+	}
+
+	return out
+}
+
 func getSpecACT(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)

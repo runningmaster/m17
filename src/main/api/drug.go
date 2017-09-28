@@ -160,6 +160,38 @@ func (j *jsonDrug) setValues(v ...interface{}) {
 	}
 }
 
+type jsonDrugs []*jsonDrug
+
+func (j jsonDrugs) len() int {
+	return len(j)
+}
+
+func (j jsonDrugs) elem(i int) hasher {
+	return j[i]
+}
+
+func (j jsonDrugs) nill(i int) {
+	j[i] = nil
+}
+
+func jsonToDrugs(data []byte) ([]*jsonDrug, error) {
+	var v []*jsonDrug
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func makeDrugs(v ...int64) []*jsonDrug {
+	out := make([]*jsonDrug, len(v))
+	for i := range out {
+		out[i].ID = v[i]
+	}
+
+	return out
+}
+
 func getDrug(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)

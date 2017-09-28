@@ -72,6 +72,38 @@ func (j *jsonINN) setValues(v ...interface{}) {
 	}
 }
 
+type jsonINNs []*jsonINN
+
+func (j jsonINNs) len() int {
+	return len(j)
+}
+
+func (j jsonINNs) elem(i int) hasher {
+	return j[i]
+}
+
+func (j jsonINNs) nill(i int) {
+	j[i] = nil
+}
+
+func jsonToINNs(data []byte) ([]*jsonINN, error) {
+	var v []*jsonINN
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func makeINNs(v ...int64) []*jsonINN {
+	out := make([]*jsonINN, len(v))
+	for i := range out {
+		out[i].ID = v[i]
+	}
+
+	return out
+}
+
 func getINN(h *dbxHelper) (interface{}, error) {
 	var v []int64
 	err := json.Unmarshal(h.data, &v)

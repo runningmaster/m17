@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -164,3 +165,21 @@ func (h *dbxHelper) getSyncList(p string, v int64) ([]int64, error) {
 //	Q  float64 `json:"q,omitempty"`
 //	V  float64 `json:"v,omitempty"`
 //}
+
+func jsonToInt64(data []byte) (int64, error) {
+	var v int64
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return 0, err
+	}
+	return v, nil
+}
+
+func jsonToInt64s(data []byte) ([]int64, error) {
+	var v []int64
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}

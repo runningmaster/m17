@@ -117,40 +117,6 @@ func (j jsonMakers) nill(i int) {
 	j[i] = nil
 }
 
-func getMaker(h *dbxHelper) (interface{}, error) {
-	return jsonToInt64s(h.data)
-}
-
-func getMakerSync(h *dbxHelper) (interface{}, error) {
-	return jsonToInt64(h.data)
-}
-
-func setMaker(h *dbxHelper) (interface{}, error) {
-	return jsonToMakers(h.data)
-}
-
-func delMaker(h *dbxHelper) (interface{}, error) {
-	return jsonToInt64s(h.data)
-}
-
-func jsonToInt64(data []byte) (int64, error) {
-	var v int64
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return 0, err
-	}
-	return v, nil
-}
-
-func jsonToInt64s(data []byte) ([]int64, error) {
-	var v []int64
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
 func jsonToMakers(data []byte) ([]*jsonMaker, error) {
 	var v []*jsonMaker
 	err := json.Unmarshal(data, &v)
@@ -160,11 +126,163 @@ func jsonToMakers(data []byte) ([]*jsonMaker, error) {
 	return v, nil
 }
 
-func int64sToMakers(v ...int64) []*jsonMaker {
+func makeMakers(v ...int64) []*jsonMaker {
 	out := make([]*jsonMaker, len(v))
 	for i := range out {
 		out[i].ID = v[i]
 	}
 
 	return out
+}
+
+func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
+	res, err := redis.Values(c.Do("ZRANGEBYSCORE", p+":"+"sync", v, "+inf"))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]int64, len(res))
+	for i := range res {
+		out[i], _ = redis.Int64(res[i], nil)
+	}
+
+	return out, nil
+}
+
+func saveHashers(c redis.Conn, p string, v ruleHasher) error {
+	var err error
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("HMSET", v.elem(i).getKeyAndFieldValues(p)...)
+		if err != nil {
+			return err
+		}
+		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.Flush()
+}
+
+func loadHashers(c redis.Conn, p string, v ruleHasher) error {
+	var err error
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("HMGET", v.elem(i).getKeyAndFields(p)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = c.Flush()
+	if err != nil {
+		return err
+	}
+
+	var r []interface{}
+	for i := 0; i < v.len(); i++ {
+		r, err = redis.Values(c.Receive())
+		if err != nil {
+			if err == redis.ErrNil {
+				v.nill(i)
+				continue
+			}
+			return err
+		}
+		v.elem(i).setValues(r)
+	}
+
+	return nil
+}
+
+func freeHashers(c redis.Conn, p string, v ruleHasher) error {
+	var err error
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("DEL", v.elem(i).getKey(p))
+		if err != nil {
+			return err
+		}
+		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.Flush()
+}
+
+func getMaker(h *dbxHelper) (interface{}, error) {
+	x, err := jsonToInt64s(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v := makeMakers(x...)
+	err = loadHashers(c, "maker", jsonMakers(v))
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func getMakerSync(h *dbxHelper) (interface{}, error) {
+	x, err := jsonToInt64(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	s, err := loadSyncIDs(c, "maker", x)
+	if err != nil {
+		return nil, err
+	}
+
+	v := makeMakers(s...)
+	err = loadHashers(c, "maker", jsonMakers(v))
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func setMaker(h *dbxHelper) (interface{}, error) {
+	v, err := jsonToMakers(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = saveHashers(c, "maker", jsonMakers(v))
+	if err != nil {
+		return nil, err
+	}
+
+	return "OK", nil
+}
+
+func delMaker(h *dbxHelper) (interface{}, error) {
+	p, err := jsonToInt64s(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v := makeMakers(p...)
+	err = freeHashers(c, "maker", jsonMakers(v))
+	if err != nil {
+		return nil, err
+	}
+
+	return "OK", nil
 }
