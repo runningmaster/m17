@@ -12,6 +12,8 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+var statusOK = http.StatusText(http.StatusOK)
+
 var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-class-atc":      getClassATC,
 	"get-class-atc-sync": getClassATCSync,
@@ -66,7 +68,6 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-drug":      getDrug,
 	"get-drug-sync": getDrugSync,
 	"set-drug":      setDrug,
-	"set-drug-sale": setDrugSale,
 	"del-drug":      delDrug,
 
 	"get-spec-act":      getSpecACT,
@@ -77,13 +78,11 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-spec-inf":      getSpecINF,
 	"get-spec-inf-sync": getSpecINFSync,
 	"set-spec-inf":      setSpecINF,
-	"set-spec-inf-sale": setSpecINFSale,
 	"del-spec-inf":      delSpecINF,
 
 	"get-spec-dec":      getSpecDEC,
 	"get-spec-dec-sync": getSpecDECSync,
 	"set-spec-dec":      setSpecDEC,
-	"set-spec-dec-sale": setSpecDECSale,
 	"del-spec-dec":      delSpecDEC,
 }
 
@@ -166,7 +165,7 @@ func (h *dbxHelper) getSyncList(p string, v int64) ([]int64, error) {
 //	V  float64 `json:"v,omitempty"`
 //}
 
-func jsonToInt64(data []byte) (int64, error) {
+func jsonToID(data []byte) (int64, error) {
 	var v int64
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -175,11 +174,87 @@ func jsonToInt64(data []byte) (int64, error) {
 	return v, nil
 }
 
-func jsonToInt64s(data []byte) ([]int64, error) {
+func jsonToIDs(data []byte) ([]int64, error) {
 	var v []int64
 	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
 	return v, nil
+}
+
+func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
+	res, err := redis.Values(c.Do("ZRANGEBYSCORE", p+":"+"sync", v, "+inf"))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]int64, len(res))
+	for i := range res {
+		out[i], _ = redis.Int64(res[i], nil)
+	}
+
+	return out, nil
+}
+
+func saveHashers(c redis.Conn, p string, v ruleHasher) error {
+	var err error
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("HMSET", v.elem(i).getKeyAndFieldValues(p)...)
+		if err != nil {
+			return err
+		}
+		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.Flush()
+}
+
+func loadHashers(c redis.Conn, p string, v ruleHasher) error {
+	var err error
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("HMGET", v.elem(i).getKeyAndFields(p)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = c.Flush()
+	if err != nil {
+		return err
+	}
+
+	var r []interface{}
+	for i := 0; i < v.len(); i++ {
+		r, err = redis.Values(c.Receive())
+		if err != nil {
+			if err == redis.ErrNil {
+				v.nill(i)
+				continue
+			}
+			return err
+		}
+		v.elem(i).setValues(r)
+	}
+
+	return nil
+}
+
+func freeHashers(c redis.Conn, p string, v ruleHasher) error {
+	var err error
+	for i := 0; i < v.len(); i++ {
+		err = c.Send("DEL", v.elem(i).getKey(p))
+		if err != nil {
+			return err
+		}
+		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.Flush()
 }

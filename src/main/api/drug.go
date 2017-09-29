@@ -8,6 +8,10 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+const (
+	prefixDrug = "drug"
+)
+
 type jsonDrug struct {
 	ID int64 `json:"id,omitempty"`
 	//	IDMake     int64   `json:"id_make,omitempty"`
@@ -174,55 +178,95 @@ func (j jsonDrugs) nill(i int) {
 	j[i] = nil
 }
 
-func jsonToDrugs(data []byte) ([]*jsonDrug, error) {
+func jsonToDrugs(data []byte) (jsonDrugs, error) {
 	var v []*jsonDrug
 	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+	return jsonDrugs(v), nil
 }
 
-func makeDrugs(v ...int64) []*jsonDrug {
+func makeDrugs(v ...int64) jsonDrugs {
 	out := make([]*jsonDrug, len(v))
 	for i := range out {
 		out[i].ID = v[i]
 	}
 
-	return out
+	return jsonDrugs(out)
 }
 
 func getDrug(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	out := makeDrugs(v...)
+	err = loadHashers(c, prefixDrug, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func getDrugSync(h *dbxHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	s, err := loadSyncIDs(c, prefixDrug, v)
+	if err != nil {
+		return nil, err
+	}
+
+	out := makeDrugs(s...)
+	err = loadHashers(c, prefixDrug, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func setDrug(h *dbxHelper) (interface{}, error) {
-	return "OK", nil
-}
-
-func setDrugSale(h *dbxHelper) (interface{}, error) {
-	return "OK", nil
-}
-
-func delDrug(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToDrugs(h.data)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = saveHashers(c, prefixDrug, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
+}
+
+func delDrug(h *dbxHelper) (interface{}, error) {
+	v, err := jsonToIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = freeHashers(c, prefixDrug, makeDrugs(v...))
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
 }

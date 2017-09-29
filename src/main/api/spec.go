@@ -8,6 +8,12 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+const (
+	prefixSpecACT = "spec:act"
+	prefixSpecINF = "spec:inf"
+	prefixSpecDEC = "spec:dec"
+)
+
 type jsonSpec struct {
 	ID         int64   `json:"id,omitempty"`
 	IDINN      []int64 `json:"id_inn,omitempty"`
@@ -148,121 +154,143 @@ func (j jsonSpecs) nill(i int) {
 	j[i] = nil
 }
 
-func jsonToSpecs(data []byte) ([]*jsonSpec, error) {
+func jsonToSpecs(data []byte) (jsonSpecs, error) {
 	var v []*jsonSpec
 	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+	return jsonSpecs(v), nil
 }
 
-func makeSpecs(v ...int64) []*jsonSpec {
+func makeSpecs(v ...int64) jsonSpecs {
 	out := make([]*jsonSpec, len(v))
 	for i := range out {
 		out[i].ID = v[i]
 	}
 
-	return out
+	return jsonSpecs(out)
+}
+
+func getSpec(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	out := makeSpecs(v...)
+	err = loadHashers(c, p, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func getSpecSync(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToID(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	s, err := loadSyncIDs(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	out := makeSpecs(s...)
+	err = loadHashers(c, p, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func setSpec(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToSpecs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = saveHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
+}
+
+func delSpec(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = freeHashers(c, p, makeSpecs(v...))
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
 }
 
 func getSpecACT(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return getSpec(h, prefixSpecACT)
 }
 
 func getSpecACTSync(h *dbxHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return getSpecSync(h, prefixSpecACT)
 }
 
 func setSpecACT(h *dbxHelper) (interface{}, error) {
-	return "OK", nil
+	return setSpec(h, prefixSpecACT)
 }
 
 func delSpecACT(h *dbxHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return delSpec(h, prefixSpecACT)
 }
 
 func getSpecINF(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return getSpec(h, prefixSpecINF)
 }
 
 func getSpecINFSync(h *dbxHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return getSpecSync(h, prefixSpecINF)
 }
 
 func setSpecINF(h *dbxHelper) (interface{}, error) {
-	return "OK", nil
-}
-
-func setSpecINFSale(h *dbxHelper) (interface{}, error) {
-	return "OK", nil
+	return setSpec(h, prefixSpecINF)
 }
 
 func delSpecINF(h *dbxHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return delSpec(h, prefixSpecINF)
 }
 
 func getSpecDEC(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return getSpec(h, prefixSpecDEC)
 }
 
 func getSpecDECSync(h *dbxHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return getSpecSync(h, prefixSpecDEC)
 }
 
 func setSpecDEC(h *dbxHelper) (interface{}, error) {
-	return "OK", nil
-}
-
-func setSpecDECSale(h *dbxHelper) (interface{}, error) {
-	return "OK", nil
+	return setSpec(h, prefixSpecDEC)
 }
 
 func delSpecDEC(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+	return delSpec(h, prefixSpecDEC)
 }

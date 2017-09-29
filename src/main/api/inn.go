@@ -8,6 +8,10 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+const (
+	prefixINN = "inn"
+)
+
 type jsonINN struct {
 	ID        int64   `json:"id,omitempty"`
 	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
@@ -86,62 +90,95 @@ func (j jsonINNs) nill(i int) {
 	j[i] = nil
 }
 
-func jsonToINNs(data []byte) ([]*jsonINN, error) {
+func jsonToINNs(data []byte) (jsonINNs, error) {
 	var v []*jsonINN
 	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+	return jsonINNs(v), nil
 }
 
-func makeINNs(v ...int64) []*jsonINN {
+func makeINNs(v ...int64) jsonINNs {
 	out := make([]*jsonINN, len(v))
 	for i := range out {
 		out[i].ID = v[i]
 	}
 
-	return out
+	return jsonINNs(out)
 }
 
 func getINN(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]*jsonINN, len(v))
-	// REDIS
-	return res, nil
+	c := h.getConn()
+	defer h.delConn(c)
+
+	out := makeINNs(v...)
+	err = loadHashers(c, prefixINN, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func getINNSync(h *dbxHelper) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	s, err := loadSyncIDs(c, prefixINN, v)
+	if err != nil {
+		return nil, err
+	}
+
+	out := makeINNs(s...)
+	err = loadHashers(c, prefixINN, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func setINN(h *dbxHelper) (interface{}, error) {
-	var v []*jsonINN
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToINNs(h.data)
 	if err != nil {
 		return nil, err
 	}
-	for i := range v {
-		_ = v[i].ID
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = saveHashers(c, prefixINN, v)
+	if err != nil {
+		return nil, err
 	}
-	return "OK", nil
+
+	return statusOK, nil
 }
 
 func delINN(h *dbxHelper) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = freeHashers(c, prefixINN, makeINNs(v...))
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
 }

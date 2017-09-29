@@ -107,98 +107,26 @@ func (j jsonClasses) nill(i int) {
 	j[i] = nil
 }
 
-func getclass(c redis.Conn, p string, v ...int64) ([]*jsonClass, error) {
-	out := make([]*jsonClass, len(v))
-	for i := range out {
-		out[i].ID = v[i]
-	}
-
-	var err error
-	for i := range out {
-		err = c.Send("HMGET", out[i].getKeyAndFields(p)...)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = c.Flush()
-	if err != nil {
-		return nil, err
-	}
-
-	var r []interface{}
-	for i := range out {
-		r, err = redis.Values(c.Receive())
-		if err != nil {
-			if err == redis.ErrNil {
-				out[i] = nil
-				continue
-			}
-			return nil, err
-		}
-		out[i].setValues(r)
-	}
-
-	return out, nil
-}
-
-func setclass(c redis.Conn, p string, v ...*jsonClass) error {
-	var err error
-	for i := range v {
-		err = c.Send("HMSET", v[i].getKeyAndFieldValues(p)...)
-		if err != nil {
-			return err
-		}
-		err = c.Send("ZADD", v[i].getKeyAndUnixtimeID(p)...)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.Flush()
-}
-
-func delclass(c redis.Conn, p string, v ...int64) error {
-	out := make([]*jsonClass, len(v))
-	for i := range out {
-		out[i].ID = v[i]
-	}
-
-	var err error
-	for i := range out {
-		err = c.Send("DEL", out[i].getKey(p))
-		if err != nil {
-			return err
-		}
-		err = c.Send("ZADD", out[i].getKeyAndUnixtimeID(p)...)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.Flush()
-}
-
-func jsonToClasses(data []byte) ([]*jsonClass, error) {
+func jsonToClasses(data []byte) (jsonClasses, error) {
 	var v []*jsonClass
 	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+	return jsonClasses(v), nil
 }
 
-func makeClasses(v ...int64) []*jsonClass {
+func makeClasses(v ...int64) jsonClasses {
 	out := make([]*jsonClass, len(v))
 	for i := range out {
 		out[i].ID = v[i]
 	}
 
-	return out
+	return jsonClasses(out)
 }
 
 func getClass(h *dbxHelper, p string) (interface{}, error) {
-	x, err := jsonToInt64s(h.data)
+	v, err := jsonToIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -206,18 +134,17 @@ func getClass(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v := makeClasses(x...)
-	err = loadHashers(c, p, jsonClasses(v))
+	out := makeClasses(v...)
+	err = loadHashers(c, p, out)
 	if err != nil {
 		return nil, err
 	}
 
-	return v, nil
+	return out, nil
 }
 
 func getClassSync(h *dbxHelper, p string) (interface{}, error) {
-	var v int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -225,17 +152,22 @@ func getClassSync(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	l, err := h.getSyncList(p, v)
+	s, err := loadSyncIDs(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	return getclass(c, p, l...)
+	out := makeClasses(s...)
+	err = loadHashers(c, p, out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func setClass(h *dbxHelper, p string) (interface{}, error) {
-	var v []*jsonClass
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToClasses(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -243,17 +175,16 @@ func setClass(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = setclass(c, p, v...)
+	err = saveHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	return "OK", nil
+	return statusOK, nil
 }
 
 func delClass(h *dbxHelper, p string) (interface{}, error) {
-	var v []int64
-	err := json.Unmarshal(h.data, &v)
+	v, err := jsonToIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -261,12 +192,12 @@ func delClass(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = delclass(c, p, v...)
+	err = freeHashers(c, p, makeClasses(v...))
 	if err != nil {
 		return nil, err
 	}
 
-	return "OK", nil
+	return statusOK, nil
 }
 
 func getClassATC(h *dbxHelper) (interface{}, error) {

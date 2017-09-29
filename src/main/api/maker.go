@@ -8,6 +8,10 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+const (
+	prefixMaker = "maker"
+)
+
 type jsonMaker struct {
 	ID        int64   `json:"id,omitempty"`
 	IDNode    int64   `json:"id_node,omitempty"`
@@ -117,120 +121,44 @@ func (j jsonMakers) nill(i int) {
 	j[i] = nil
 }
 
-func jsonToMakers(data []byte) ([]*jsonMaker, error) {
+func jsonToMakers(data []byte) (jsonMakers, error) {
 	var v []*jsonMaker
 	err := json.Unmarshal(data, &v)
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+	return jsonMakers(v), nil
 }
 
-func makeMakers(v ...int64) []*jsonMaker {
+func makeMakers(v ...int64) jsonMakers {
 	out := make([]*jsonMaker, len(v))
 	for i := range out {
 		out[i].ID = v[i]
 	}
 
-	return out
+	return jsonMakers(out)
 }
 
-func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
-	res, err := redis.Values(c.Do("ZRANGEBYSCORE", p+":"+"sync", v, "+inf"))
+func getMaker(h *dbxHelper) (interface{}, error) {
+	v, err := jsonToIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
 
-	out := make([]int64, len(res))
-	for i := range res {
-		out[i], _ = redis.Int64(res[i], nil)
+	c := h.getConn()
+	defer h.delConn(c)
+
+	out := makeMakers(v...)
+	err = loadHashers(c, prefixMaker, out)
+	if err != nil {
+		return nil, err
 	}
 
 	return out, nil
 }
 
-func saveHashers(c redis.Conn, p string, v ruleHasher) error {
-	var err error
-	for i := 0; i < v.len(); i++ {
-		err = c.Send("HMSET", v.elem(i).getKeyAndFieldValues(p)...)
-		if err != nil {
-			return err
-		}
-		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.Flush()
-}
-
-func loadHashers(c redis.Conn, p string, v ruleHasher) error {
-	var err error
-	for i := 0; i < v.len(); i++ {
-		err = c.Send("HMGET", v.elem(i).getKeyAndFields(p)...)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = c.Flush()
-	if err != nil {
-		return err
-	}
-
-	var r []interface{}
-	for i := 0; i < v.len(); i++ {
-		r, err = redis.Values(c.Receive())
-		if err != nil {
-			if err == redis.ErrNil {
-				v.nill(i)
-				continue
-			}
-			return err
-		}
-		v.elem(i).setValues(r)
-	}
-
-	return nil
-}
-
-func freeHashers(c redis.Conn, p string, v ruleHasher) error {
-	var err error
-	for i := 0; i < v.len(); i++ {
-		err = c.Send("DEL", v.elem(i).getKey(p))
-		if err != nil {
-			return err
-		}
-		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.Flush()
-}
-
-func getMaker(h *dbxHelper) (interface{}, error) {
-	x, err := jsonToInt64s(h.data)
-	if err != nil {
-		return nil, err
-	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	v := makeMakers(x...)
-	err = loadHashers(c, "maker", jsonMakers(v))
-	if err != nil {
-		return nil, err
-	}
-
-	return v, nil
-}
-
 func getMakerSync(h *dbxHelper) (interface{}, error) {
-	x, err := jsonToInt64(h.data)
+	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -238,18 +166,18 @@ func getMakerSync(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	s, err := loadSyncIDs(c, "maker", x)
+	s, err := loadSyncIDs(c, prefixMaker, v)
 	if err != nil {
 		return nil, err
 	}
 
-	v := makeMakers(s...)
-	err = loadHashers(c, "maker", jsonMakers(v))
+	out := makeMakers(s...)
+	err = loadHashers(c, prefixMaker, out)
 	if err != nil {
 		return nil, err
 	}
 
-	return v, nil
+	return out, nil
 }
 
 func setMaker(h *dbxHelper) (interface{}, error) {
@@ -261,16 +189,16 @@ func setMaker(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = saveHashers(c, "maker", jsonMakers(v))
+	err = saveHashers(c, prefixMaker, v)
 	if err != nil {
 		return nil, err
 	}
 
-	return "OK", nil
+	return statusOK, nil
 }
 
 func delMaker(h *dbxHelper) (interface{}, error) {
-	p, err := jsonToInt64s(h.data)
+	v, err := jsonToIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -278,11 +206,10 @@ func delMaker(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v := makeMakers(p...)
-	err = freeHashers(c, "maker", jsonMakers(v))
+	err = freeHashers(c, prefixMaker, makeMakers(v...))
 	if err != nil {
 		return nil, err
 	}
 
-	return "OK", nil
+	return statusOK, nil
 }
