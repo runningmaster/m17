@@ -99,7 +99,7 @@ type hasher interface {
 	getKeyAndUnixtimeID(string) []interface{}
 	getKeyAndFieldValues(string) []interface{}
 	getKeyAndFields(string) []interface{}
-	setValues(...interface{})
+	setValues(...interface{}) bool
 }
 
 type ruleHasher interface {
@@ -231,13 +231,11 @@ func loadHashers(c redis.Conn, p string, v ruleHasher) error {
 	for i := 0; i < v.len(); i++ {
 		r, err = redis.Values(c.Receive())
 		if err != nil {
-			if err == redis.ErrNil {
-				v.nill(i)
-				continue
-			}
 			return err
 		}
-		v.elem(i).setValues(r)
+		if !v.elem(i).setValues(r...) {
+			v.nill(i)
+		}
 	}
 
 	return nil
@@ -250,9 +248,24 @@ func freeHashers(c redis.Conn, p string, v ruleHasher) error {
 		if err != nil {
 			return err
 		}
-		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
+	}
+
+	err = c.Flush()
+	if err != nil {
+		return err
+	}
+
+	var r bool
+	for i := 0; i < v.len(); i++ {
+		r, err = redis.Bool(c.Receive())
 		if err != nil {
 			return err
+		}
+		if r {
+			err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

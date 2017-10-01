@@ -59,7 +59,7 @@ func (j *jsonINN) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonINN) setValues(v ...interface{}) {
+func (j *jsonINN) setValues(v ...interface{}) bool {
 	for i := range v {
 		switch i {
 		case 0:
@@ -74,6 +74,7 @@ func (j *jsonINN) setValues(v ...interface{}) {
 			j.Slug, _ = redis.String(v[i], nil)
 		}
 	}
+	return j.ID != 0
 }
 
 type jsonINNs []*jsonINN
@@ -102,7 +103,7 @@ func jsonToINNs(data []byte) (jsonINNs, error) {
 func makeINNs(v ...int64) jsonINNs {
 	out := make([]*jsonINN, len(v))
 	for i := range out {
-		out[i].ID = v[i]
+		out[i] = &jsonINN{ID: v[i]}
 	}
 
 	return jsonINNs(out)

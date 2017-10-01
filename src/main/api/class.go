@@ -72,7 +72,7 @@ func (j *jsonClass) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonClass) setValues(v ...interface{}) {
+func (j *jsonClass) setValues(v ...interface{}) bool {
 	for i := range v {
 		switch i {
 		case 0:
@@ -91,6 +91,7 @@ func (j *jsonClass) setValues(v ...interface{}) {
 			j.NameEN, _ = redis.String(v[i], nil)
 		}
 	}
+	return j.ID != 0
 }
 
 type jsonClasses []*jsonClass
@@ -119,7 +120,7 @@ func jsonToClasses(data []byte) (jsonClasses, error) {
 func makeClasses(v ...int64) jsonClasses {
 	out := make([]*jsonClass, len(v))
 	for i := range out {
-		out[i].ID = v[i]
+		out[i] = &jsonClass{ID: v[i]}
 	}
 
 	return jsonClasses(out)

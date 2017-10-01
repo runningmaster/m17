@@ -103,7 +103,7 @@ func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonSpec) setValues(v ...interface{}) {
+func (j *jsonSpec) setValues(v ...interface{}) bool {
 	for i := range v {
 		switch i {
 		case 0:
@@ -138,6 +138,7 @@ func (j *jsonSpec) setValues(v ...interface{}) {
 			j.UpdatedAt, _ = redis.Int64(v[i], nil)
 		}
 	}
+	return j.ID != 0
 }
 
 type jsonSpecs []*jsonSpec
@@ -166,7 +167,7 @@ func jsonToSpecs(data []byte) (jsonSpecs, error) {
 func makeSpecs(v ...int64) jsonSpecs {
 	out := make([]*jsonSpec, len(v))
 	for i := range out {
-		out[i].ID = v[i]
+		out[i] = &jsonSpec{ID: v[i]}
 	}
 
 	return jsonSpecs(out)

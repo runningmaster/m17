@@ -117,7 +117,7 @@ func (j *jsonDrug) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonDrug) setValues(v ...interface{}) {
+func (j *jsonDrug) setValues(v ...interface{}) bool {
 	for i := range v {
 		switch i {
 		case 0:
@@ -162,6 +162,7 @@ func (j *jsonDrug) setValues(v ...interface{}) {
 			j.MakeEN, _ = redis.String(v[i], nil)
 		}
 	}
+	return j.ID != 0
 }
 
 type jsonDrugs []*jsonDrug
@@ -190,7 +191,7 @@ func jsonToDrugs(data []byte) (jsonDrugs, error) {
 func makeDrugs(v ...int64) jsonDrugs {
 	out := make([]*jsonDrug, len(v))
 	for i := range out {
-		out[i].ID = v[i]
+		out[i] = &jsonDrug{ID: v[i]}
 	}
 
 	return jsonDrugs(out)

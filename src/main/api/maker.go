@@ -78,7 +78,7 @@ func (j *jsonMaker) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonMaker) setValues(v ...interface{}) {
+func (j *jsonMaker) setValues(v ...interface{}) bool {
 	for i := range v {
 		switch i {
 		case 0:
@@ -105,6 +105,7 @@ func (j *jsonMaker) setValues(v ...interface{}) {
 			j.Slug, _ = redis.String(v[i], nil)
 		}
 	}
+	return j.ID != 0
 }
 
 type jsonMakers []*jsonMaker
@@ -133,7 +134,7 @@ func jsonToMakers(data []byte) (jsonMakers, error) {
 func makeMakers(v ...int64) jsonMakers {
 	out := make([]*jsonMaker, len(v))
 	for i := range out {
-		out[i].ID = v[i]
+		out[i] = &jsonMaker{ID: v[i]}
 	}
 
 	return jsonMakers(out)
