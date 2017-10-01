@@ -136,18 +136,7 @@ func getINNSync(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	s, err := loadSyncIDs(c, prefixINN, v)
-	if err != nil {
-		return nil, err
-	}
-
-	out := makeINNs(s...)
-	err = loadHashers(c, prefixINN, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return loadSyncIDs(c, prefixINN, v)
 }
 
 func setINN(h *dbxHelper) (interface{}, error) {

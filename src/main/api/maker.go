@@ -167,18 +167,7 @@ func getMakerSync(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	s, err := loadSyncIDs(c, prefixMaker, v)
-	if err != nil {
-		return nil, err
-	}
-
-	out := makeMakers(s...)
-	err = loadHashers(c, prefixMaker, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return loadSyncIDs(c, prefixMaker, v)
 }
 
 func setMaker(h *dbxHelper) (interface{}, error) {

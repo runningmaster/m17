@@ -224,18 +224,7 @@ func getDrugSync(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	s, err := loadSyncIDs(c, prefixDrug, v)
-	if err != nil {
-		return nil, err
-	}
-
-	out := makeDrugs(s...)
-	err = loadHashers(c, prefixDrug, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return loadSyncIDs(c, prefixDrug, v)
 }
 
 func setDrug(h *dbxHelper) (interface{}, error) {

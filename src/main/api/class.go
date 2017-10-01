@@ -153,18 +153,7 @@ func getClassSync(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	s, err := loadSyncIDs(c, p, v)
-	if err != nil {
-		return nil, err
-	}
-
-	out := makeClasses(s...)
-	err = loadHashers(c, p, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return loadSyncIDs(c, p, v)
 }
 
 func setClass(h *dbxHelper, p string) (interface{}, error) {
