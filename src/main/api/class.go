@@ -37,6 +37,13 @@ func (j *jsonClass) getKey(p string) string {
 	return p + ":" + strconv.Itoa(int(j.ID))
 }
 
+func (j *jsonClass) getKeyNextAndIDNode(p string) []interface{} {
+	return []interface{}{
+		j.getKey(p) + ":" + "next",
+		j.IDNode,
+	}
+}
+
 func (j *jsonClass) getKeyAndUnixtimeID(p string) []interface{} {
 	return []interface{}{
 		p + ":" + "sync",
@@ -126,6 +133,28 @@ func makeClasses(v ...int64) jsonClasses {
 	return jsonClasses(out)
 }
 
+func setClassNext(c redis.Conn, p string, v ...*jsonClass) error {
+	var err error
+	for i := range v {
+		err = c.Send("SADD", v[i].getKeyNextAndIDNode(p)...)
+		if err != nil {
+			return err
+		}
+	}
+	return c.Flush()
+}
+
+func remClassNext(c redis.Conn, p string, v ...*jsonClass) error {
+	var err error
+	for i := range v {
+		err = c.Send("SREM", v[i].getKeyNextAndIDNode(p)...)
+		if err != nil {
+			return err
+		}
+	}
+	return c.Flush()
+}
+
 func getClass(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToIDs(h.data)
 	if err != nil {
@@ -170,6 +199,11 @@ func setClass(h *dbxHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
+	err = setClassNext(c, p, v...)
+	if err != nil {
+		return nil, err
+	}
+
 	return statusOK, nil
 }
 
@@ -183,6 +217,11 @@ func delClass(h *dbxHelper, p string) (interface{}, error) {
 	defer h.delConn(c)
 
 	err = freeHashers(c, p, makeClasses(v...))
+	if err != nil {
+		return nil, err
+	}
+
+	err = remClassNext(c, p, makeClasses(v...)...)
 	if err != nil {
 		return nil, err
 	}
