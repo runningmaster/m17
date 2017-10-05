@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"strconv"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -32,12 +31,12 @@ type jsonMaker struct {
 }
 
 func (j *jsonMaker) getKey(p string) string {
-	return p + ":" + strconv.Itoa(int(j.ID))
+	return genKey(p, j.ID)
 }
 
 func (j *jsonMaker) getKeyAndUnixtimeID(p string) []interface{} {
 	return []interface{}{
-		p + ":" + "sync",
+		genKeySync(p),
 		"CH",
 		time.Now().Unix(),
 		j.ID,

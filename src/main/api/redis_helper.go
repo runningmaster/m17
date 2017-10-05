@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"internal/logger"
 
@@ -270,4 +271,20 @@ func freeHashers(c redis.Conn, p string, v ruleHasher) error {
 	}
 
 	return c.Flush()
+}
+
+func genKey(p string, v int64) string {
+	return p + ":" + strconv.Itoa(int(v))
+}
+
+func genKeySync(p string) string {
+	return p + ":" + "sync"
+}
+
+func genKeyNext(p string) string {
+	return p + ":" + "next"
+}
+
+func genKeySpec(p string) string {
+	return p + ":" + "spec"
 }

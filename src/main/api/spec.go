@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"strconv"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -19,8 +18,7 @@ type jsonSpec struct {
 	IDINN      []int64 `json:"id_inn,omitempty"`
 	IDDrug     []int64 `json:"id_drug,omitempty"`
 	IDMake     []int64 `json:"id_make,omitempty"`
-	IDSpecDEC  []int64 `json:"id_spec_dec,omitempty"`
-	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`
+	IDSpec     []int64 `json:"id_spec,omitempty"`
 	IDClassATC []int64 `json:"id_class_atc,omitempty"`
 	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
 	IDClassFSC []int64 `json:"id_class_fsc,omitempty"`
@@ -29,6 +27,7 @@ type jsonSpec struct {
 	IDClassMPC []int64 `json:"id_class_mpc,omitempty"`
 	IDClassCSC []int64 `json:"id_class_csc,omitempty"`
 	IDClassICD []int64 `json:"id_class_icd,omitempty"`
+	Kind       string  `json:"name,omitempty"` // *
 	Name       string  `json:"name,omitempty"` // *
 	NameRU     string  `json:"name_ru,omitempty"`
 	NameUA     string  `json:"name_ua,omitempty"`
@@ -49,12 +48,12 @@ type jsonSpec struct {
 }
 
 func (j *jsonSpec) getKey(p string) string {
-	return p + ":" + strconv.Itoa(int(j.ID))
+	return genKey(p, j.ID)
 }
 
 func (j *jsonSpec) getKeyAndUnixtimeID(p string) []interface{} {
 	return []interface{}{
-		p + ":" + "sync",
+		genKeySync(p),
 		"CH",
 		time.Now().Unix(),
 		j.ID,
@@ -173,6 +172,82 @@ func makeSpecs(v ...int64) jsonSpecs {
 	return jsonSpecs(out)
 }
 
+/*
+FIXME IDSpec     []int64 `json:"id_spec,omitempty"`
+*/
+
+func cmdSpecLinkSendOnly(c redis.Conn, cmd string, p string, x int64, v ...int64) error {
+	var err error
+	for i := range v {
+		err = c.Send(cmd, genKeySpec(genKey(p, v[i])), x)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func cmdSpecLink(c redis.Conn, cmd string, p string, v ...*jsonSpec) error {
+	var err error
+	for i := range v {
+		err = cmdSpecLinkSendOnly(c, cmd, prefixINN, v[i].ID, v[i].IDINN...)
+		if err != nil {
+			return err
+		}
+		//err = cmdSpecLinkSendOnly(c, cmd, prefixDrug, v[i].ID, v[i].IDDrug...)
+		//if err != nil {
+		//	return err
+		//}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixMaker, v[i].ID, v[i].IDMake...)
+		if err != nil {
+			return err
+		}
+
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassATC, v[i].ID, v[i].IDClassATC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassNFC, v[i].ID, v[i].IDClassNFC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassFSC, v[i].ID, v[i].IDClassFSC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassBFC, v[i].ID, v[i].IDClassBFC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassCFC, v[i].ID, v[i].IDClassCFC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassMPC, v[i].ID, v[i].IDClassMPC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassCSC, v[i].ID, v[i].IDClassCSC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, prefixClassICD, v[i].ID, v[i].IDClassICD...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return c.Flush()
+}
+
+func setSpecLink(c redis.Conn, p string, v ...*jsonSpec) error {
+	return cmdSpecLink(c, "SADD", p, v...)
+}
+
+func remSpecLink(c redis.Conn, p string, v ...*jsonSpec) error {
+	return cmdSpecLink(c, "SREM", p, v...)
+}
+
 func getSpec(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToIDs(h.data)
 	if err != nil {
@@ -217,6 +292,11 @@ func setSpec(h *dbxHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
+	err = setSpecLink(c, p, v...)
+	if err != nil {
+		return nil, err
+	}
+
 	return statusOK, nil
 }
 
@@ -230,6 +310,11 @@ func delSpec(h *dbxHelper, p string) (interface{}, error) {
 	defer h.delConn(c)
 
 	err = freeHashers(c, p, makeSpecs(v...))
+	if err != nil {
+		return nil, err
+	}
+
+	err = remSpecLink(c, p, makeSpecs(v...)...)
 	if err != nil {
 		return nil, err
 	}

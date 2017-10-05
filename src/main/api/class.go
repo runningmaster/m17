@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"strconv"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -34,19 +33,19 @@ type jsonClass struct {
 }
 
 func (j *jsonClass) getKey(p string) string {
-	return p + ":" + strconv.Itoa(int(j.ID))
+	return genKey(p, j.ID)
 }
 
 func (j *jsonClass) getKeyNextAndIDNode(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p) + ":" + "next",
+		genKeyNext(p),
 		j.IDNode,
 	}
 }
 
 func (j *jsonClass) getKeyAndUnixtimeID(p string) []interface{} {
 	return []interface{}{
-		p + ":" + "sync",
+		genKeySync(p),
 		"CH",
 		time.Now().Unix(),
 		j.ID,
@@ -133,10 +132,10 @@ func makeClasses(v ...int64) jsonClasses {
 	return jsonClasses(out)
 }
 
-func setClassNext(c redis.Conn, p string, v ...*jsonClass) error {
+func cmdClassNext(c redis.Conn, cmd string, p string, v ...*jsonClass) error {
 	var err error
 	for i := range v {
-		err = c.Send("SADD", v[i].getKeyNextAndIDNode(p)...)
+		err = c.Send(cmd, v[i].getKeyNextAndIDNode(p)...)
 		if err != nil {
 			return err
 		}
@@ -144,15 +143,12 @@ func setClassNext(c redis.Conn, p string, v ...*jsonClass) error {
 	return c.Flush()
 }
 
+func setClassNext(c redis.Conn, p string, v ...*jsonClass) error {
+	return cmdClassNext(c, "SADD", p, v...)
+}
+
 func remClassNext(c redis.Conn, p string, v ...*jsonClass) error {
-	var err error
-	for i := range v {
-		err = c.Send("SREM", v[i].getKeyNextAndIDNode(p)...)
-		if err != nil {
-			return err
-		}
-	}
-	return c.Flush()
+	return cmdClassNext(c, "SREM", p, v...)
 }
 
 func getClass(h *dbxHelper, p string) (interface{}, error) {
