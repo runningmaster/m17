@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	prefixSpecACT = "spec:act"
-	prefixSpecINF = "spec:inf"
-	prefixSpecDEC = "spec:dec"
+	prefixSpecACT = "spec:act" // RU only
+	prefixSpecINF = "spec:inf" // RU only
+	prefixSpecDEC = "spec:dec" // UA only
 )
 
 type jsonSpec struct {
@@ -18,7 +18,9 @@ type jsonSpec struct {
 	IDINN      []int64 `json:"id_inn,omitempty"`
 	IDDrug     []int64 `json:"id_drug,omitempty"`
 	IDMake     []int64 `json:"id_make,omitempty"`
-	IDSpec     []int64 `json:"id_spec,omitempty"`
+	IDSpec     []int64 `json:"id_spec,omitempty"` // *
+	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`
+	IDSpecDEC  []int64 `json:"id_spec_dec,omitempty"`
 	IDClassATC []int64 `json:"id_class_atc,omitempty"`
 	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
 	IDClassFSC []int64 `json:"id_class_fsc,omitempty"`
@@ -27,7 +29,6 @@ type jsonSpec struct {
 	IDClassMPC []int64 `json:"id_class_mpc,omitempty"`
 	IDClassCSC []int64 `json:"id_class_csc,omitempty"`
 	IDClassICD []int64 `json:"id_class_icd,omitempty"`
-	Kind       string  `json:"name,omitempty"` // *
 	Name       string  `json:"name,omitempty"` // *
 	NameRU     string  `json:"name_ru,omitempty"`
 	NameUA     string  `json:"name_ua,omitempty"`
@@ -40,7 +41,7 @@ type jsonSpec struct {
 	TextRU     string  `json:"text_ru,omitempty"`
 	TextUA     string  `json:"text_ua,omitempty"`
 	TextEN     string  `json:"text_en,omitempty"`
-	Slug       string  `json:"slug,omitempty"`
+	Slug       string  `json:"slug,omitempty"` // FIXME
 	ImageOrg   string  `json:"image_org,omitempty"`
 	ImageBox   string  `json:"image_box,omitempty"`
 	CreatedAt  int64   `json:"created_at,omitempty"`
@@ -172,14 +173,15 @@ func makeSpecs(v ...int64) jsonSpecs {
 	return jsonSpecs(out)
 }
 
-/*
-FIXME IDSpec     []int64 `json:"id_spec,omitempty"`
-*/
-
-func cmdSpecLinkSendOnly(c redis.Conn, cmd string, p string, x int64, v ...int64) error {
+func cmdSpecLinkSendOnly(c redis.Conn, cmd, ps, pl string, x int64, v ...int64) error {
+	key := joinKey(genKey(ps, x), pl)
 	var err error
 	for i := range v {
-		err = c.Send(cmd, genKeySpec(genKey(p, v[i])), x)
+		err = c.Send(cmd, key, v[i])
+		if err != nil {
+			return err
+		}
+		err = c.Send(cmd, joinKey(genKey(pl, v[i]), ps), x)
 		if err != nil {
 			return err
 		}
@@ -190,48 +192,57 @@ func cmdSpecLinkSendOnly(c redis.Conn, cmd string, p string, x int64, v ...int64
 func cmdSpecLink(c redis.Conn, cmd string, p string, v ...*jsonSpec) error {
 	var err error
 	for i := range v {
-		err = cmdSpecLinkSendOnly(c, cmd, prefixINN, v[i].ID, v[i].IDINN...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixINN, v[i].ID, v[i].IDINN...)
 		if err != nil {
 			return err
 		}
-		//err = cmdSpecLinkSendOnly(c, cmd, prefixDrug, v[i].ID, v[i].IDDrug...)
+		//err = cmdSpecLinkSendOnly(c, cmd, p, prefixDrug, v[i].ID, v[i].IDDrug...)
 		//if err != nil {
 		//	return err
 		//}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixMaker, v[i].ID, v[i].IDMake...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixMaker, v[i].ID, v[i].IDMake...)
 		if err != nil {
 			return err
 		}
 
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassATC, v[i].ID, v[i].IDClassATC...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecINF, v[i].ID, v[i].IDSpecINF...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassNFC, v[i].ID, v[i].IDClassNFC...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecDEC, v[i].ID, v[i].IDSpecDEC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassFSC, v[i].ID, v[i].IDClassFSC...)
+
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassATC, v[i].ID, v[i].IDClassATC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassBFC, v[i].ID, v[i].IDClassBFC...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassNFC, v[i].ID, v[i].IDClassNFC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassCFC, v[i].ID, v[i].IDClassCFC...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassFSC, v[i].ID, v[i].IDClassFSC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassMPC, v[i].ID, v[i].IDClassMPC...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassBFC, v[i].ID, v[i].IDClassBFC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassCSC, v[i].ID, v[i].IDClassCSC...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassCFC, v[i].ID, v[i].IDClassCFC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, prefixClassICD, v[i].ID, v[i].IDClassICD...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassMPC, v[i].ID, v[i].IDClassMPC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassCSC, v[i].ID, v[i].IDClassCSC...)
+		if err != nil {
+			return err
+		}
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassICD, v[i].ID, v[i].IDClassICD...)
 		if err != nil {
 			return err
 		}

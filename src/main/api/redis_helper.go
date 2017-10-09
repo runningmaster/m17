@@ -274,17 +274,17 @@ func freeHashers(c redis.Conn, p string, v ruleHasher) error {
 }
 
 func genKey(p string, v int64) string {
-	return p + ":" + strconv.Itoa(int(v))
+	return joinKey(p, strconv.Itoa(int(v)))
 }
 
 func genKeySync(p string) string {
-	return p + ":" + "sync"
+	return joinKey(p, "sync")
 }
 
 func genKeyNext(p string) string {
-	return p + ":" + "next"
+	return joinKey(p, "next")
 }
 
-func genKeySpec(p string) string {
-	return p + ":" + "spec"
+func joinKey(prefix, suffix string) string {
+	return prefix + ":" + suffix
 }
