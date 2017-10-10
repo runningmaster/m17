@@ -55,7 +55,11 @@ func (s *Server) Start() error {
 
 	go listenForShutdown(s, ch)
 
-	return s.srv.ListenAndServe()
+	err := s.srv.ListenAndServe()
+	if err != nil && err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }
 
 func listenForShutdown(s *Server, ch <-chan os.Signal) {
