@@ -155,7 +155,7 @@ func Head(uuidFn func() string) func(http.Handler) http.Handler {
 				w.Header().Set("X-Request-ID", uuid)
 			}
 
-			w.Header().Set("X-Powered-By", fmt.Sprintf("go version %s", runtime.Version()))
+			w.Header().Set("X-Powered-By", runtime.Version())
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 		})
@@ -320,6 +320,10 @@ func Resp(h http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 			return
+		}
+
+		if w.Header().Get("Content-Type") == "" {
+			w.Header().Set("Content-Type", http.DetectContentType(data))
 		}
 
 		// head
