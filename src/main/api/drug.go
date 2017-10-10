@@ -13,17 +13,18 @@ const (
 
 type jsonDrug struct {
 	ID int64 `json:"id,omitempty"`
-	//	IDMake     int64   `json:"id_make,omitempty"`
-	//	IDSpecDEC  int64   `json:"id_spec_dec,omitempty"`
-	//	IDSpecINF  int64   `json:"id_spec_inf,omitempty"`
-	//	IDClassATC []int64 `json:"id_class_atc,omitempty"`
-	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
-	//	IDClassFSC []int64 `json:"id_class_fsc,omitempty"`
-	//	IDClassBFC []int64 `json:"id_class_bfc,omitempty"`
-	//	IDClassCFC []int64 `json:"id_class_cfc,omitempty"`
-	//	IDClassMPC []int64 `json:"id_class_mpc,omitempty"`
-	//	IDClassCSC []int64 `json:"id_class_csc,omitempty"`
-	//	IDClassICD []int64 `json:"id_class_icd,omitempty"`
+	//IDMake     int64  `json:"id_make,omitempty"`
+	//IDSpecACT  int64  `json:"id_spec_act,omitempty"`
+	//IDSpecDEC  int64  `json:"id_spec_dec,omitempty"`
+	//IDSpecINF  int64  `json:"id_spec_inf,omitempty"`
+	//IDClassATC int64  `json:"id_class_atc,omitempty"`
+	//IDClassNFC int64  `json:"id_class_nfc,omitempty"`
+	//IDClassFSC int64  `json:"id_class_fsc,omitempty"`
+	//IDClassBFC int64  `json:"id_class_bfc,omitempty"`
+	//IDClassCFC int64  `json:"id_class_cfc,omitempty"`
+	//IDClassMPC int64  `json:"id_class_mpc,omitempty"`
+	//IDClassCSC int64  `json:"id_class_csc,omitempty"`
+	//IDClassICD int64  `json:"id_class_icd,omitempty"`
 	Name   string `json:"name,omitempty"` // *
 	NameRU string `json:"name_ru,omitempty"`
 	NameUA string `json:"name_ua,omitempty"`

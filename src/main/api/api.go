@@ -41,12 +41,13 @@ func (h *handler) prepareAPI() *handler {
 	)
 
 	h.api = map[string]http.Handler{
-		"GET /:foo/bar":   pipe.Join(mdware.Exec(test)),
-		"GET /test/:foo":  pipe.Join(mdware.Exec(test)),
-		"GET /redis/ping": pipe.Join(mdware.Exec(ping(h.rdb))),
+		"GET /:foo/bar":    pipe.Join(mdware.Exec(test)),
+		"GET /test/:foo":   pipe.Join(mdware.Exec(test)),
+		"GET /redis/ping":  pipe.Join(mdware.Exec(ping(h.rdb))),
+		"POST /redis/ping": pipe.Join(mdware.Exec(ping(h.rdb))),
 
 		// devel
-		"POST /devel/:func": pipe.Join(mdware.Exec(exec(h.rdb))),
+		"POST /:func": pipe.Join(mdware.Exec(exec(h.rdb))),
 
 		// => Debug mode only, when pref.Debug == true
 		"GET /debug/vars":               pipe.Join(mdware.Exec(mdware.Stdh)), // expvar
