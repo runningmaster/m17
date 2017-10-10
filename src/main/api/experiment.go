@@ -3,10 +3,19 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"runtime"
+
+	"main/version"
 
 	"internal/ctxutil"
 	"internal/router"
 )
+
+func home(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	fmt.Fprintln(w, version.WithBuildInfo(), runtime.Version())
+	*r = *r.WithContext(ctx)
+}
 
 func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

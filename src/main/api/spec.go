@@ -19,8 +19,8 @@ type jsonSpec struct {
 	IDDrug     []int64 `json:"id_drug,omitempty"`
 	IDMake     []int64 `json:"id_make,omitempty"`
 	IDSpec     []int64 `json:"id_spec,omitempty"` // *
-	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`
 	IDSpecDEC  []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`
 	IDClassATC []int64 `json:"id_class_atc,omitempty"`
 	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
 	IDClassFSC []int64 `json:"id_class_fsc,omitempty"`
@@ -205,11 +205,11 @@ func cmdSpecLink(c redis.Conn, cmd string, p string, v ...*jsonSpec) error {
 			return err
 		}
 
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecINF, v[i].ID, v[i].IDSpecINF...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecDEC, v[i].ID, v[i].IDSpecDEC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecDEC, v[i].ID, v[i].IDSpecDEC...)
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecINF, v[i].ID, v[i].IDSpecINF...)
 		if err != nil {
 			return err
 		}
