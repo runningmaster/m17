@@ -13,6 +13,14 @@ const (
 	prefixSpecDEC = "spec:dec" // UA only
 )
 
+type slug struct {
+	Name   string `json:"name,omitempty"` // *
+	NameRU string `json:"name_ru,omitempty"`
+	NameUA string `json:"name_ua,omitempty"`
+	NameEN string `json:"name_en,omitempty"`
+	Slug   string `json:"slug,omitempty"`
+}
+
 type jsonSpec struct {
 	ID         int64   `json:"id,omitempty"`
 	IDINN      []int64 `json:"id_inn,omitempty"`
@@ -42,10 +50,13 @@ type jsonSpec struct {
 	TextUA     string  `json:"text_ua,omitempty"`
 	TextEN     string  `json:"text_en,omitempty"`
 	Slug       string  `json:"slug,omitempty"` // FIXME
+	Slugs      []*slug `json:"slugs,omitempty"`
 	ImageOrg   string  `json:"image_org,omitempty"`
 	ImageBox   string  `json:"image_box,omitempty"`
 	CreatedAt  int64   `json:"created_at,omitempty"`
 	UpdatedAt  int64   `json:"updated_at,omitempty"`
+
+	Sale float64 `json:"sale,omitempty"`
 }
 
 func (j *jsonSpec) getKey(p string) string {
@@ -59,6 +70,15 @@ func (j *jsonSpec) getKeyAndUnixtimeID(p string) []interface{} {
 		time.Now().Unix(),
 		j.ID,
 	}
+}
+
+func (j *jsonSpec) marshalToJSON(v interface{}) []byte {
+	res, _ := json.Marshal(v)
+	return res
+}
+
+func (j *jsonSpec) unmarshalFromJSON(b []byte, v interface{}) {
+	_ = json.Unmarshal(b, v)
 }
 
 func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
@@ -75,6 +95,7 @@ func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
 		"text_ua", j.TextUA,
 		"text_en", j.TextEN,
 		"slug", j.Slug,
+		"slugs", j.marshalToJSON(j.Slugs),
 		"image_org", j.ImageOrg,
 		"image_box", j.ImageBox,
 		"created_at", j.CreatedAt,
@@ -96,14 +117,16 @@ func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 		"text_ua",    // 8
 		"text_en",    // 9
 		"slug",       // 10
-		"image_org",  // 11
-		"image_box",  // 12
-		"created_at", // 13
-		"updated_at", // 14
+		"slugs",      // 11
+		"image_org",  // 12
+		"image_box",  // 13
+		"created_at", // 14
+		"updated_at", // 15
 	}
 }
 
 func (j *jsonSpec) setValues(v ...interface{}) bool {
+	var b []byte
 	for i := range v {
 		switch i {
 		case 0:
@@ -129,12 +152,15 @@ func (j *jsonSpec) setValues(v ...interface{}) bool {
 		case 10:
 			j.Slug, _ = redis.String(v[i], nil)
 		case 11:
-			j.ImageOrg, _ = redis.String(v[i], nil)
+			b, _ = redis.Bytes(v[i], nil)
+			j.unmarshalFromJSON(b, &j.Slugs)
 		case 12:
-			j.ImageBox, _ = redis.String(v[i], nil)
+			j.ImageOrg, _ = redis.String(v[i], nil)
 		case 13:
-			j.CreatedAt, _ = redis.Int64(v[i], nil)
+			j.ImageBox, _ = redis.String(v[i], nil)
 		case 14:
+			j.CreatedAt, _ = redis.Int64(v[i], nil)
+		case 15:
 			j.UpdatedAt, _ = redis.Int64(v[i], nil)
 		}
 	}
@@ -196,24 +222,24 @@ func cmdSpecLink(c redis.Conn, cmd string, p string, v ...*jsonSpec) error {
 		if err != nil {
 			return err
 		}
-		//err = cmdSpecLinkSendOnly(c, cmd, p, prefixDrug, v[i].ID, v[i].IDDrug...)
-		//if err != nil {
-		//	return err
-		//}
+		err = cmdSpecLinkSendOnly(c, cmd, p, prefixDrug, v[i].ID, v[i].IDDrug...)
+		if err != nil {
+			return err
+		}
+
 		err = cmdSpecLinkSendOnly(c, cmd, p, prefixMaker, v[i].ID, v[i].IDMake...)
 		if err != nil {
 			return err
 		}
-
 		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecDEC, v[i].ID, v[i].IDSpecDEC...)
 		if err != nil {
 			return err
 		}
+
 		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecINF, v[i].ID, v[i].IDSpecINF...)
 		if err != nil {
 			return err
 		}
-
 		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassATC, v[i].ID, v[i].IDClassATC...)
 		if err != nil {
 			return err

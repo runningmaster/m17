@@ -13,18 +13,18 @@ const (
 
 type jsonDrug struct {
 	ID int64 `json:"id,omitempty"`
-	//IDMake     int64  `json:"id_make,omitempty"`
-	//IDSpecACT  int64  `json:"id_spec_act,omitempty"`
-	//IDSpecDEC  int64  `json:"id_spec_dec,omitempty"`
-	//IDSpecINF  int64  `json:"id_spec_inf,omitempty"`
-	//IDClassATC int64  `json:"id_class_atc,omitempty"`
-	//IDClassNFC int64  `json:"id_class_nfc,omitempty"`
-	//IDClassFSC int64  `json:"id_class_fsc,omitempty"`
-	//IDClassBFC int64  `json:"id_class_bfc,omitempty"`
-	//IDClassCFC int64  `json:"id_class_cfc,omitempty"`
-	//IDClassMPC int64  `json:"id_class_mpc,omitempty"`
-	//IDClassCSC int64  `json:"id_class_csc,omitempty"`
-	//IDClassICD int64  `json:"id_class_icd,omitempty"`
+	//IDMake     []int64  `json:"id_make,omitempty"`
+	//IDSpecACT  []int64  `json:"id_spec_act,omitempty"`
+	//IDSpecDEC  []int64  `json:"id_spec_dec,omitempty"`
+	//IDSpecINF  []int64  `json:"id_spec_inf,omitempty"`
+	//IDClassATC []int64  `json:"id_class_atc,omitempty"`
+	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
+	//IDClassFSC []int64  `json:"id_class_fsc,omitempty"`
+	//IDClassBFC []int64  `json:"id_class_bfc,omitempty"`
+	//IDClassCFC []int64  `json:"id_class_cfc,omitempty"`
+	//IDClassMPC []int64  `json:"id_class_mpc,omitempty"`
+	//IDClassCSC []int64  `json:"id_class_csc,omitempty"`
+	//IDClassICD []int64  `json:"id_class_icd,omitempty"`
 	Name   string `json:"name,omitempty"` // *
 	NameRU string `json:"name_ru,omitempty"`
 	NameUA string `json:"name_ua,omitempty"`
@@ -50,6 +50,8 @@ type jsonDrug struct {
 	MakeRU string `json:"make_ru,omitempty"`
 	MakeUA string `json:"make_ua,omitempty"`
 	MakeEN string `json:"make_en,omitempty"`
+
+	Sale float64 `json:"sale,omitempty"`
 }
 
 func (j *jsonDrug) getKey(p string) string {
@@ -258,5 +260,31 @@ func delDrug(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
+	return statusOK, nil
+}
+
+func setDrugSale(h *dbxHelper) (interface{}, error) {
+	/*
+		var v []struct{
+			ID
+		}
+		err := json.Unmarshal(data, &v)
+		if err != nil {
+			return nil, err
+		}
+
+		v, err := jsonToDrugs(h.data)
+		if err != nil {
+			return nil, err
+		}
+
+		c := h.getConn()
+		defer h.delConn(c)
+
+		err = saveHashers(c, prefixDrug, v)
+		if err != nil {
+			return nil, err
+		}
+	*/
 	return statusOK, nil
 }

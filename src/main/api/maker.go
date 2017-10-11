@@ -25,7 +25,7 @@ type jsonMaker struct {
 	TextRU    string  `json:"text_ru,omitempty"`
 	TextUA    string  `json:"text_ua,omitempty"`
 	TextEN    string  `json:"text_en,omitempty"`
-	IsComp    bool    `json:"is_comp,omitempty"`
+	IsComp    bool    `json:"is_comp,omitempty"` // *
 	Logo      string  `json:"logo,omitempty"`
 	Slug      string  `json:"slug,omitempty"`
 }

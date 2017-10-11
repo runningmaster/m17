@@ -30,6 +30,7 @@ type jsonClass struct {
 	NameRU    string  `json:"name_ru,omitempty"`
 	NameUA    string  `json:"name_ua,omitempty"`
 	NameEN    string  `json:"name_en,omitempty"`
+	Slug      string  `json:"slug,omitempty"`
 }
 
 func (j *jsonClass) getKey(p string) string {

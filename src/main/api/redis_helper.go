@@ -70,6 +70,7 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-drug-sync": getDrugSync,
 	"set-drug":      setDrug,
 	"del-drug":      delDrug,
+	"set-drug-sale": setDrugSale,
 
 	"get-spec-act":      getSpecACT,
 	"get-spec-act-sync": getSpecACTSync,
