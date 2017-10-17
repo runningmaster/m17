@@ -12,15 +12,17 @@ const (
 )
 
 type jsonINN struct {
-	ID        int64   `json:"id,omitempty"`
+	ID int64 `json:"id,omitempty"`
+
 	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-	Name      string  `json:"name,omitempty"`        // *
-	NameRU    string  `json:"name_ru,omitempty"`
-	NameUA    string  `json:"name_ua,omitempty"`
-	NameEN    string  `json:"name_en,omitempty"`
-	Slug      string  `json:"slug,omitempty"`
+
+	Name   string `json:"name,omitempty"` // *
+	NameRU string `json:"name_ru,omitempty"`
+	NameUA string `json:"name_ua,omitempty"`
+	NameEN string `json:"name_en,omitempty"`
+	Slug   string `json:"slug,omitempty"`
 }
 
 func (j *jsonINN) getKey(p string) string {
@@ -164,7 +166,8 @@ func delINN(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = freeHashers(c, prefixINN, makeINNs(v...))
+	out := makeINNs(v...)
+	err = freeHashers(c, prefixINN, out)
 	if err != nil {
 		return nil, err
 	}

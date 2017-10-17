@@ -19,18 +19,20 @@ const (
 )
 
 type jsonClass struct {
-	ID        int64   `json:"id,omitempty"`
-	IDNode    int64   `json:"id_node,omitempty"`
-	IDRoot    int64   `json:"id_root,omitempty"`
+	ID     int64 `json:"id,omitempty"`
+	IDNode int64 `json:"id_node,omitempty"`
+	IDRoot int64 `json:"id_root,omitempty"`
+
 	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-	Code      string  `json:"code,omitempty"`
-	Name      string  `json:"name,omitempty"` // *
-	NameRU    string  `json:"name_ru,omitempty"`
-	NameUA    string  `json:"name_ua,omitempty"`
-	NameEN    string  `json:"name_en,omitempty"`
-	Slug      string  `json:"slug,omitempty"`
+
+	Code   string `json:"code,omitempty"`
+	Name   string `json:"name,omitempty"` // *
+	NameRU string `json:"name_ru,omitempty"`
+	NameUA string `json:"name_ua,omitempty"`
+	NameEN string `json:"name_en,omitempty"`
+	Slug   string `json:"slug,omitempty"`
 }
 
 func (j *jsonClass) getKey(p string) string {
@@ -213,12 +215,13 @@ func delClass(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = freeHashers(c, p, makeClasses(v...))
+	out := makeClasses(v...)
+	err = freeHashers(c, p, out)
 	if err != nil {
 		return nil, err
 	}
 
-	err = remClassNext(c, p, makeClasses(v...)...)
+	err = remClassNext(c, p, out...)
 	if err != nil {
 		return nil, err
 	}

@@ -185,6 +185,72 @@ func jsonToIDs(data []byte) ([]int64, error) {
 	return v, nil
 }
 
+func freeLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
+	if len(v) == 0 {
+		return nil
+	}
+
+	var key string
+	var err error
+	for i := range v {
+		key = joinKey(genKey(p2, v[i]), p1)
+		err = c.Send("SREM", key, x)
+		if err != nil {
+			return err
+		}
+	}
+
+	key = joinKey(genKey(p1, x), p2)
+	err = c.Send("DEL", key)
+	if err != nil {
+		return err
+	}
+
+	return c.Flush()
+}
+
+func saveLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
+	if len(v) == 0 {
+		return nil
+	}
+
+	val := make([]interface{}, len(v)+1)
+	var key string
+	var err error
+	for i := range v {
+		key = joinKey(genKey(p2, v[i]), p1)
+		err = c.Send("SADD", key, x)
+		if err != nil {
+			return err
+		}
+		val[i+1] = v[i]
+	}
+
+	key = joinKey(genKey(p1, x), p2)
+	val[0] = key
+	err = c.Send("SADD", val...)
+	if err != nil {
+		return err
+	}
+
+	return c.Flush()
+}
+
+func loadLinkIDs(c redis.Conn, p1, p2 string, x int64) ([]int64, error) {
+	key := joinKey(genKey(p1, x), p2)
+	res, err := redis.Values(c.Do("SMEMBERS", key))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]int64, len(res))
+	for i := range res {
+		out[i], _ = redis.Int64(res[i], nil)
+	}
+
+	return out, nil
+}
+
 func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
 	res, err := redis.Values(c.Do("ZRANGEBYSCORE", p+":"+"sync", v, "+inf"))
 	if err != nil {
@@ -200,6 +266,10 @@ func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
 }
 
 func saveHashers(c redis.Conn, p string, v ruleHasher) error {
+	if v.len() == 0 {
+		return nil
+	}
+
 	var err error
 	for i := 0; i < v.len(); i++ {
 		err = c.Send("HMSET", v.elem(i).getKeyAndFieldValues(p)...)
@@ -216,6 +286,10 @@ func saveHashers(c redis.Conn, p string, v ruleHasher) error {
 }
 
 func loadHashers(c redis.Conn, p string, v ruleHasher) error {
+	if v.len() == 0 {
+		return nil
+	}
+
 	var err error
 	for i := 0; i < v.len(); i++ {
 		err = c.Send("HMGET", v.elem(i).getKeyAndFields(p)...)
@@ -244,6 +318,10 @@ func loadHashers(c redis.Conn, p string, v ruleHasher) error {
 }
 
 func freeHashers(c redis.Conn, p string, v ruleHasher) error {
+	if v.len() == 0 {
+		return nil
+	}
+
 	var err error
 	for i := 0; i < v.len(); i++ {
 		err = c.Send("DEL", v.elem(i).getKey(p))

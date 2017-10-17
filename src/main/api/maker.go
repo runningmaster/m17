@@ -12,22 +12,24 @@ const (
 )
 
 type jsonMaker struct {
-	ID        int64   `json:"id,omitempty"`
-	IDNode    int64   `json:"id_node,omitempty"`
+	ID     int64 `json:"id,omitempty"`
+	IDNode int64 `json:"id_node,omitempty"`
+
 	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-	Name      string  `json:"name,omitempty"`        // *
-	NameRU    string  `json:"name_ru,omitempty"`
-	NameUA    string  `json:"name_ua,omitempty"`
-	NameEN    string  `json:"name_en,omitempty"`
-	Text      string  `json:"text,omitempty"` // *
-	TextRU    string  `json:"text_ru,omitempty"`
-	TextUA    string  `json:"text_ua,omitempty"`
-	TextEN    string  `json:"text_en,omitempty"`
-	IsComp    bool    `json:"is_comp,omitempty"` // *
-	Logo      string  `json:"logo,omitempty"`
-	Slug      string  `json:"slug,omitempty"`
+
+	Name   string `json:"name,omitempty"` // *
+	NameRU string `json:"name_ru,omitempty"`
+	NameUA string `json:"name_ua,omitempty"`
+	NameEN string `json:"name_en,omitempty"`
+	Text   string `json:"text,omitempty"` // *
+	TextRU string `json:"text_ru,omitempty"`
+	TextUA string `json:"text_ua,omitempty"`
+	TextEN string `json:"text_en,omitempty"`
+	IsComp bool   `json:"is_comp,omitempty"` // *
+	Logo   string `json:"logo,omitempty"`
+	Slug   string `json:"slug,omitempty"`
 }
 
 func (j *jsonMaker) getKey(p string) string {
@@ -195,7 +197,8 @@ func delMaker(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = freeHashers(c, prefixMaker, makeMakers(v...))
+	out := makeMakers(v...)
+	err = freeHashers(c, prefixMaker, out)
 	if err != nil {
 		return nil, err
 	}

@@ -199,15 +199,58 @@ func makeSpecs(v ...int64) jsonSpecs {
 	return jsonSpecs(out)
 }
 
-func cmdSpecLinkSendOnly(c redis.Conn, cmd, ps, pl string, x int64, v ...int64) error {
-	key := joinKey(genKey(ps, x), pl)
+func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
 	var err error
 	for i := range v {
-		err = c.Send(cmd, key, v[i])
+		v[i].IDINN, err = loadLinkIDs(c, p, prefixINN, v[i].ID)
 		if err != nil {
 			return err
 		}
-		err = c.Send(cmd, joinKey(genKey(pl, v[i]), ps), x)
+		v[i].IDDrug, err = loadLinkIDs(c, p, prefixDrug, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDMake, err = loadLinkIDs(c, p, prefixMaker, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassATC, err = loadLinkIDs(c, p, prefixClassATC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassNFC, err = loadLinkIDs(c, p, prefixClassNFC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassFSC, err = loadLinkIDs(c, p, prefixClassFSC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassBFC, err = loadLinkIDs(c, p, prefixClassBFC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassCFC, err = loadLinkIDs(c, p, prefixClassCFC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassMPC, err = loadLinkIDs(c, p, prefixClassMPC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassCSC, err = loadLinkIDs(c, p, prefixClassCSC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassICD, err = loadLinkIDs(c, p, prefixClassICD, v[i].ID)
 		if err != nil {
 			return err
 		}
@@ -215,74 +258,148 @@ func cmdSpecLinkSendOnly(c redis.Conn, cmd, ps, pl string, x int64, v ...int64) 
 	return nil
 }
 
-func cmdSpecLink(c redis.Conn, cmd string, p string, v ...*jsonSpec) error {
+func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	var err error
 	for i := range v {
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixINN, v[i].ID, v[i].IDINN...)
+		err = saveLinkIDs(c, p, prefixINN, v[i].ID, v[i].IDINN...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixDrug, v[i].ID, v[i].IDDrug...)
+		err = saveLinkIDs(c, p, prefixDrug, v[i].ID, v[i].IDDrug...)
 		if err != nil {
 			return err
 		}
-
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixMaker, v[i].ID, v[i].IDMake...)
+		err = saveLinkIDs(c, p, prefixMaker, v[i].ID, v[i].IDMake...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecDEC, v[i].ID, v[i].IDSpecDEC...)
+		err = saveLinkIDs(c, p, prefixSpecDEC, v[i].ID, v[i].IDSpecDEC...)
 		if err != nil {
 			return err
 		}
-
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixSpecINF, v[i].ID, v[i].IDSpecINF...)
+		err = saveLinkIDs(c, p, prefixSpecINF, v[i].ID, v[i].IDSpecINF...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassATC, v[i].ID, v[i].IDClassATC...)
+		err = saveLinkIDs(c, p, prefixClassATC, v[i].ID, v[i].IDClassATC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassNFC, v[i].ID, v[i].IDClassNFC...)
+		err = saveLinkIDs(c, p, prefixClassNFC, v[i].ID, v[i].IDClassNFC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassFSC, v[i].ID, v[i].IDClassFSC...)
+		err = saveLinkIDs(c, p, prefixClassFSC, v[i].ID, v[i].IDClassFSC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassBFC, v[i].ID, v[i].IDClassBFC...)
+		err = saveLinkIDs(c, p, prefixClassBFC, v[i].ID, v[i].IDClassBFC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassCFC, v[i].ID, v[i].IDClassCFC...)
+		err = saveLinkIDs(c, p, prefixClassCFC, v[i].ID, v[i].IDClassCFC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassMPC, v[i].ID, v[i].IDClassMPC...)
+		err = saveLinkIDs(c, p, prefixClassMPC, v[i].ID, v[i].IDClassMPC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassCSC, v[i].ID, v[i].IDClassCSC...)
+		err = saveLinkIDs(c, p, prefixClassCSC, v[i].ID, v[i].IDClassCSC...)
 		if err != nil {
 			return err
 		}
-		err = cmdSpecLinkSendOnly(c, cmd, p, prefixClassICD, v[i].ID, v[i].IDClassICD...)
+		err = saveLinkIDs(c, p, prefixClassICD, v[i].ID, v[i].IDClassICD...)
 		if err != nil {
 			return err
 		}
 	}
-
-	return c.Flush()
+	return nil
 }
 
-func setSpecLink(c redis.Conn, p string, v ...*jsonSpec) error {
-	return cmdSpecLink(c, "SADD", p, v...)
-}
+func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
+	var val []int64
+	var err error
+	for i := range v {
+		val, _ = loadLinkIDs(c, p, prefixINN, v[i].ID)
+		err = freeLinkIDs(c, p, prefixINN, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
 
-func remSpecLink(c redis.Conn, p string, v ...*jsonSpec) error {
-	return cmdSpecLink(c, "SREM", p, v...)
+		val, _ = loadLinkIDs(c, p, prefixDrug, v[i].ID)
+		err = freeLinkIDs(c, p, prefixDrug, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixMaker, v[i].ID)
+		err = freeLinkIDs(c, p, prefixMaker, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixSpecDEC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixSpecINF, v[i].ID)
+		err = freeLinkIDs(c, p, prefixSpecINF, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassATC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassATC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassNFC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassNFC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassFSC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassFSC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassBFC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassBFC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassCFC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassCFC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassMPC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassMPC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassCSC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassCSC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassICD, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassICD, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func getSpec(h *dbxHelper, p string) (interface{}, error) {
@@ -296,6 +413,11 @@ func getSpec(h *dbxHelper, p string) (interface{}, error) {
 
 	out := makeSpecs(v...)
 	err = loadHashers(c, p, out)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadSpecLinks(c, p, out)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +451,7 @@ func setSpec(h *dbxHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
-	err = setSpecLink(c, p, v...)
+	err = saveSpecLinks(c, p, v...)
 	if err != nil {
 		return nil, err
 	}
@@ -346,12 +468,13 @@ func delSpec(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = freeHashers(c, p, makeSpecs(v...))
+	out := makeSpecs(v...)
+	err = freeHashers(c, p, out)
 	if err != nil {
 		return nil, err
 	}
 
-	err = remSpecLink(c, p, makeSpecs(v...)...)
+	err = freeSpecLinks(c, p, out...)
 	if err != nil {
 		return nil, err
 	}

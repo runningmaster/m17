@@ -12,19 +12,22 @@ const (
 )
 
 type jsonDrug struct {
-	ID int64 `json:"id,omitempty"`
-	//IDMake     []int64  `json:"id_make,omitempty"`
-	//IDSpecACT  []int64  `json:"id_spec_act,omitempty"`
-	//IDSpecDEC  []int64  `json:"id_spec_dec,omitempty"`
-	//IDSpecINF  []int64  `json:"id_spec_inf,omitempty"`
-	//IDClassATC []int64  `json:"id_class_atc,omitempty"`
+	ID     int64 `json:"id,omitempty"`
+	IDMake int64 `json:"id_make,omitempty"`
+
+	IDClassATC []int64 `json:"id_class_atc,omitempty"`
 	IDClassNFC []int64 `json:"id_class_nfc,omitempty"`
-	//IDClassFSC []int64  `json:"id_class_fsc,omitempty"`
-	//IDClassBFC []int64  `json:"id_class_bfc,omitempty"`
-	//IDClassCFC []int64  `json:"id_class_cfc,omitempty"`
-	//IDClassMPC []int64  `json:"id_class_mpc,omitempty"`
-	//IDClassCSC []int64  `json:"id_class_csc,omitempty"`
-	//IDClassICD []int64  `json:"id_class_icd,omitempty"`
+	IDClassFSC []int64 `json:"id_class_fsc,omitempty"`
+	IDClassBFC []int64 `json:"id_class_bfc,omitempty"`
+	IDClassCFC []int64 `json:"id_class_cfc,omitempty"`
+	IDClassMPC []int64 `json:"id_class_mpc,omitempty"`
+	IDClassCSC []int64 `json:"id_class_csc,omitempty"`
+	IDClassICD []int64 `json:"id_class_icd,omitempty"`
+
+	IDSpecACT []int64 `json:"id_spec_act,omitempty"`
+	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
+
 	Name   string `json:"name,omitempty"` // *
 	NameRU string `json:"name_ru,omitempty"`
 	NameUA string `json:"name_ua,omitempty"`
@@ -71,6 +74,7 @@ func (j *jsonDrug) getKeyAndFieldValues(p string) []interface{} {
 	return []interface{}{
 		j.getKey(p),
 		"id", j.ID,
+		"id_make", j.Make,
 		"name_ru", j.NameRU,
 		"name_ua", j.NameUA,
 		"name_en", j.NameEN,
@@ -97,25 +101,26 @@ func (j *jsonDrug) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
 		j.getKey(p),
 		"id",      // 0
-		"name_ru", // 1
-		"name_ua", // 2
-		"name_en", // 3
-		"form_ru", // 4
-		"form_ua", // 5
-		"form_en", // 6
-		"dose_ru", // 7
-		"dose_ua", // 8
-		"dose_en", // 9
-		"pack_ru", // 10
-		"pack_ua", // 11
-		"pack_en", // 12
-		"note_ru", // 13
-		"note_ua", // 14
-		"note_en", // 15
-		"numb",    // 16
-		"make_ru", // 17
-		"make_ua", // 18
-		"make_en", // 19
+		"id_make", // 1
+		"name_ru", // 2
+		"name_ua", // 3
+		"name_en", // 4
+		"form_ru", // 5
+		"form_ua", // 6
+		"form_en", // 7
+		"dose_ru", // 8
+		"dose_ua", // 9
+		"dose_en", // 10
+		"pack_ru", // 11
+		"pack_ua", // 12
+		"pack_en", // 13
+		"note_ru", // 14
+		"note_ua", // 15
+		"note_en", // 16
+		"numb",    // 17
+		"make_ru", // 18
+		"make_ua", // 19
+		"make_en", // 20
 	}
 }
 
@@ -125,42 +130,44 @@ func (j *jsonDrug) setValues(v ...interface{}) bool {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
 		case 1:
-			j.NameRU, _ = redis.String(v[i], nil)
+			j.IDMake, _ = redis.Int64(v[i], nil)
 		case 2:
-			j.NameUA, _ = redis.String(v[i], nil)
+			j.NameRU, _ = redis.String(v[i], nil)
 		case 3:
-			j.NameEN, _ = redis.String(v[i], nil)
+			j.NameUA, _ = redis.String(v[i], nil)
 		case 4:
-			j.FormRU, _ = redis.String(v[i], nil)
+			j.NameEN, _ = redis.String(v[i], nil)
 		case 5:
-			j.FormUA, _ = redis.String(v[i], nil)
+			j.FormRU, _ = redis.String(v[i], nil)
 		case 6:
-			j.FormEN, _ = redis.String(v[i], nil)
+			j.FormUA, _ = redis.String(v[i], nil)
 		case 7:
-			j.DoseRU, _ = redis.String(v[i], nil)
+			j.FormEN, _ = redis.String(v[i], nil)
 		case 8:
-			j.DoseUA, _ = redis.String(v[i], nil)
+			j.DoseRU, _ = redis.String(v[i], nil)
 		case 9:
-			j.DoseEN, _ = redis.String(v[i], nil)
+			j.DoseUA, _ = redis.String(v[i], nil)
 		case 10:
-			j.PackRU, _ = redis.String(v[i], nil)
+			j.DoseEN, _ = redis.String(v[i], nil)
 		case 11:
-			j.PackUA, _ = redis.String(v[i], nil)
+			j.PackRU, _ = redis.String(v[i], nil)
 		case 12:
-			j.PackEN, _ = redis.String(v[i], nil)
+			j.PackUA, _ = redis.String(v[i], nil)
 		case 13:
-			j.NoteRU, _ = redis.String(v[i], nil)
+			j.PackEN, _ = redis.String(v[i], nil)
 		case 14:
-			j.NoteUA, _ = redis.String(v[i], nil)
+			j.NoteRU, _ = redis.String(v[i], nil)
 		case 15:
-			j.NoteEN, _ = redis.String(v[i], nil)
+			j.NoteUA, _ = redis.String(v[i], nil)
 		case 16:
-			j.Numb, _ = redis.String(v[i], nil)
+			j.NoteEN, _ = redis.String(v[i], nil)
 		case 17:
-			j.MakeRU, _ = redis.String(v[i], nil)
+			j.Numb, _ = redis.String(v[i], nil)
 		case 18:
-			j.MakeUA, _ = redis.String(v[i], nil)
+			j.MakeRU, _ = redis.String(v[i], nil)
 		case 19:
+			j.MakeUA, _ = redis.String(v[i], nil)
+		case 20:
 			j.MakeEN, _ = redis.String(v[i], nil)
 		}
 	}
@@ -199,6 +206,139 @@ func makeDrugs(v ...int64) jsonDrugs {
 	return jsonDrugs(out)
 }
 
+func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
+	var err error
+	for i := range v {
+		v[i].IDClassATC, err = loadLinkIDs(c, p, prefixClassATC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassNFC, err = loadLinkIDs(c, p, prefixClassNFC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassFSC, err = loadLinkIDs(c, p, prefixClassFSC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassBFC, err = loadLinkIDs(c, p, prefixClassBFC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassCFC, err = loadLinkIDs(c, p, prefixClassCFC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassMPC, err = loadLinkIDs(c, p, prefixClassMPC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassCSC, err = loadLinkIDs(c, p, prefixClassCSC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDClassICD, err = loadLinkIDs(c, p, prefixClassICD, v[i].ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func saveDrugLinks(c redis.Conn, p string, v ...*jsonDrug) error {
+	var err error
+	for i := range v {
+		err = saveLinkIDs(c, p, prefixClassATC, v[i].ID, v[i].IDClassATC...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixClassNFC, v[i].ID, v[i].IDClassNFC...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixClassFSC, v[i].ID, v[i].IDClassFSC...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixClassBFC, v[i].ID, v[i].IDClassBFC...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixClassCFC, v[i].ID, v[i].IDClassCFC...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixClassMPC, v[i].ID, v[i].IDClassMPC...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixClassCSC, v[i].ID, v[i].IDClassCSC...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixClassICD, v[i].ID, v[i].IDClassICD...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func freeDrugLinks(c redis.Conn, p string, v ...*jsonDrug) error {
+	var val []int64
+	var err error
+	for i := range v {
+		val, _ = loadLinkIDs(c, p, prefixClassATC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassATC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassNFC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassNFC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassFSC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassFSC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassBFC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassBFC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassCFC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassCFC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassMPC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassMPC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassCSC, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassCSC, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+
+		val, _ = loadLinkIDs(c, p, prefixClassICD, v[i].ID)
+		err = freeLinkIDs(c, p, prefixClassICD, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func getDrug(h *dbxHelper) (interface{}, error) {
 	v, err := jsonToIDs(h.data)
 	if err != nil {
@@ -210,6 +350,11 @@ func getDrug(h *dbxHelper) (interface{}, error) {
 
 	out := makeDrugs(v...)
 	err = loadHashers(c, prefixDrug, out)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadDrugLinks(c, prefixDrug, out)
 	if err != nil {
 		return nil, err
 	}
@@ -243,6 +388,11 @@ func setDrug(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
+	err = saveDrugLinks(c, prefixDrug, v...)
+	if err != nil {
+		return nil, err
+	}
+
 	return statusOK, nil
 }
 
@@ -255,7 +405,13 @@ func delDrug(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = freeHashers(c, prefixDrug, makeDrugs(v...))
+	out := makeDrugs(v...)
+	err = freeHashers(c, prefixDrug, out)
+	if err != nil {
+		return nil, err
+	}
+
+	err = freeDrugLinks(c, prefixDrug, out...)
 	if err != nil {
 		return nil, err
 	}
