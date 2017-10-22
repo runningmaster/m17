@@ -86,6 +86,9 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-spec-dec-sync": getSpecDECSync,
 	"set-spec-dec":      setSpecDEC,
 	"del-spec-dec":      delSpecDEC,
+
+	"list-sugg": listSugg,
+	"find-sugg": findSugg,
 }
 
 type rediser interface {
