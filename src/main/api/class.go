@@ -138,6 +138,10 @@ func makeClasses(v ...int64) jsonClasses {
 func cmdClassNext(c redis.Conn, cmd string, p string, v ...*jsonClass) error {
 	var err error
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
 		err = c.Send(cmd, v[i].getKeyNextAndIDNode(p)...)
 		if err != nil {
 			return err

@@ -202,6 +202,10 @@ func makeSpecs(v ...int64) jsonSpecs {
 func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
 	var err error
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
 		v[i].IDINN, err = loadLinkIDs(c, p, prefixINN, v[i].ID)
 		if err != nil {
 			return err
@@ -261,6 +265,10 @@ func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
 func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	var err error
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
 		err = saveLinkIDs(c, p, prefixINN, v[i].ID, v[i].IDINN...)
 		if err != nil {
 			return err
@@ -321,6 +329,10 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	var val []int64
 	var err error
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
 		val, _ = loadLinkIDs(c, p, prefixINN, v[i].ID)
 		err = freeLinkIDs(c, p, prefixINN, v[i].ID, val...)
 		if err != nil {

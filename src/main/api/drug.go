@@ -209,6 +209,10 @@ func makeDrugs(v ...int64) jsonDrugs {
 func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
 	var err error
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
 		v[i].IDClassATC, err = loadLinkIDs(c, p, prefixClassATC, v[i].ID)
 		if err != nil {
 			return err
@@ -248,6 +252,10 @@ func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
 func saveDrugLinks(c redis.Conn, p string, v ...*jsonDrug) error {
 	var err error
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
 		err = saveLinkIDs(c, p, prefixClassATC, v[i].ID, v[i].IDClassATC...)
 		if err != nil {
 			return err
@@ -288,6 +296,10 @@ func freeDrugLinks(c redis.Conn, p string, v ...*jsonDrug) error {
 	var val []int64
 	var err error
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
 		val, _ = loadLinkIDs(c, p, prefixClassATC, v[i].ID)
 		err = freeLinkIDs(c, p, prefixClassATC, v[i].ID, val...)
 		if err != nil {
