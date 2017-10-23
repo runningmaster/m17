@@ -59,6 +59,24 @@ type jsonSpec struct {
 	Sale float64 `json:"sale,omitempty"`
 }
 
+func (j *jsonSpec) getID() int64 {
+	return j.ID
+}
+
+func (j *jsonSpec) getNameRU(p string) string {
+	if p != prefixSpecDEC {
+		return j.NameRU
+	}
+	return ""
+}
+
+func (j *jsonSpec) getNameUA(p string) string {
+	if p == prefixSpecDEC {
+		return j.NameUA
+	}
+	return ""
+}
+
 func (j *jsonSpec) getKey(p string) string {
 	return genKey(p, j.ID)
 }
@@ -106,22 +124,22 @@ func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
 func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
 		j.getKey(p),
-		"id",         // 0
-		"name_ru",    // 1
-		"name_ua",    // 2
-		"name_en",    // 3
-		"head_ru",    // 4
-		"head_ua",    // 5
-		"head_en",    // 6
-		"text_ru",    // 7
-		"text_ua",    // 8
-		"text_en",    // 9
-		"slug",       // 10
-		"slugs",      // 11
-		"image_org",  // 12
-		"image_box",  // 13
-		"created_at", // 14
-		"updated_at", // 15
+		"id",      // 0
+		"name_ru", // 1
+		"name_ua", // 2
+		"name_en", // 3
+		//		"head_ru",    // 4
+		//		"head_ua",    // 5
+		//		"head_en",    // 6
+		//		"text_ru",    // 7
+		//		"text_ua",    // 8
+		//		"text_en",    // 9
+		//		"slug",       // 10
+		//		"slugs",      // 11
+		//		"image_org",  // 12
+		//		"image_box",  // 13
+		//		"created_at", // 14
+		//		"updated_at", // 15
 	}
 }
 
@@ -173,7 +191,7 @@ func (j jsonSpecs) len() int {
 	return len(j)
 }
 
-func (j jsonSpecs) elem(i int) hasher {
+func (j jsonSpecs) elem(i int) interface{} {
 	return j[i]
 }
 
@@ -463,6 +481,11 @@ func setSpec(h *dbxHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
+	err = saveSearchers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
 	err = saveSpecLinks(c, p, v...)
 	if err != nil {
 		return nil, err
@@ -482,6 +505,11 @@ func delSpec(h *dbxHelper, p string) (interface{}, error) {
 
 	out := makeSpecs(v...)
 	err = freeHashers(c, p, out)
+	if err != nil {
+		return nil, err
+	}
+
+	err = freeSearchers(c, p, out)
 	if err != nil {
 		return nil, err
 	}

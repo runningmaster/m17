@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"internal/logger"
 
@@ -87,8 +88,9 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"set-spec-dec":      setSpecDEC,
 	"del-spec-dec":      delSpecDEC,
 
-	"list-sugg": listSugg,
-	"find-sugg": findSugg,
+	"list-sugg":   listSugg,
+	"find-sugg":   findSugg,
+	"heat-search": heatSearch,
 }
 
 type rediser interface {
@@ -97,6 +99,7 @@ type rediser interface {
 
 type ruler interface {
 	len() int
+	elem(int) interface{}
 }
 
 type hasher interface {
@@ -107,10 +110,14 @@ type hasher interface {
 	setValues(...interface{}) bool
 }
 
-type ruleHasher interface {
-	ruler
-	elem(int) hasher
+type niller interface {
 	nill(int)
+}
+
+type searcher interface {
+	getID() int64
+	getNameRU(string) string
+	getNameUA(string) string
 }
 
 type dbxHelper struct {
@@ -145,23 +152,6 @@ func (h *dbxHelper) exec(s string) (interface{}, error) {
 	}
 
 	return nil, fmt.Errorf("unknown func %q", s)
-}
-
-func (h *dbxHelper) getSyncList(p string, v int64) ([]int64, error) {
-	c := h.getConn()
-	defer h.delConn(c)
-
-	res, err := redis.Values(c.Do("ZRANGEBYSCORE", p+":"+"sync", v, "+inf"))
-	if err != nil {
-		return nil, err
-	}
-
-	out := make([]int64, len(res))
-	for i := range res {
-		out[i], _ = redis.Int64(res[i], err)
-	}
-
-	return out, nil
 }
 
 //type jsonSale struct {
@@ -268,36 +258,40 @@ func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
 	return out, nil
 }
 
-func saveHashers(c redis.Conn, p string, v ruleHasher) error {
+func saveHashers(c redis.Conn, p string, v ruler) error {
 	if v.len() == 0 {
 		return nil
 	}
 
 	var err error
 	for i := 0; i < v.len(); i++ {
-		err = c.Send("HMSET", v.elem(i).getKeyAndFieldValues(p)...)
-		if err != nil {
-			return err
-		}
-		err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
-		if err != nil {
-			return err
+		if h, ok := v.elem(i).(hasher); ok {
+			err = c.Send("HMSET", h.getKeyAndFieldValues(p)...)
+			if err != nil {
+				return err
+			}
+			err = c.Send("ZADD", h.getKeyAndUnixtimeID(p)...)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return c.Flush()
 }
 
-func loadHashers(c redis.Conn, p string, v ruleHasher) error {
+func loadHashers(c redis.Conn, p string, v ruler) error {
 	if v.len() == 0 {
 		return nil
 	}
 
 	var err error
 	for i := 0; i < v.len(); i++ {
-		err = c.Send("HMGET", v.elem(i).getKeyAndFields(p)...)
-		if err != nil {
-			return err
+		if h, ok := v.elem(i).(hasher); ok {
+			err = c.Send("HMGET", h.getKeyAndFields(p)...)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -312,24 +306,30 @@ func loadHashers(c redis.Conn, p string, v ruleHasher) error {
 		if err != nil {
 			return err
 		}
-		if !v.elem(i).setValues(r...) {
-			v.nill(i)
+		if h, ok := v.elem(i).(hasher); ok {
+			if !h.setValues(r...) {
+				if n, ok := v.elem(i).(niller); ok {
+					n.nill(i)
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func freeHashers(c redis.Conn, p string, v ruleHasher) error {
+func freeHashers(c redis.Conn, p string, v ruler) error {
 	if v.len() == 0 {
 		return nil
 	}
 
 	var err error
 	for i := 0; i < v.len(); i++ {
-		err = c.Send("DEL", v.elem(i).getKey(p))
-		if err != nil {
-			return err
+		if h, ok := v.elem(i).(hasher); ok {
+			err = c.Send("DEL", h.getKey(p))
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -344,14 +344,80 @@ func freeHashers(c redis.Conn, p string, v ruleHasher) error {
 		if err != nil {
 			return err
 		}
-		if r {
-			err = c.Send("ZADD", v.elem(i).getKeyAndUnixtimeID(p)...)
+		if !r {
+			continue
+		}
+		if h, ok := v.elem(i).(hasher); ok {
+			err = c.Send("ZADD", h.getKeyAndUnixtimeID(p)...)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
+	return c.Flush()
+}
+
+func normName(s string) string {
+	r := strings.NewReplacer(
+		"®", "",
+		"™", "",
+		"*", "",
+		"&", "",
+		"†", "",
+	)
+	return strings.TrimSpace(strings.ToLower(r.Replace(s)))
+}
+
+func saveSearchers(c redis.Conn, p string, v ruler) error {
+	var id int64
+	var nameRU, nameUA string
+	var err error
+	for i := 0; i < v.len(); i++ {
+		if s, ok := v.elem(i).(searcher); ok {
+			id, nameRU, nameUA = s.getID(), s.getNameRU(p), s.getNameUA(p)
+			if nameRU != "" {
+				err = c.Send("ZADD", joinKey(p, "idx:ru"), id, normName(nameRU))
+				if err != nil {
+					return err
+				}
+			} else {
+				if !strings.Contains(p, "spec") {
+					println(joinKey(p, "idx:ru"), id, nameRU, nameUA)
+				}
+			}
+			if nameUA != "" {
+				err = c.Send("ZADD", joinKey(p, "idx:ua"), id, normName(nameUA))
+				if err != nil {
+					return err
+				}
+			} else {
+				if !strings.Contains(p, "spec") {
+					println(joinKey(p, "idx:ua"), id, nameRU, nameUA)
+				}
+			}
+		}
+	}
+
+	return c.Flush()
+}
+
+func freeSearchers(c redis.Conn, p string, v ruler) error {
+	var id int64
+	var err error
+	for i := 0; i < v.len(); i++ {
+		if s, ok := v.elem(i).(searcher); ok {
+			id = s.getID()
+			err = c.Send("ZREMRANGEBYSCORE", joinKey(p, "idx:ru"), id, id)
+			if err != nil {
+				return err
+			}
+			err = c.Send("ZREMRANGEBYSCORE", joinKey(p, "idx:ua"), id, id)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return c.Flush()
 }
 

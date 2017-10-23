@@ -2,6 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"time"
+)
+
+const (
+	prefixSearchSPC = "search:spc"
+	prefixSearchINN = "search:inn"
+	prefixSearchORG = "search:org"
+	prefixSearchATC = "search:atc"
+	prefixSearchACT = "search:act"
 )
 
 type spec struct {
@@ -25,61 +34,135 @@ type result struct {
 	ORG []*item `json:"org,omitempty"`
 }
 
-func jsonToText(data []byte) (int64, error) {
-	var v int64
+func jsonToString(data []byte) (string, error) {
+	var v string
 	err := json.Unmarshal(data, &v)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	return v, nil
 }
 
+func heatSearch(h *dbxHelper) (interface{}, error) {
+	start := time.Now()
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	var ids []int64
+	var err error
+
+	ids, err = loadSyncIDs(c, prefixClassATC, 0)
+	if err != nil {
+		return nil, err
+	}
+	atc := makeClasses(ids...)
+	err = loadHashers(c, prefixClassATC, atc)
+	if err != nil {
+		return nil, err
+	}
+	err = saveSearchers(c, prefixClassATC, atc)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err = loadSyncIDs(c, prefixINN, 0)
+	if err != nil {
+		return nil, err
+	}
+	inn := makeINNs(ids...)
+	err = loadHashers(c, prefixINN, inn)
+	if err != nil {
+		return nil, err
+	}
+	err = saveSearchers(c, prefixINN, inn)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err = loadSyncIDs(c, prefixMaker, 0)
+	if err != nil {
+		return nil, err
+	}
+	org := makeMakers(ids...)
+	err = loadHashers(c, prefixMaker, org)
+	if err != nil {
+		return nil, err
+	}
+	err = saveSearchers(c, prefixMaker, org)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err = loadSyncIDs(c, prefixSpecACT, 0)
+	if err != nil {
+		return nil, err
+	}
+	act := makeSpecs(ids...)
+	err = loadHashers(c, prefixSpecACT, act)
+	if err != nil {
+		return nil, err
+	}
+	err = saveSearchers(c, prefixSpecACT, act)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err = loadSyncIDs(c, prefixSpecINF, 0)
+	if err != nil {
+		return nil, err
+	}
+	inf := makeSpecs(ids...)
+	err = loadHashers(c, prefixSpecINF, inf)
+	if err != nil {
+		return nil, err
+	}
+	err = saveSearchers(c, prefixSpecINF, inf)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err = loadSyncIDs(c, prefixSpecDEC, 0)
+	if err != nil {
+		return nil, err
+	}
+	dec := makeSpecs(ids...)
+	err = loadHashers(c, prefixSpecDEC, dec)
+	if err != nil {
+		return nil, err
+	}
+	err = saveSearchers(c, prefixSpecDEC, dec)
+	if err != nil {
+		return nil, err
+	}
+
+	return time.Since(start).String(), nil
+}
+
 func listSugg(h *dbxHelper) (interface{}, error) {
-	return nil, nil
+	s, err := jsonToIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	//var wg sync.WaitGroup
+	//wg.Add(1)
+	//wg.Wait()
+
+	return s, nil
 }
 
 func findSugg(h *dbxHelper) (interface{}, error) {
-	return nil, nil
-}
-
-/*
-func compileFunctions() {
-	if len(compilequeue) != 0 {
-		sizeCalculationDisabled = true // not safe to calculate sizes concurrently
-		if raceEnabled {
-			// Randomize compilation order to try to shake out races.
-			tmp := make([]*Node, len(compilequeue))
-			perm := rand.Perm(len(compilequeue))
-			for i, v := range perm {
-				tmp[v] = compilequeue[i]
-			}
-			copy(compilequeue, tmp)
-		} else {
-			// Compile the longest functions first,
-			// since they're most likely to be the slowest.
-			// This helps avoid stragglers.
-			obj.SortSlice(compilequeue, func(i, j int) bool {
-				return compilequeue[i].Nbody.Len() > compilequeue[j].Nbody.Len()
-			})
-		}
-		var wg sync.WaitGroup
-		c := make(chan *Node, nBackendWorkers)
-		for i := 0; i < nBackendWorkers; i++ {
-			wg.Add(1)
-			go func(worker int) {
-				for fn := range c {
-					compileSSA(fn, worker)
-				}
-				wg.Done()
-			}(i)
-		}
-		for _, fn := range compilequeue {
-			c <- fn
-		}
-		close(c)
-		compilequeue = nil
-		wg.Wait()
-		sizeCalculationDisabled = false
+	s, err := jsonToString(h.data)
+	if err != nil {
+		return nil, err
 	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	return s, nil
 }
-*/

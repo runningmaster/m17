@@ -180,7 +180,7 @@ func (j jsonDrugs) len() int {
 	return len(j)
 }
 
-func (j jsonDrugs) elem(i int) hasher {
+func (j jsonDrugs) elem(i int) interface{} {
 	return j[i]
 }
 

@@ -32,6 +32,18 @@ type jsonMaker struct {
 	Slug   string `json:"slug,omitempty"`
 }
 
+func (j *jsonMaker) getID() int64 {
+	return j.ID
+}
+
+func (j *jsonMaker) getNameRU(_ string) string {
+	return j.NameRU
+}
+
+func (j *jsonMaker) getNameUA(_ string) string {
+	return j.NameUA
+}
+
 func (j *jsonMaker) getKey(p string) string {
 	return genKey(p, j.ID)
 }
@@ -115,7 +127,7 @@ func (j jsonMakers) len() int {
 	return len(j)
 }
 
-func (j jsonMakers) elem(i int) hasher {
+func (j jsonMakers) elem(i int) interface{} {
 	return j[i]
 }
 
@@ -185,6 +197,11 @@ func setMaker(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
+	err = saveSearchers(c, prefixMaker, v)
+	if err != nil {
+		return nil, err
+	}
+
 	return statusOK, nil
 }
 
@@ -199,6 +216,11 @@ func delMaker(h *dbxHelper) (interface{}, error) {
 
 	out := makeMakers(v...)
 	err = freeHashers(c, prefixMaker, out)
+	if err != nil {
+		return nil, err
+	}
+
+	err = freeSearchers(c, prefixMaker, out)
 	if err != nil {
 		return nil, err
 	}

@@ -25,6 +25,18 @@ type jsonINN struct {
 	Slug   string `json:"slug,omitempty"`
 }
 
+func (j *jsonINN) getID() int64 {
+	return j.ID
+}
+
+func (j *jsonINN) getNameRU(_ string) string {
+	return j.NameRU
+}
+
+func (j *jsonINN) getNameUA(_ string) string {
+	return j.NameUA
+}
+
 func (j *jsonINN) getKey(p string) string {
 	return genKey(p, j.ID)
 }
@@ -84,7 +96,7 @@ func (j jsonINNs) len() int {
 	return len(j)
 }
 
-func (j jsonINNs) elem(i int) hasher {
+func (j jsonINNs) elem(i int) interface{} {
 	return j[i]
 }
 
@@ -154,6 +166,11 @@ func setINN(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
+	err = saveSearchers(c, prefixINN, v)
+	if err != nil {
+		return nil, err
+	}
+
 	return statusOK, nil
 }
 
@@ -168,6 +185,11 @@ func delINN(h *dbxHelper) (interface{}, error) {
 
 	out := makeINNs(v...)
 	err = freeHashers(c, prefixINN, out)
+	if err != nil {
+		return nil, err
+	}
+
+	err = freeSearchers(c, prefixINN, out)
 	if err != nil {
 		return nil, err
 	}

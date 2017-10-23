@@ -35,6 +35,18 @@ type jsonClass struct {
 	Slug   string `json:"slug,omitempty"`
 }
 
+func (j *jsonClass) getID() int64 {
+	return j.ID
+}
+
+func (j *jsonClass) getNameRU(_ string) string {
+	return j.NameRU
+}
+
+func (j *jsonClass) getNameUA(_ string) string {
+	return j.NameUA
+}
+
 func (j *jsonClass) getKey(p string) string {
 	return genKey(p, j.ID)
 }
@@ -109,7 +121,7 @@ func (j jsonClasses) len() int {
 	return len(j)
 }
 
-func (j jsonClasses) elem(i int) hasher {
+func (j jsonClasses) elem(i int) interface{} {
 	return j[i]
 }
 
@@ -207,6 +219,13 @@ func setClass(h *dbxHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
+	if p == prefixClassATC {
+		err = saveSearchers(c, p, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return statusOK, nil
 }
 
@@ -228,6 +247,13 @@ func delClass(h *dbxHelper, p string) (interface{}, error) {
 	err = remClassNext(c, p, out...)
 	if err != nil {
 		return nil, err
+	}
+
+	if p == prefixClassATC {
+		err = freeSearchers(c, p, out)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return statusOK, nil
