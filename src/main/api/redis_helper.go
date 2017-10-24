@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"internal/logger"
 
@@ -17,76 +18,90 @@ import (
 var statusOK = http.StatusText(http.StatusOK)
 
 var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
-	"get-class-atc":      getClassATC,
-	"get-class-atc-sync": getClassATCSync,
-	"set-class-atc":      setClassATC,
-	"del-class-atc":      delClassATC,
+	"get-class-atc-sync":     getClassATCSync,
+	"get-class-atc-sync-del": getClassATCSyncDel,
+	"get-class-atc":          getClassATC,
+	"set-class-atc":          setClassATC,
+	"del-class-atc":          delClassATC,
 
-	"get-class-nfc":      getClassNFC,
-	"get-class-nfc-sync": getClassNFCSync,
-	"set-class-nfc":      setClassNFC,
-	"del-class-nfc":      delClassNFC,
+	"get-class-nfc-sync":     getClassNFCSync,
+	"get-class-nfc-sync-del": getClassNFCSyncDel,
+	"get-class-nfc":          getClassNFC,
+	"set-class-nfc":          setClassNFC,
+	"del-class-nfc":          delClassNFC,
 
-	"get-class-fsc":      getClassFSC,
-	"get-class-fsc-sync": getClassFSCSync,
-	"set-class-fsc":      setClassFSC,
-	"del-class-fsc":      delClassFSC,
+	"get-class-fsc-sync":     getClassFSCSync,
+	"get-class-fsc-sync-del": getClassFSCSyncDel,
+	"get-class-fsc":          getClassFSC,
+	"set-class-fsc":          setClassFSC,
+	"del-class-fsc":          delClassFSC,
 
-	"get-class-bfc":      getClassBFC,
-	"get-class-bfc-sync": getClassBFCSync,
-	"set-class-bfc":      setClassBFC,
-	"del-class-bfc":      delClassBFC,
+	"get-class-bfc-sync":     getClassBFCSync,
+	"get-class-bfc-sync-del": getClassBFCSyncDel,
+	"get-class-bfc":          getClassBFC,
+	"set-class-bfc":          setClassBFC,
+	"del-class-bfc":          delClassBFC,
 
-	"get-class-cfc":      getClassCFC,
-	"get-class-cfc-sync": getClassCFCSync,
-	"set-class-cfc":      setClassCFC,
-	"del-class-cfc":      delClassCFC,
+	"get-class-cfc-sync":     getClassCFCSync,
+	"get-class-cfc-sync-del": getClassCFCSyncDel,
+	"get-class-cfc":          getClassCFC,
+	"set-class-cfc":          setClassCFC,
+	"del-class-cfc":          delClassCFC,
 
-	"get-class-mpc":      getClassMPC,
-	"get-class-mpc-sync": getClassMPCSync,
-	"set-class-mpc":      setClassMPC,
-	"del-class-mpc":      delClassMPC,
+	"get-class-mpc-sync":     getClassMPCSync,
+	"get-class-mpc-sync-del": getClassMPCSyncDel,
+	"get-class-mpc":          getClassMPC,
+	"set-class-mpc":          setClassMPC,
+	"del-class-mpc":          delClassMPC,
 
-	"get-class-csc":      getClassCSC,
-	"get-class-csc-sync": getClassCSCSync,
-	"set-class-csc":      setClassCSC,
-	"del-class-csc":      delClassCSC,
+	"get-class-csc-sync":     getClassCSCSync,
+	"get-class-csc-sync-del": getClassCSCSyncDel,
+	"get-class-csc":          getClassCSC,
+	"set-class-csc":          setClassCSC,
+	"del-class-csc":          delClassCSC,
 
-	"get-class-icd":      getClassICD,
-	"get-class-icd-sync": getClassICDSync,
-	"set-class-icd":      setClassICD,
-	"del-class-icd":      delClassICD,
+	"get-class-icd-sync":     getClassICDSync,
+	"get-class-icd-sync-del": getClassICDSyncDel,
+	"get-class-icd":          getClassICD,
+	"set-class-icd":          setClassICD,
+	"del-class-icd":          delClassICD,
 
-	"get-inn":      getINN,
-	"get-inn-sync": getINNSync,
-	"set-inn":      setINN,
-	"del-inn":      delINN,
+	"get-inn-sync":     getINNSync,
+	"get-inn-sync-del": getINNSyncDel,
+	"get-inn":          getINN,
+	"set-inn":          setINN,
+	"del-inn":          delINN,
 
-	"get-maker":      getMaker,
-	"get-maker-sync": getMakerSync,
-	"set-maker":      setMaker,
-	"del-maker":      delMaker,
+	"get-maker-sync":     getMakerSync,
+	"get-maker-sync-del": getMakerSyncDel,
+	"get-maker":          getMaker,
+	"set-maker":          setMaker,
+	"del-maker":          delMaker,
 
-	"get-drug":      getDrug,
-	"get-drug-sync": getDrugSync,
-	"set-drug":      setDrug,
-	"del-drug":      delDrug,
-	"set-drug-sale": setDrugSale,
+	"get-drug-sync":     getDrugSync,
+	"get-drug-sync-del": getDrugSyncDel,
+	"get-drug":          getDrug,
+	"set-drug":          setDrug,
+	"set-drug-sale":     setDrugSale,
+	"del-drug":          delDrug,
 
-	"get-spec-act":      getSpecACT,
-	"get-spec-act-sync": getSpecACTSync,
-	"set-spec-act":      setSpecACT,
-	"del-spec-act":      delSpecACT,
+	"get-spec-act-sync":     getSpecACTSync,
+	"get-spec-act-sync-del": getSpecACTSyncDel,
+	"get-spec-act":          getSpecACT,
+	"set-spec-act":          setSpecACT,
+	"del-spec-act":          delSpecACT,
 
-	"get-spec-inf":      getSpecINF,
-	"get-spec-inf-sync": getSpecINFSync,
-	"set-spec-inf":      setSpecINF,
-	"del-spec-inf":      delSpecINF,
+	"get-spec-inf-sync":     getSpecINFSync,
+	"get-spec-inf-sync-del": getSpecINFSyncDel,
+	"get-spec-inf":          getSpecINF,
+	"set-spec-inf":          setSpecINF,
+	"del-spec-inf":          delSpecINF,
 
-	"get-spec-dec":      getSpecDEC,
-	"get-spec-dec-sync": getSpecDECSync,
-	"set-spec-dec":      setSpecDEC,
-	"del-spec-dec":      delSpecDEC,
+	"get-spec-dec-sync":     getSpecDECSync,
+	"get-spec-dec-sync-del": getSpecDECSyncDel,
+	"get-spec-dec":          getSpecDEC,
+	"set-spec-dec":          setSpecDEC,
+	"del-spec-dec":          delSpecDEC,
 
 	"list-sugg":   listSugg,
 	"find-sugg":   findSugg,
@@ -97,14 +112,18 @@ type rediser interface {
 	Get() redis.Conn
 }
 
+type ider interface {
+	getID() int64
+}
+
 type ruler interface {
 	len() int
 	elem(int) interface{}
 }
 
 type hasher interface {
+	ider
 	getKey(string) string
-	getKeyAndUnixtimeID(string) []interface{}
 	getKeyAndFieldValues(string) []interface{}
 	getKeyAndFields(string) []interface{}
 	setValues(...interface{}) bool
@@ -115,7 +134,7 @@ type niller interface {
 }
 
 type searcher interface {
-	getID() int64
+	ider
 	getNameRU(string) string
 	getNameUA(string) string
 }
@@ -186,14 +205,14 @@ func freeLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
 	var key string
 	var err error
 	for i := range v {
-		key = joinKey(genKey(p2, v[i]), p1)
+		key = genKey(p2, v[i], p1)
 		err = c.Send("SREM", key, x)
 		if err != nil {
 			return err
 		}
 	}
 
-	key = joinKey(genKey(p1, x), p2)
+	key = genKey(p1, x, p2)
 	err = c.Send("DEL", key)
 	if err != nil {
 		return err
@@ -211,7 +230,7 @@ func saveLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
 	var key string
 	var err error
 	for i := range v {
-		key = joinKey(genKey(p2, v[i]), p1)
+		key = genKey(p2, v[i], p1)
 		err = c.Send("SADD", key, x)
 		if err != nil {
 			return err
@@ -219,7 +238,7 @@ func saveLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
 		val[i+1] = v[i]
 	}
 
-	key = joinKey(genKey(p1, x), p2)
+	key = genKey(p1, x, p2)
 	val[0] = key
 	err = c.Send("SADD", val...)
 	if err != nil {
@@ -230,7 +249,7 @@ func saveLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
 }
 
 func loadLinkIDs(c redis.Conn, p1, p2 string, x int64) ([]int64, error) {
-	key := joinKey(genKey(p1, x), p2)
+	key := genKey(p1, x, p2)
 	res, err := redis.Values(c.Do("SMEMBERS", key))
 	if err != nil {
 		return nil, err
@@ -244,8 +263,12 @@ func loadLinkIDs(c redis.Conn, p1, p2 string, x int64) ([]int64, error) {
 	return out, nil
 }
 
-func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
-	res, err := redis.Values(c.Do("ZRANGEBYSCORE", p+":"+"sync", v, "+inf"))
+func loadSyncIDs(c redis.Conn, p string, v int64, deleted ...bool) ([]int64, error) {
+	key := genKeySync(p)
+	if len(deleted) > 0 {
+		key = genKeySyncDel(key)
+	}
+	res, err := redis.Values(c.Do("ZRANGEBYSCORE", key, v, "+inf"))
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +293,7 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 			if err != nil {
 				return err
 			}
-			err = c.Send("ZADD", h.getKeyAndUnixtimeID(p)...)
+			err = c.Send("ZADD", genKeySync(p), "CH", time.Now().Unix(), h.getID())
 			if err != nil {
 				return err
 			}
@@ -348,7 +371,11 @@ func freeHashers(c redis.Conn, p string, v ruler) error {
 			continue
 		}
 		if h, ok := v.elem(i).(hasher); ok {
-			err = c.Send("ZADD", h.getKeyAndUnixtimeID(p)...)
+			err = c.Send("ZREM", genKeySync(p), h.getID())
+			if err != nil {
+				return err
+			}
+			err = c.Send("ZADD", genKeySyncDel(p), "CH", time.Now().Unix(), h.getID())
 			if err != nil {
 				return err
 			}
@@ -377,23 +404,23 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 		if s, ok := v.elem(i).(searcher); ok {
 			id, nameRU, nameUA = s.getID(), s.getNameRU(p), s.getNameUA(p)
 			if nameRU != "" {
-				err = c.Send("ZADD", joinKey(p, "idx:ru"), id, normName(nameRU))
+				err = c.Send("ZADD", genKey(p, "idx", "ru"), id, normName(nameRU))
 				if err != nil {
 					return err
 				}
 			} else {
 				if !strings.Contains(p, "spec") {
-					println(joinKey(p, "idx:ru"), id, nameRU, nameUA)
+					println(genKey(p, "idx", "ru"), id, nameRU, nameUA)
 				}
 			}
 			if nameUA != "" {
-				err = c.Send("ZADD", joinKey(p, "idx:ua"), id, normName(nameUA))
+				err = c.Send("ZADD", genKey(p, "idx", "ua"), id, normName(nameUA))
 				if err != nil {
 					return err
 				}
 			} else {
 				if !strings.Contains(p, "spec") {
-					println(joinKey(p, "idx:ua"), id, nameRU, nameUA)
+					println(genKey(p, "idx", "ua"), id, nameRU, nameUA)
 				}
 			}
 		}
@@ -408,11 +435,11 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 	for i := 0; i < v.len(); i++ {
 		if s, ok := v.elem(i).(searcher); ok {
 			id = s.getID()
-			err = c.Send("ZREMRANGEBYSCORE", joinKey(p, "idx:ru"), id, id)
+			err = c.Send("ZREMRANGEBYSCORE", genKey(p, "idx", "ru"), id, id)
 			if err != nil {
 				return err
 			}
-			err = c.Send("ZREMRANGEBYSCORE", joinKey(p, "idx:ua"), id, id)
+			err = c.Send("ZREMRANGEBYSCORE", genKey(p, "idx", "ua"), id, id)
 			if err != nil {
 				return err
 			}
@@ -421,18 +448,33 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 	return c.Flush()
 }
 
-func genKey(p string, v int64) string {
-	return joinKey(p, strconv.Itoa(int(v)))
+func genKeySync(p string) string {
+	return genKey(p, "sync")
 }
 
-func genKeySync(p string) string {
-	return joinKey(p, "sync")
+func genKeySyncDel(p string) string {
+	return genKey(p, "sync", "del")
 }
 
 func genKeyNext(p string) string {
-	return joinKey(p, "next")
+	return genKey(p, "next")
 }
 
-func joinKey(prefix, suffix string) string {
-	return prefix + ":" + suffix
+func genKey(v ...interface{}) string {
+	a := make([]string, 0, len(v))
+	for i := range v {
+		switch x := v[i].(type) {
+		case []byte:
+			a = append(a, string(x))
+		case int:
+			a = append(a, strconv.Itoa(x))
+		case int64:
+			a = append(a, strconv.Itoa(int(x)))
+		case string:
+			a = append(a, x)
+		default:
+			a = append(a, fmt.Sprintf("%v", x))
+		}
+	}
+	return strings.Join(a, ":")
 }

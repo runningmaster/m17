@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -81,15 +80,6 @@ func (j *jsonSpec) getKey(p string) string {
 	return genKey(p, j.ID)
 }
 
-func (j *jsonSpec) getKeyAndUnixtimeID(p string) []interface{} {
-	return []interface{}{
-		genKeySync(p),
-		"CH",
-		time.Now().Unix(),
-		j.ID,
-	}
-}
-
 func (j *jsonSpec) marshalToJSON(v interface{}) []byte {
 	res, _ := json.Marshal(v)
 	return res
@@ -124,22 +114,22 @@ func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
 func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
 		j.getKey(p),
-		"id",      // 0
-		"name_ru", // 1
-		"name_ua", // 2
-		"name_en", // 3
-		//		"head_ru",    // 4
-		//		"head_ua",    // 5
-		//		"head_en",    // 6
-		//		"text_ru",    // 7
-		//		"text_ua",    // 8
-		//		"text_en",    // 9
-		//		"slug",       // 10
-		//		"slugs",      // 11
-		//		"image_org",  // 12
-		//		"image_box",  // 13
-		//		"created_at", // 14
-		//		"updated_at", // 15
+		"id",         // 0
+		"name_ru",    // 1
+		"name_ua",    // 2
+		"name_en",    // 3
+		"head_ru",    // 4
+		"head_ua",    // 5
+		"head_en",    // 6
+		"text_ru",    // 7
+		"text_ua",    // 8
+		"text_en",    // 9
+		"slug",       // 10
+		"slugs",      // 11
+		"image_org",  // 12
+		"image_box",  // 13
+		"created_at", // 14
+		"updated_at", // 15
 	}
 }
 
@@ -208,13 +198,20 @@ func jsonToSpecs(data []byte) (jsonSpecs, error) {
 	return jsonSpecs(v), nil
 }
 
-func makeSpecs(v ...int64) jsonSpecs {
-	out := make([]*jsonSpec, len(v))
-	for i := range out {
-		out[i] = &jsonSpec{ID: v[i]}
+func jsonToSpecsFromIDs(data []byte) (jsonSpecs, error) {
+	v, err := jsonToIDs(data)
+	if err != nil {
+		return nil, err
 	}
+	return makeSpecs(v...)
+}
 
-	return jsonSpecs(out)
+func makeSpecs(x ...int64) (jsonSpecs, error) {
+	v := make([]*jsonSpec, len(x))
+	for i := range v {
+		v[i] = &jsonSpec{ID: x[i]}
+	}
+	return jsonSpecs(v), nil
 }
 
 func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
@@ -432,30 +429,7 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	return nil
 }
 
-func getSpec(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
-	if err != nil {
-		return nil, err
-	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	out := makeSpecs(v...)
-	err = loadHashers(c, p, out)
-	if err != nil {
-		return nil, err
-	}
-
-	err = loadSpecLinks(c, p, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
-func getSpecSync(h *dbxHelper, p string) (interface{}, error) {
+func getSpecXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
@@ -464,10 +438,32 @@ func getSpecSync(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, p, v)
+	return loadSyncIDs(c, p, v, d...)
 }
 
-func setSpec(h *dbxHelper, p string) (interface{}, error) {
+func getSpecX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToSpecsFromIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadSpecLinks(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToSpecs(h.data)
 	if err != nil {
 		return nil, err
@@ -494,8 +490,8 @@ func setSpec(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delSpec(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
+func delSpecX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToSpecsFromIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -503,18 +499,17 @@ func delSpec(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	out := makeSpecs(v...)
-	err = freeHashers(c, p, out)
+	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = freeSearchers(c, p, out)
+	err = freeSearchers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = freeSpecLinks(c, p, out...)
+	err = freeSpecLinks(c, p, v...)
 	if err != nil {
 		return nil, err
 	}
@@ -522,50 +517,68 @@ func delSpec(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func getSpecACT(h *dbxHelper) (interface{}, error) {
-	return getSpec(h, prefixSpecACT)
-}
+// ACT
 
 func getSpecACTSync(h *dbxHelper) (interface{}, error) {
-	return getSpecSync(h, prefixSpecACT)
+	return getSpecXSync(h, prefixSpecACT)
+}
+
+func getSpecACTSyncDel(h *dbxHelper) (interface{}, error) {
+	return getSpecXSync(h, prefixSpecACT)
+}
+
+func getSpecACT(h *dbxHelper) (interface{}, error) {
+	return getSpecX(h, prefixSpecACT)
 }
 
 func setSpecACT(h *dbxHelper) (interface{}, error) {
-	return setSpec(h, prefixSpecACT)
+	return setSpecX(h, prefixSpecACT)
 }
 
 func delSpecACT(h *dbxHelper) (interface{}, error) {
-	return delSpec(h, prefixSpecACT)
+	return delSpecX(h, prefixSpecACT)
+}
+
+// INF
+
+func getSpecINFSync(h *dbxHelper) (interface{}, error) {
+	return getSpecXSync(h, prefixSpecINF)
+}
+
+func getSpecINFSyncDel(h *dbxHelper) (interface{}, error) {
+	return getSpecXSync(h, prefixSpecINF)
 }
 
 func getSpecINF(h *dbxHelper) (interface{}, error) {
-	return getSpec(h, prefixSpecINF)
-}
-
-func getSpecINFSync(h *dbxHelper) (interface{}, error) {
-	return getSpecSync(h, prefixSpecINF)
+	return getSpecX(h, prefixSpecINF)
 }
 
 func setSpecINF(h *dbxHelper) (interface{}, error) {
-	return setSpec(h, prefixSpecINF)
+	return setSpecX(h, prefixSpecINF)
 }
 
 func delSpecINF(h *dbxHelper) (interface{}, error) {
-	return delSpec(h, prefixSpecINF)
+	return delSpecX(h, prefixSpecINF)
+}
+
+// DEC
+
+func getSpecDECSync(h *dbxHelper) (interface{}, error) {
+	return getSpecXSync(h, prefixSpecDEC)
+}
+
+func getSpecDECSyncDel(h *dbxHelper) (interface{}, error) {
+	return getSpecXSync(h, prefixSpecDEC)
 }
 
 func getSpecDEC(h *dbxHelper) (interface{}, error) {
-	return getSpec(h, prefixSpecDEC)
-}
-
-func getSpecDECSync(h *dbxHelper) (interface{}, error) {
-	return getSpecSync(h, prefixSpecDEC)
+	return getSpecX(h, prefixSpecDEC)
 }
 
 func setSpecDEC(h *dbxHelper) (interface{}, error) {
-	return setSpec(h, prefixSpecDEC)
+	return setSpecX(h, prefixSpecDEC)
 }
 
 func delSpecDEC(h *dbxHelper) (interface{}, error) {
-	return delSpec(h, prefixSpecDEC)
+	return delSpecX(h, prefixSpecDEC)
 }

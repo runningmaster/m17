@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -46,15 +45,6 @@ func (j *jsonMaker) getNameUA(_ string) string {
 
 func (j *jsonMaker) getKey(p string) string {
 	return genKey(p, j.ID)
-}
-
-func (j *jsonMaker) getKeyAndUnixtimeID(p string) []interface{} {
-	return []interface{}{
-		genKeySync(p),
-		"CH",
-		time.Now().Unix(),
-		j.ID,
-	}
 }
 
 func (j *jsonMaker) getKeyAndFieldValues(p string) []interface{} {
@@ -144,34 +134,23 @@ func jsonToMakers(data []byte) (jsonMakers, error) {
 	return jsonMakers(v), nil
 }
 
-func makeMakers(v ...int64) jsonMakers {
-	out := make([]*jsonMaker, len(v))
-	for i := range out {
-		out[i] = &jsonMaker{ID: v[i]}
-	}
-
-	return jsonMakers(out)
-}
-
-func getMaker(h *dbxHelper) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
+func jsonToMakersFromIDs(data []byte) (jsonMakers, error) {
+	v, err := jsonToIDs(data)
 	if err != nil {
 		return nil, err
 	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	out := makeMakers(v...)
-	err = loadHashers(c, prefixMaker, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return makeMakers(v...)
 }
 
-func getMakerSync(h *dbxHelper) (interface{}, error) {
+func makeMakers(x ...int64) (jsonMakers, error) {
+	v := make([]*jsonMaker, len(x))
+	for i := range v {
+		v[i] = &jsonMaker{ID: x[i]}
+	}
+	return jsonMakers(v), nil
+}
+
+func getMakerXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
@@ -180,10 +159,27 @@ func getMakerSync(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, prefixMaker, v)
+	return loadSyncIDs(c, p, v, d...)
 }
 
-func setMaker(h *dbxHelper) (interface{}, error) {
+func getMakerX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToMakersFromIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToMakers(h.data)
 	if err != nil {
 		return nil, err
@@ -192,12 +188,12 @@ func setMaker(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = saveHashers(c, prefixMaker, v)
+	err = saveHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = saveSearchers(c, prefixMaker, v)
+	err = saveSearchers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +201,8 @@ func setMaker(h *dbxHelper) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delMaker(h *dbxHelper) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
+func delMakerX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToMakersFromIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -214,16 +210,37 @@ func delMaker(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	out := makeMakers(v...)
-	err = freeHashers(c, prefixMaker, out)
+	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = freeSearchers(c, prefixMaker, out)
+	err = freeSearchers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
 	return statusOK, nil
+}
+
+// MAKER
+
+func getMakerSync(h *dbxHelper) (interface{}, error) {
+	return getINNXSync(h, prefixMaker)
+}
+
+func getMakerSyncDel(h *dbxHelper) (interface{}, error) {
+	return getINNXSync(h, prefixMaker)
+}
+
+func getMaker(h *dbxHelper) (interface{}, error) {
+	return getINNX(h, prefixMaker)
+}
+
+func setMaker(h *dbxHelper) (interface{}, error) {
+	return setINNX(h, prefixMaker)
+}
+
+func delMaker(h *dbxHelper) (interface{}, error) {
+	return delINNX(h, prefixMaker)
 }

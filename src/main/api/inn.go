@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -39,15 +38,6 @@ func (j *jsonINN) getNameUA(_ string) string {
 
 func (j *jsonINN) getKey(p string) string {
 	return genKey(p, j.ID)
-}
-
-func (j *jsonINN) getKeyAndUnixtimeID(p string) []interface{} {
-	return []interface{}{
-		genKeySync(p),
-		"CH",
-		time.Now().Unix(),
-		j.ID,
-	}
 }
 
 func (j *jsonINN) getKeyAndFieldValues(p string) []interface{} {
@@ -113,34 +103,23 @@ func jsonToINNs(data []byte) (jsonINNs, error) {
 	return jsonINNs(v), nil
 }
 
-func makeINNs(v ...int64) jsonINNs {
-	out := make([]*jsonINN, len(v))
-	for i := range out {
-		out[i] = &jsonINN{ID: v[i]}
-	}
-
-	return jsonINNs(out)
-}
-
-func getINN(h *dbxHelper) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
+func jsonToINNsFromIDs(data []byte) (jsonINNs, error) {
+	v, err := jsonToIDs(data)
 	if err != nil {
 		return nil, err
 	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	out := makeINNs(v...)
-	err = loadHashers(c, prefixINN, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return makeINNs(v...)
 }
 
-func getINNSync(h *dbxHelper) (interface{}, error) {
+func makeINNs(x ...int64) (jsonINNs, error) {
+	v := make([]*jsonINN, len(x))
+	for i := range v {
+		v[i] = &jsonINN{ID: x[i]}
+	}
+	return jsonINNs(v), nil
+}
+
+func getINNXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
@@ -149,10 +128,27 @@ func getINNSync(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, prefixINN, v)
+	return loadSyncIDs(c, p, v, d...)
 }
 
-func setINN(h *dbxHelper) (interface{}, error) {
+func getINNX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToINNsFromIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func setINNX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToINNs(h.data)
 	if err != nil {
 		return nil, err
@@ -161,12 +157,12 @@ func setINN(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = saveHashers(c, prefixINN, v)
+	err = saveHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = saveSearchers(c, prefixINN, v)
+	err = saveSearchers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -174,8 +170,8 @@ func setINN(h *dbxHelper) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delINN(h *dbxHelper) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
+func delINNX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToINNsFromIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -183,16 +179,37 @@ func delINN(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	out := makeINNs(v...)
-	err = freeHashers(c, prefixINN, out)
+	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = freeSearchers(c, prefixINN, out)
+	err = freeSearchers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
 	return statusOK, nil
+}
+
+// INN
+
+func getINNSync(h *dbxHelper) (interface{}, error) {
+	return getINNXSync(h, prefixINN)
+}
+
+func getINNSyncDel(h *dbxHelper) (interface{}, error) {
+	return getINNXSync(h, prefixINN)
+}
+
+func getINN(h *dbxHelper) (interface{}, error) {
+	return getINNX(h, prefixINN)
+}
+
+func setINN(h *dbxHelper) (interface{}, error) {
+	return setINNX(h, prefixINN)
+}
+
+func delINN(h *dbxHelper) (interface{}, error) {
+	return delINNX(h, prefixINN)
 }

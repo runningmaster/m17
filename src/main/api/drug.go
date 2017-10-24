@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -57,17 +56,12 @@ type jsonDrug struct {
 	Sale float64 `json:"sale,omitempty"`
 }
 
-func (j *jsonDrug) getKey(p string) string {
-	return genKey(p, j.ID)
+func (j *jsonDrug) getID() int64 {
+	return j.ID
 }
 
-func (j *jsonDrug) getKeyAndUnixtimeID(p string) []interface{} {
-	return []interface{}{
-		genKeySync(p),
-		"CH",
-		time.Now().Unix(),
-		j.ID,
-	}
+func (j *jsonDrug) getKey(p string) string {
+	return genKey(p, j.ID)
 }
 
 func (j *jsonDrug) getKeyAndFieldValues(p string) []interface{} {
@@ -197,13 +191,20 @@ func jsonToDrugs(data []byte) (jsonDrugs, error) {
 	return jsonDrugs(v), nil
 }
 
-func makeDrugs(v ...int64) jsonDrugs {
-	out := make([]*jsonDrug, len(v))
-	for i := range out {
-		out[i] = &jsonDrug{ID: v[i]}
+func jsonToDrugsFromIDs(data []byte) (jsonDrugs, error) {
+	v, err := jsonToIDs(data)
+	if err != nil {
+		return nil, err
 	}
+	return makeDrugs(v...)
+}
 
-	return jsonDrugs(out)
+func makeDrugs(x ...int64) (jsonDrugs, error) {
+	v := make([]*jsonDrug, len(x))
+	for i := range v {
+		v[i] = &jsonDrug{ID: x[i]}
+	}
+	return jsonDrugs(v), nil
 }
 
 func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
@@ -351,30 +352,7 @@ func freeDrugLinks(c redis.Conn, p string, v ...*jsonDrug) error {
 	return nil
 }
 
-func getDrug(h *dbxHelper) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
-	if err != nil {
-		return nil, err
-	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	out := makeDrugs(v...)
-	err = loadHashers(c, prefixDrug, out)
-	if err != nil {
-		return nil, err
-	}
-
-	err = loadDrugLinks(c, prefixDrug, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
-func getDrugSync(h *dbxHelper) (interface{}, error) {
+func getDrugXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
@@ -383,10 +361,32 @@ func getDrugSync(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, prefixDrug, v)
+	return loadSyncIDs(c, p, v, d...)
 }
 
-func setDrug(h *dbxHelper) (interface{}, error) {
+func getDrugX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToDrugsFromIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadDrugLinks(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func setDrugX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToDrugs(h.data)
 	if err != nil {
 		return nil, err
@@ -395,12 +395,12 @@ func setDrug(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = saveHashers(c, prefixDrug, v)
+	err = saveHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = saveDrugLinks(c, prefixDrug, v...)
+	err = saveDrugLinks(c, p, v...)
 	if err != nil {
 		return nil, err
 	}
@@ -408,8 +408,8 @@ func setDrug(h *dbxHelper) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delDrug(h *dbxHelper) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
+func delDrugX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToDrugsFromIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -417,18 +417,39 @@ func delDrug(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	out := makeDrugs(v...)
-	err = freeHashers(c, prefixDrug, out)
+	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = freeDrugLinks(c, prefixDrug, out...)
+	err = freeDrugLinks(c, p, v...)
 	if err != nil {
 		return nil, err
 	}
 
 	return statusOK, nil
+}
+
+// DRUG
+
+func getDrugSync(h *dbxHelper) (interface{}, error) {
+	return getDrugXSync(h, prefixDrug)
+}
+
+func getDrugSyncDel(h *dbxHelper) (interface{}, error) {
+	return getDrugXSync(h, prefixDrug)
+}
+
+func getDrug(h *dbxHelper) (interface{}, error) {
+	return getDrugX(h, prefixDrug)
+}
+
+func setDrug(h *dbxHelper) (interface{}, error) {
+	return setDrugX(h, prefixDrug)
+}
+
+func delDrug(h *dbxHelper) (interface{}, error) {
+	return delDrugX(h, prefixDrug)
 }
 
 func setDrugSale(h *dbxHelper) (interface{}, error) {

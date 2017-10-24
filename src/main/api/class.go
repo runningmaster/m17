@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -55,15 +54,6 @@ func (j *jsonClass) getKeyNextAndIDNode(p string) []interface{} {
 	return []interface{}{
 		genKeyNext(p),
 		j.IDNode,
-	}
-}
-
-func (j *jsonClass) getKeyAndUnixtimeID(p string) []interface{} {
-	return []interface{}{
-		genKeySync(p),
-		"CH",
-		time.Now().Unix(),
-		j.ID,
 	}
 }
 
@@ -138,13 +128,20 @@ func jsonToClasses(data []byte) (jsonClasses, error) {
 	return jsonClasses(v), nil
 }
 
-func makeClasses(v ...int64) jsonClasses {
-	out := make([]*jsonClass, len(v))
-	for i := range out {
-		out[i] = &jsonClass{ID: v[i]}
+func jsonToClassesFromIDs(data []byte) (jsonClasses, error) {
+	v, err := jsonToIDs(data)
+	if err != nil {
+		return nil, err
 	}
+	return makeClasses(v...)
+}
 
-	return jsonClasses(out)
+func makeClasses(x ...int64) (jsonClasses, error) {
+	v := make([]*jsonClass, len(x))
+	for i := range v {
+		v[i] = &jsonClass{ID: x[i]}
+	}
+	return jsonClasses(v), nil
 }
 
 func cmdClassNext(c redis.Conn, cmd string, p string, v ...*jsonClass) error {
@@ -170,25 +167,7 @@ func remClassNext(c redis.Conn, p string, v ...*jsonClass) error {
 	return cmdClassNext(c, "SREM", p, v...)
 }
 
-func getClass(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
-	if err != nil {
-		return nil, err
-	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	out := makeClasses(v...)
-	err = loadHashers(c, p, out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
-func getClassSync(h *dbxHelper, p string) (interface{}, error) {
+func getClassXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		return nil, err
@@ -197,10 +176,27 @@ func getClassSync(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, p, v)
+	return loadSyncIDs(c, p, v, d...)
 }
 
-func setClass(h *dbxHelper, p string) (interface{}, error) {
+func getClassX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToClassesFromIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func setClassX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToClasses(h.data)
 	if err != nil {
 		return nil, err
@@ -229,8 +225,8 @@ func setClass(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delClass(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToIDs(h.data)
+func delClassX(h *dbxHelper, p string) (interface{}, error) {
+	v, err := jsonToClassesFromIDs(h.data)
 	if err != nil {
 		return nil, err
 	}
@@ -238,19 +234,18 @@ func delClass(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	out := makeClasses(v...)
-	err = freeHashers(c, p, out)
+	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = remClassNext(c, p, out...)
+	err = remClassNext(c, p, v...)
 	if err != nil {
 		return nil, err
 	}
 
 	if p == prefixClassATC {
-		err = freeSearchers(c, p, out)
+		err = freeSearchers(c, p, v)
 		if err != nil {
 			return nil, err
 		}
@@ -259,130 +254,178 @@ func delClass(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func getClassATC(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassATC)
-}
+// ATC
 
 func getClassATCSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassATC)
+	return getClassXSync(h, prefixClassATC)
+}
+
+func getClassATCSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassATC, true)
+}
+
+func getClassATC(h *dbxHelper) (interface{}, error) {
+	return getClassX(h, prefixClassATC)
 }
 
 func setClassATC(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassATC)
+	return setClassX(h, prefixClassATC)
 }
 
 func delClassATC(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassATC)
+	return delClassX(h, prefixClassATC)
+}
+
+// NFC
+
+func getClassNFCSync(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassNFC)
+}
+
+func getClassNFCSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassNFC, true)
 }
 
 func getClassNFC(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassNFC)
-}
-
-func getClassNFCSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassNFC)
+	return getClassX(h, prefixClassNFC)
 }
 
 func setClassNFC(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassNFC)
+	return setClassX(h, prefixClassNFC)
 }
 
 func delClassNFC(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassNFC)
+	return delClassX(h, prefixClassNFC)
+}
+
+// FSC
+
+func getClassFSCSync(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassFSC)
+}
+
+func getClassFSCSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassFSC, true)
 }
 
 func getClassFSC(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassFSC)
-}
-
-func getClassFSCSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassFSC)
+	return getClassX(h, prefixClassFSC)
 }
 
 func setClassFSC(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassFSC)
+	return setClassX(h, prefixClassFSC)
 }
 
 func delClassFSC(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassFSC)
+	return delClassX(h, prefixClassFSC)
+}
+
+// BFC
+
+func getClassBFCSync(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassBFC)
+}
+
+func getClassBFCSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassBFC, true)
 }
 
 func getClassBFC(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassBFC)
-}
-
-func getClassBFCSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassBFC)
+	return getClassX(h, prefixClassBFC)
 }
 
 func setClassBFC(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassBFC)
+	return setClassX(h, prefixClassBFC)
 }
 
 func delClassBFC(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassBFC)
+	return delClassX(h, prefixClassBFC)
+}
+
+// CFC
+
+func getClassCFCSync(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassCFC)
+}
+
+func getClassCFCSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassCFC, true)
 }
 
 func getClassCFC(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassCFC)
-}
-
-func getClassCFCSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassCFC)
+	return getClassX(h, prefixClassCFC)
 }
 
 func setClassCFC(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassCFC)
+	return setClassX(h, prefixClassCFC)
 }
 
 func delClassCFC(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassCFC)
+	return delClassX(h, prefixClassCFC)
+}
+
+// MPC
+
+func getClassMPCSync(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassMPC)
+}
+
+func getClassMPCSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassMPC, true)
 }
 
 func getClassMPC(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassMPC)
-}
-
-func getClassMPCSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassMPC)
+	return getClassX(h, prefixClassMPC)
 }
 
 func setClassMPC(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassMPC)
+	return setClassX(h, prefixClassMPC)
 }
 
 func delClassMPC(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassMPC)
+	return delClassX(h, prefixClassMPC)
+}
+
+// CSC
+
+func getClassCSCSync(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassCSC)
+}
+
+func getClassCSCSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassCSC, true)
 }
 
 func getClassCSC(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassCSC)
-}
-
-func getClassCSCSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassCSC)
+	return getClassX(h, prefixClassCSC)
 }
 
 func setClassCSC(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassCSC)
+	return setClassX(h, prefixClassCSC)
 }
 
 func delClassCSC(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassCSC)
+	return delClassX(h, prefixClassCSC)
+}
+
+// ICD
+
+func getClassICDSync(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassICD)
+}
+
+func getClassICDSyncDel(h *dbxHelper) (interface{}, error) {
+	return getClassXSync(h, prefixClassICD, true)
 }
 
 func getClassICD(h *dbxHelper) (interface{}, error) {
-	return getClass(h, prefixClassICD)
-}
-
-func getClassICDSync(h *dbxHelper) (interface{}, error) {
-	return getClassSync(h, prefixClassICD)
+	return getClassX(h, prefixClassICD)
 }
 
 func setClassICD(h *dbxHelper) (interface{}, error) {
-	return setClass(h, prefixClassICD)
+	return setClassX(h, prefixClassICD)
 }
 
 func delClassICD(h *dbxHelper) (interface{}, error) {
-	return delClass(h, prefixClassICD)
+	return delClassX(h, prefixClassICD)
 }
