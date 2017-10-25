@@ -322,6 +322,7 @@ func Resp(h http.Handler) http.Handler {
 			return
 		}
 
+		w.Header().Set("Connection", "close")
 		if w.Header().Get("Content-Type") == "" {
 			w.Header().Set("Content-Type", http.DetectContentType(data))
 		}
@@ -361,6 +362,7 @@ func Fail(h http.Handler) http.Handler {
 		err := ctxutil.ErrorFrom(ctx)
 		if err != nil {
 			code := ctxutil.CodeFrom(ctx)
+			w.Header().Set("Connection", "close")
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			w.WriteHeader(code)
 
