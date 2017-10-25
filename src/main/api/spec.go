@@ -2,6 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
+	"internal/ctxutil"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -432,6 +435,7 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 func getSpecXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -444,6 +448,7 @@ func getSpecXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 func getSpecX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToSpecsFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -466,6 +471,7 @@ func getSpecX(h *dbxHelper, p string) (interface{}, error) {
 func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToSpecs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -493,6 +499,7 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 func delSpecX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToSpecsFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 

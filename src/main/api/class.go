@@ -2,6 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
+	"internal/ctxutil"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -170,6 +173,7 @@ func remClassNext(c redis.Conn, p string, v ...*jsonClass) error {
 func getClassXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -182,6 +186,7 @@ func getClassXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 func getClassX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToClassesFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -199,6 +204,7 @@ func getClassX(h *dbxHelper, p string) (interface{}, error) {
 func setClassX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToClasses(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -228,6 +234,7 @@ func setClassX(h *dbxHelper, p string) (interface{}, error) {
 func delClassX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToClassesFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 

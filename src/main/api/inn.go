@@ -2,6 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
+	"internal/ctxutil"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -122,6 +125,7 @@ func makeINNs(x ...int64) (jsonINNs, error) {
 func getINNXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -134,6 +138,7 @@ func getINNXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 func getINNX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToINNsFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -151,6 +156,7 @@ func getINNX(h *dbxHelper, p string) (interface{}, error) {
 func setINNX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToINNs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -173,6 +179,7 @@ func setINNX(h *dbxHelper, p string) (interface{}, error) {
 func delINNX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToINNsFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 

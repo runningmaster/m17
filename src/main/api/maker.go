@@ -2,6 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
+	"internal/ctxutil"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -153,6 +156,7 @@ func makeMakers(x ...int64) (jsonMakers, error) {
 func getMakerXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -165,6 +169,7 @@ func getMakerXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 func getMakerX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToMakersFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -182,6 +187,7 @@ func getMakerX(h *dbxHelper, p string) (interface{}, error) {
 func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToMakers(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -204,6 +210,7 @@ func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 func delMakerX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToMakersFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 

@@ -61,6 +61,7 @@ func exec(rdb rediser) http.HandlerFunc {
 		}
 
 		res, err := dbx.exec(router.ParamValueFrom(ctx, "func"))
+		ctx = dbx.ctx // get ctx from func
 		if err != nil {
 			ctx = ctxutil.WithError(ctx, err)
 		}

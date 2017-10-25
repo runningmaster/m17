@@ -2,6 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
+	"internal/ctxutil"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -355,6 +358,7 @@ func freeDrugLinks(c redis.Conn, p string, v ...*jsonDrug) error {
 func getDrugXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -367,6 +371,7 @@ func getDrugXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 func getDrugX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToDrugsFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -389,6 +394,7 @@ func getDrugX(h *dbxHelper, p string) (interface{}, error) {
 func setDrugX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToDrugs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -411,6 +417,7 @@ func setDrugX(h *dbxHelper, p string) (interface{}, error) {
 func delDrugX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := jsonToDrugsFromIDs(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 

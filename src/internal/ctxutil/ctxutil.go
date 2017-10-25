@@ -41,7 +41,10 @@ func WithError(ctx context.Context, err error, codes ...int) context.Context {
 		return ctx
 	}
 
-	code := http.StatusInternalServerError
+	code := CodeFrom(ctx)
+	if code == 0 {
+		code = http.StatusInternalServerError
+	}
 	for i := range codes {
 		code = codes[i] // last is true, amen
 	}

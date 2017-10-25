@@ -2,7 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
 	"time"
+
+	"internal/ctxutil"
 )
 
 const (
@@ -140,8 +143,9 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 }
 
 func listSugg(h *dbxHelper) (interface{}, error) {
-	s, err := jsonToIDs(h.data)
+	s, err := jsonToString(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
@@ -158,6 +162,7 @@ func listSugg(h *dbxHelper) (interface{}, error) {
 func findSugg(h *dbxHelper) (interface{}, error) {
 	s, err := jsonToString(h.data)
 	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
