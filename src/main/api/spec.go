@@ -15,14 +15,6 @@ const (
 	prefixSpecDEC = "spec:dec" // UA only
 )
 
-type slug struct {
-	Name   string `json:"name,omitempty"` // *
-	NameRU string `json:"name_ru,omitempty"`
-	NameUA string `json:"name_ua,omitempty"`
-	NameEN string `json:"name_en,omitempty"`
-	Slug   string `json:"slug,omitempty"`
-}
-
 type jsonSpec struct {
 	ID         int64   `json:"id,omitempty"`
 	IDINN      []int64 `json:"id_inn,omitempty"`
@@ -51,8 +43,8 @@ type jsonSpec struct {
 	TextRU     string  `json:"text_ru,omitempty"`
 	TextUA     string  `json:"text_ua,omitempty"`
 	TextEN     string  `json:"text_en,omitempty"`
-	Slug       string  `json:"slug,omitempty"` // FIXME
-	Slugs      []*slug `json:"slugs,omitempty"`
+	Slug       string  `json:"slug,omitempty"`
+	SlugGP     string  `json:"slug_gp,omitempty"` // [{"name":"foo", "slug": "bar"}]
 	ImageOrg   string  `json:"image_org,omitempty"`
 	ImageBox   string  `json:"image_box,omitempty"`
 	CreatedAt  int64   `json:"created_at,omitempty"`
@@ -106,7 +98,7 @@ func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
 		"text_ua", j.TextUA,
 		"text_en", j.TextEN,
 		"slug", j.Slug,
-		"slugs", j.marshalToJSON(j.Slugs),
+		"slug_gp", j.SlugGP,
 		"image_org", j.ImageOrg,
 		"image_box", j.ImageBox,
 		"created_at", j.CreatedAt,
@@ -128,7 +120,7 @@ func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 		"text_ua",    // 8
 		"text_en",    // 9
 		"slug",       // 10
-		"slugs",      // 11
+		"slug_gp",    // 11
 		"image_org",  // 12
 		"image_box",  // 13
 		"created_at", // 14
@@ -137,7 +129,6 @@ func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 }
 
 func (j *jsonSpec) setValues(v ...interface{}) bool {
-	var b []byte
 	for i := range v {
 		switch i {
 		case 0:
@@ -163,8 +154,7 @@ func (j *jsonSpec) setValues(v ...interface{}) bool {
 		case 10:
 			j.Slug, _ = redis.String(v[i], nil)
 		case 11:
-			b, _ = redis.Bytes(v[i], nil)
-			j.unmarshalFromJSON(b, &j.Slugs)
+			j.SlugGP, _ = redis.String(v[i], nil)
 		case 12:
 			j.ImageOrg, _ = redis.String(v[i], nil)
 		case 13:

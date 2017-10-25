@@ -70,6 +70,7 @@ func (j *jsonClass) getKeyAndFieldValues(p string) []interface{} {
 		"name_ru", j.NameRU,
 		"name_ua", j.NameUA,
 		"name_en", j.NameEN,
+		"slug", j.Slug,
 	}
 }
 
@@ -83,6 +84,7 @@ func (j *jsonClass) getKeyAndFields(p string) []interface{} {
 		"name_ru", // 4
 		"name_ua", // 5
 		"name_en", // 6
+		"slug",    // 7
 	}
 }
 
@@ -103,6 +105,8 @@ func (j *jsonClass) setValues(v ...interface{}) bool {
 			j.NameUA, _ = redis.String(v[i], nil)
 		case 6:
 			j.NameEN, _ = redis.String(v[i], nil)
+		case 7:
+			j.Slug, _ = redis.String(v[i], nil)
 		}
 	}
 	return j.ID != 0
