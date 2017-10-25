@@ -39,13 +39,9 @@ func (j *jsonINN) getNameUA(_ string) string {
 	return j.NameUA
 }
 
-func (j *jsonINN) getKey(p string) string {
-	return genKey(p, j.ID)
-}
-
 func (j *jsonINN) getKeyAndFieldValues(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id", j.ID,
 		"name_ru", j.NameRU,
 		"name_ua", j.NameUA,
@@ -56,7 +52,7 @@ func (j *jsonINN) getKeyAndFieldValues(p string) []interface{} {
 
 func (j *jsonINN) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id",      // 0
 		"name_ru", // 1
 		"name_ua", // 2

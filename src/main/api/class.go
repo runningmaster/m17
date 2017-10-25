@@ -49,20 +49,9 @@ func (j *jsonClass) getNameUA(_ string) string {
 	return j.NameUA
 }
 
-func (j *jsonClass) getKey(p string) string {
-	return genKey(p, j.ID)
-}
-
-func (j *jsonClass) getKeyNextAndIDNode(p string) []interface{} {
-	return []interface{}{
-		genKeyNext(p),
-		j.IDNode,
-	}
-}
-
 func (j *jsonClass) getKeyAndFieldValues(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id", j.ID,
 		"id_node", j.IDNode,
 		"id_root", j.IDRoot,
@@ -76,7 +65,7 @@ func (j *jsonClass) getKeyAndFieldValues(p string) []interface{} {
 
 func (j *jsonClass) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id",      // 0
 		"id_node", // 1
 		"id_root", // 2
@@ -151,14 +140,13 @@ func makeClasses(x ...int64) (jsonClasses, error) {
 	return jsonClasses(v), nil
 }
 
-func cmdClassNext(c redis.Conn, cmd string, p string, v ...*jsonClass) error {
+func xxxClassNext(c redis.Conn, cmd string, p string, v ...*jsonClass) error {
 	var err error
 	for i := range v {
 		if v[i] == nil {
 			continue
 		}
-
-		err = c.Send(cmd, v[i].getKeyNextAndIDNode(p)...)
+		err = c.Send(cmd, genKey(p, v[i].IDNode, "next"), v[i].ID)
 		if err != nil {
 			return err
 		}
@@ -167,11 +155,11 @@ func cmdClassNext(c redis.Conn, cmd string, p string, v ...*jsonClass) error {
 }
 
 func setClassNext(c redis.Conn, p string, v ...*jsonClass) error {
-	return cmdClassNext(c, "SADD", p, v...)
+	return xxxClassNext(c, "SADD", p, v...)
 }
 
 func remClassNext(c redis.Conn, p string, v ...*jsonClass) error {
-	return cmdClassNext(c, "SREM", p, v...)
+	return xxxClassNext(c, "SREM", p, v...)
 }
 
 func getClassXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {

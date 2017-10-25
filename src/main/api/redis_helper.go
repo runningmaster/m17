@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"internal/ctxutil"
 	"internal/logger"
 
 	"github.com/garyburd/redigo/redis"
@@ -123,7 +124,6 @@ type ruler interface {
 
 type hasher interface {
 	ider
-	getKey(string) string
 	getKeyAndFieldValues(string) []interface{}
 	getKeyAndFields(string) []interface{}
 	setValues(...interface{}) bool
@@ -170,6 +170,7 @@ func (h *dbxHelper) exec(s string) (interface{}, error) {
 		return fn(h)
 	}
 
+	h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 	return nil, fmt.Errorf("unknown func %q", s)
 }
 
@@ -289,6 +290,9 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if h, ok := v.elem(i).(hasher); ok {
+			if h.getID() == 0 {
+				return fmt.Errorf("ID must have value (%s)", p)
+			}
 			err = c.Send("HMSET", h.getKeyAndFieldValues(p)...)
 			if err != nil {
 				return err
@@ -349,7 +353,7 @@ func freeHashers(c redis.Conn, p string, v ruler) error {
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if h, ok := v.elem(i).(hasher); ok {
-			err = c.Send("DEL", h.getKey(p))
+			err = c.Send("DEL", genKey(p, h.getID()))
 			if err != nil {
 				return err
 			}
@@ -454,10 +458,6 @@ func genKeySync(p string) string {
 
 func genKeySyncDel(p string) string {
 	return genKey(p, "sync", "del")
-}
-
-func genKeyNext(p string) string {
-	return genKey(p, "next")
 }
 
 func genKey(v ...interface{}) string {

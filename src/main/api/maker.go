@@ -46,13 +46,9 @@ func (j *jsonMaker) getNameUA(_ string) string {
 	return j.NameUA
 }
 
-func (j *jsonMaker) getKey(p string) string {
-	return genKey(p, j.ID)
-}
-
 func (j *jsonMaker) getKeyAndFieldValues(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id", j.ID,
 		"id_node", j.IDNode,
 		"name_ru", j.NameRU,
@@ -69,7 +65,7 @@ func (j *jsonMaker) getKeyAndFieldValues(p string) []interface{} {
 
 func (j *jsonMaker) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id",      // 0
 		"id_node", // 1
 		"name_ru", // 2

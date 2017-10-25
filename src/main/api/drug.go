@@ -63,13 +63,9 @@ func (j *jsonDrug) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonDrug) getKey(p string) string {
-	return genKey(p, j.ID)
-}
-
 func (j *jsonDrug) getKeyAndFieldValues(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id", j.ID,
 		"id_make", j.Make,
 		"name_ru", j.NameRU,
@@ -96,7 +92,7 @@ func (j *jsonDrug) getKeyAndFieldValues(p string) []interface{} {
 
 func (j *jsonDrug) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id",      // 0
 		"id_make", // 1
 		"name_ru", // 2

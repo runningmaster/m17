@@ -71,10 +71,6 @@ func (j *jsonSpec) getNameUA(p string) string {
 	return ""
 }
 
-func (j *jsonSpec) getKey(p string) string {
-	return genKey(p, j.ID)
-}
-
 func (j *jsonSpec) marshalToJSON(v interface{}) []byte {
 	res, _ := json.Marshal(v)
 	return res
@@ -86,7 +82,7 @@ func (j *jsonSpec) unmarshalFromJSON(b []byte, v interface{}) {
 
 func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id", j.ID,
 		"name_ru", j.NameRU,
 		"name_ua", j.NameUA,
@@ -108,7 +104,7 @@ func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
 
 func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 	return []interface{}{
-		j.getKey(p),
+		genKey(p, j.ID),
 		"id",         // 0
 		"name_ru",    // 1
 		"name_ua",    // 2
