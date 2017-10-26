@@ -2,7 +2,10 @@ package api
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 
 	"main/version"
@@ -12,9 +15,21 @@ import (
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	fmt.Fprintln(w, version.WithBuildInfo(), runtime.Version())
-	*r = *r.WithContext(ctx)
+}
+
+func help() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		res, err := ioutil.ReadFile(filepath.Join(filepath.Dir(os.Args[0]), version.AppName()+".txt"))
+		if err != nil {
+			ctx = ctxutil.WithError(ctx, err)
+			*r = *r.WithContext(ctx)
+			return
+		}
+		ctx = ctxutil.WithResult(ctx, res)
+		*r = *r.WithContext(ctx)
+	})
 }
 
 func test(w http.ResponseWriter, r *http.Request) {

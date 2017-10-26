@@ -42,6 +42,7 @@ func (h *handler) prepareAPI() *handler {
 
 	h.api = map[string]http.Handler{
 		"GET /":            pipe.Join(mdware.Exec(home)),
+		"GET /help":        pipe.Join(mdware.Exec(help())),
 		"GET /:foo/bar":    pipe.Join(mdware.Exec(test)),
 		"GET /test/:foo":   pipe.Join(mdware.Exec(test)),
 		"GET /redis/ping":  pipe.Join(mdware.Exec(ping(h.rdb))),
