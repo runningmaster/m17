@@ -124,9 +124,9 @@ type ruler interface {
 
 type hasher interface {
 	ider
-	getKeyAndFieldValues(string) []interface{}
-	getKeyAndFields(string) []interface{}
-	setValues(...interface{}) bool
+	getFields() []interface{}
+	getValues() []interface{}
+	setValues(...interface{})
 }
 
 type niller interface {
@@ -282,6 +282,24 @@ func loadSyncIDs(c redis.Conn, p string, v int64, deleted ...bool) ([]int64, err
 	return out, nil
 }
 
+func mixKeyAndFields(p string, h hasher) []interface{} {
+	f := h.getFields()
+	r := make([]interface{}, 0, 1+len(f))
+	return append(append(r, genKey(p, h.getID())), f...)
+}
+
+func mixKeyAndFieldsAndValues(p string, h hasher) []interface{} {
+	f := h.getFields()
+	v := h.getValues()
+	r := make([]interface{}, 0, 1+len(f)*2)
+	r = append(r, genKey(p, h.getID()))
+	for i := range v {
+		// ? check zero values here
+		r = append(r, f[i], v[i])
+	}
+	return r
+}
+
 func saveHashers(c redis.Conn, p string, v ruler) error {
 	if v.len() == 0 {
 		return nil
@@ -293,7 +311,7 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 			if h.getID() == 0 {
 				return fmt.Errorf("ID must have value (%s)", p)
 			}
-			err = c.Send("HMSET", h.getKeyAndFieldValues(p)...)
+			err = c.Send("HMSET", mixKeyAndFieldsAndValues(p, h)...)
 			if err != nil {
 				return err
 			}
@@ -315,7 +333,7 @@ func loadHashers(c redis.Conn, p string, v ruler) error {
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if h, ok := v.elem(i).(hasher); ok {
-			err = c.Send("HMGET", h.getKeyAndFields(p)...)
+			err = c.Send("HMGET", mixKeyAndFields(p, h)...)
 			if err != nil {
 				return err
 			}
@@ -333,12 +351,14 @@ func loadHashers(c redis.Conn, p string, v ruler) error {
 		if err != nil {
 			return err
 		}
-		if h, ok := v.elem(i).(hasher); ok {
-			if !h.setValues(r...) {
-				if n, ok := v.elem(i).(niller); ok {
-					n.nill(i)
-				}
+		if len(r) > 0 && r[0] == nil {
+			if n, ok := v.(niller); ok {
+				n.nill(i)
 			}
+			continue
+		}
+		if h, ok := v.elem(i).(hasher); ok {
+			h.setValues(r...)
 		}
 	}
 

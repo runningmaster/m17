@@ -39,20 +39,8 @@ func (j *jsonINN) getNameUA(_ string) string {
 	return j.NameUA
 }
 
-func (j *jsonINN) getKeyAndFieldValues(p string) []interface{} {
+func (j *jsonINN) getFields() []interface{} {
 	return []interface{}{
-		genKey(p, j.ID),
-		"id", j.ID,
-		"name_ru", j.NameRU,
-		"name_ua", j.NameUA,
-		"name_en", j.NameEN,
-		"slug", j.Slug,
-	}
-}
-
-func (j *jsonINN) getKeyAndFields(p string) []interface{} {
-	return []interface{}{
-		genKey(p, j.ID),
 		"id",      // 0
 		"name_ru", // 1
 		"name_ua", // 2
@@ -61,8 +49,21 @@ func (j *jsonINN) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonINN) setValues(v ...interface{}) bool {
+func (j *jsonINN) getValues() []interface{} {
+	return []interface{}{
+		j.ID,     // 0
+		j.NameRU, // 1
+		j.NameUA, // 2
+		j.NameEN, // 3
+		j.Slug,   // 4
+	}
+}
+
+func (j *jsonINN) setValues(v ...interface{}) {
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
 		switch i {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
@@ -76,7 +77,6 @@ func (j *jsonINN) setValues(v ...interface{}) bool {
 			j.Slug, _ = redis.String(v[i], nil)
 		}
 	}
-	return j.ID != 0
 }
 
 type jsonINNs []*jsonINN

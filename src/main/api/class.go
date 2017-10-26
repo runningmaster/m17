@@ -42,30 +42,15 @@ func (j *jsonClass) getID() int64 {
 }
 
 func (j *jsonClass) getNameRU(_ string) string {
-	return j.NameRU
+	return j.NameRU + "|" + j.Code
 }
 
 func (j *jsonClass) getNameUA(_ string) string {
-	return j.NameUA
+	return j.NameUA + "|" + j.Code
 }
 
-func (j *jsonClass) getKeyAndFieldValues(p string) []interface{} {
+func (j *jsonClass) getFields() []interface{} {
 	return []interface{}{
-		genKey(p, j.ID),
-		"id", j.ID,
-		"id_node", j.IDNode,
-		"id_root", j.IDRoot,
-		"code", j.Code,
-		"name_ru", j.NameRU,
-		"name_ua", j.NameUA,
-		"name_en", j.NameEN,
-		"slug", j.Slug,
-	}
-}
-
-func (j *jsonClass) getKeyAndFields(p string) []interface{} {
-	return []interface{}{
-		genKey(p, j.ID),
 		"id",      // 0
 		"id_node", // 1
 		"id_root", // 2
@@ -77,8 +62,24 @@ func (j *jsonClass) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonClass) setValues(v ...interface{}) bool {
+func (j *jsonClass) getValues() []interface{} {
+	return []interface{}{
+		j.ID,     // 0
+		j.IDNode, // 1
+		j.IDRoot, // 2
+		j.Code,   // 3
+		j.NameRU, // 4
+		j.NameUA, // 5
+		j.NameEN, // 6
+		j.Slug,   // 7
+	}
+}
+
+func (j *jsonClass) setValues(v ...interface{}) {
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
 		switch i {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
@@ -98,7 +99,6 @@ func (j *jsonClass) setValues(v ...interface{}) bool {
 			j.Slug, _ = redis.String(v[i], nil)
 		}
 	}
-	return j.ID != 0
 }
 
 type jsonClasses []*jsonClass

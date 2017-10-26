@@ -63,36 +63,16 @@ func (j *jsonDrug) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonDrug) getKeyAndFieldValues(p string) []interface{} {
-	return []interface{}{
-		genKey(p, j.ID),
-		"id", j.ID,
-		"id_make", j.Make,
-		"name_ru", j.NameRU,
-		"name_ua", j.NameUA,
-		"name_en", j.NameEN,
-		"form_ru", j.FormRU,
-		"form_ua", j.FormUA,
-		"form_en", j.FormEN,
-		"dose_ru", j.DoseRU,
-		"dose_ua", j.DoseUA,
-		"dose_en", j.DoseEN,
-		"pack_ru", j.PackRU,
-		"pack_ua", j.PackUA,
-		"pack_en", j.PackEN,
-		"note_ru", j.NoteRU,
-		"note_ua", j.NoteUA,
-		"note_en", j.NoteEN,
-		"numb", j.Numb,
-		"make_ru", j.MakeRU,
-		"make_ua", j.MakeUA,
-		"make_en", j.MakeEN,
-	}
+func (j *jsonDrug) getNameRU(_ string) string {
+	return j.NameRU
 }
 
-func (j *jsonDrug) getKeyAndFields(p string) []interface{} {
+func (j *jsonDrug) getNameUA(_ string) string {
+	return j.NameUA
+}
+
+func (j *jsonDrug) getFields() []interface{} {
 	return []interface{}{
-		genKey(p, j.ID),
 		"id",      // 0
 		"id_make", // 1
 		"name_ru", // 2
@@ -117,8 +97,37 @@ func (j *jsonDrug) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonDrug) setValues(v ...interface{}) bool {
+func (j *jsonDrug) getValues() []interface{} {
+	return []interface{}{
+		j.ID,     // 0
+		j.Make,   // 1
+		j.NameRU, // 2
+		j.NameUA, // 3
+		j.NameEN, // 4
+		j.FormRU, // 5
+		j.FormUA, // 6
+		j.FormEN, // 7
+		j.DoseRU, // 8
+		j.DoseUA, // 9
+		j.DoseEN, // 10
+		j.PackRU, // 11
+		j.PackUA, // 12
+		j.PackEN, // 13
+		j.NoteRU, // 14
+		j.NoteUA, // 15
+		j.NoteEN, // 16
+		j.Numb,   // 17
+		j.MakeRU, // 18
+		j.MakeUA, // 19
+		j.MakeEN, // 20
+	}
+}
+
+func (j *jsonDrug) setValues(v ...interface{}) {
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
 		switch i {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
@@ -164,7 +173,6 @@ func (j *jsonDrug) setValues(v ...interface{}) bool {
 			j.MakeEN, _ = redis.String(v[i], nil)
 		}
 	}
-	return j.ID != 0
 }
 
 type jsonDrugs []*jsonDrug

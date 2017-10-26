@@ -46,26 +46,8 @@ func (j *jsonMaker) getNameUA(_ string) string {
 	return j.NameUA
 }
 
-func (j *jsonMaker) getKeyAndFieldValues(p string) []interface{} {
+func (j *jsonMaker) getFields() []interface{} {
 	return []interface{}{
-		genKey(p, j.ID),
-		"id", j.ID,
-		"id_node", j.IDNode,
-		"name_ru", j.NameRU,
-		"name_ua", j.NameUA,
-		"name_en", j.NameEN,
-		"text_ru", j.TextRU,
-		"text_ua", j.TextUA,
-		"text_en", j.TextEN,
-		"is_comp", j.IsComp,
-		"logo", j.Logo,
-		"slug", j.Slug,
-	}
-}
-
-func (j *jsonMaker) getKeyAndFields(p string) []interface{} {
-	return []interface{}{
-		genKey(p, j.ID),
 		"id",      // 0
 		"id_node", // 1
 		"name_ru", // 2
@@ -80,8 +62,27 @@ func (j *jsonMaker) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonMaker) setValues(v ...interface{}) bool {
+func (j *jsonMaker) getValues() []interface{} {
+	return []interface{}{
+		j.ID,     // 0
+		j.IDNode, // 1
+		j.NameRU, // 2
+		j.NameUA, // 3
+		j.NameEN, // 4
+		j.TextRU, // 5
+		j.TextUA, // 6
+		j.TextEN, // 7
+		j.IsComp, // 8
+		j.Logo,   // 9
+		j.Slug,   // 10
+	}
+}
+
+func (j *jsonMaker) setValues(v ...interface{}) {
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
 		switch i {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
@@ -107,7 +108,6 @@ func (j *jsonMaker) setValues(v ...interface{}) bool {
 			j.Slug, _ = redis.String(v[i], nil)
 		}
 	}
-	return j.ID != 0
 }
 
 type jsonMakers []*jsonMaker
@@ -229,21 +229,21 @@ func delMakerX(h *dbxHelper, p string) (interface{}, error) {
 // MAKER
 
 func getMakerSync(h *dbxHelper) (interface{}, error) {
-	return getINNXSync(h, prefixMaker)
+	return getMakerXSync(h, prefixMaker)
 }
 
 func getMakerSyncDel(h *dbxHelper) (interface{}, error) {
-	return getINNXSync(h, prefixMaker)
+	return getMakerXSync(h, prefixMaker)
 }
 
 func getMaker(h *dbxHelper) (interface{}, error) {
-	return getINNX(h, prefixMaker)
+	return getMakerX(h, prefixMaker)
 }
 
 func setMaker(h *dbxHelper) (interface{}, error) {
-	return setINNX(h, prefixMaker)
+	return setMakerX(h, prefixMaker)
 }
 
 func delMaker(h *dbxHelper) (interface{}, error) {
-	return delINNX(h, prefixMaker)
+	return delMakerX(h, prefixMaker)
 }

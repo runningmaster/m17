@@ -80,31 +80,8 @@ func (j *jsonSpec) unmarshalFromJSON(b []byte, v interface{}) {
 	_ = json.Unmarshal(b, v)
 }
 
-func (j *jsonSpec) getKeyAndFieldValues(p string) []interface{} {
+func (j *jsonSpec) getFields() []interface{} {
 	return []interface{}{
-		genKey(p, j.ID),
-		"id", j.ID,
-		"name_ru", j.NameRU,
-		"name_ua", j.NameUA,
-		"name_en", j.NameEN,
-		"head_ru", j.HeadRU,
-		"head_ua", j.HeadUA,
-		"head_en", j.HeadEN,
-		"text_ru", j.TextRU,
-		"text_ua", j.TextUA,
-		"text_en", j.TextEN,
-		"slug", j.Slug,
-		"slug_gp", j.SlugGP,
-		"image_org", j.ImageOrg,
-		"image_box", j.ImageBox,
-		"created_at", j.CreatedAt,
-		"updated_at", j.UpdatedAt,
-	}
-}
-
-func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
-	return []interface{}{
-		genKey(p, j.ID),
 		"id",         // 0
 		"name_ru",    // 1
 		"name_ua",    // 2
@@ -124,8 +101,32 @@ func (j *jsonSpec) getKeyAndFields(p string) []interface{} {
 	}
 }
 
-func (j *jsonSpec) setValues(v ...interface{}) bool {
+func (j *jsonSpec) getValues() []interface{} {
+	return []interface{}{
+		j.ID,        //0
+		j.NameRU,    //1
+		j.NameUA,    //2
+		j.NameEN,    //3
+		j.HeadRU,    //4
+		j.HeadUA,    //5
+		j.HeadEN,    //6
+		j.TextRU,    //7
+		j.TextUA,    //8
+		j.TextEN,    //9
+		j.Slug,      //10
+		j.SlugGP,    //11
+		j.ImageOrg,  //12
+		j.ImageBox,  //13
+		j.CreatedAt, //14
+		j.UpdatedAt, //15
+	}
+}
+
+func (j *jsonSpec) setValues(v ...interface{}) {
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
 		switch i {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
@@ -161,7 +162,6 @@ func (j *jsonSpec) setValues(v ...interface{}) bool {
 			j.UpdatedAt, _ = redis.Int64(v[i], nil)
 		}
 	}
-	return j.ID != 0
 }
 
 type jsonSpecs []*jsonSpec
