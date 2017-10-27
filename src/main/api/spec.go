@@ -192,15 +192,15 @@ func jsonToSpecsFromIDs(data []byte) (jsonSpecs, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeSpecs(v...)
+	return makeSpecs(v...), nil
 }
 
-func makeSpecs(x ...int64) (jsonSpecs, error) {
+func makeSpecs(x ...int64) jsonSpecs {
 	v := make([]*jsonSpec, len(x))
 	for i := range v {
 		v[i] = &jsonSpec{ID: x[i]}
 	}
-	return jsonSpecs(v), nil
+	return jsonSpecs(v)
 }
 
 func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
@@ -273,55 +273,55 @@ func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 			continue
 		}
 
-		err = saveLinkIDs(c, p, prefixINN, v[i].ID, v[i].IDINN...)
+		err = saveLinkIDs(c, p, prefixINN, true, v[i].ID, v[i].IDINN...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixDrug, v[i].ID, v[i].IDDrug...)
+		err = saveLinkIDs(c, p, prefixDrug, true, v[i].ID, v[i].IDDrug...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixMaker, v[i].ID, v[i].IDMake...)
+		err = saveLinkIDs(c, p, prefixMaker, true, v[i].ID, v[i].IDMake...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixSpecDEC, v[i].ID, v[i].IDSpecDEC...)
+		err = saveLinkIDs(c, p, prefixSpecDEC, true, v[i].ID, v[i].IDSpecDEC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixSpecINF, v[i].ID, v[i].IDSpecINF...)
+		err = saveLinkIDs(c, p, prefixSpecINF, true, v[i].ID, v[i].IDSpecINF...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassATC, v[i].ID, v[i].IDClassATC...)
+		err = saveLinkIDs(c, p, prefixClassATC, true, v[i].ID, v[i].IDClassATC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassNFC, v[i].ID, v[i].IDClassNFC...)
+		err = saveLinkIDs(c, p, prefixClassNFC, true, v[i].ID, v[i].IDClassNFC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassFSC, v[i].ID, v[i].IDClassFSC...)
+		err = saveLinkIDs(c, p, prefixClassFSC, true, v[i].ID, v[i].IDClassFSC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassBFC, v[i].ID, v[i].IDClassBFC...)
+		err = saveLinkIDs(c, p, prefixClassBFC, true, v[i].ID, v[i].IDClassBFC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassCFC, v[i].ID, v[i].IDClassCFC...)
+		err = saveLinkIDs(c, p, prefixClassCFC, true, v[i].ID, v[i].IDClassCFC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassMPC, v[i].ID, v[i].IDClassMPC...)
+		err = saveLinkIDs(c, p, prefixClassMPC, true, v[i].ID, v[i].IDClassMPC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassCSC, v[i].ID, v[i].IDClassCSC...)
+		err = saveLinkIDs(c, p, prefixClassCSC, true, v[i].ID, v[i].IDClassCSC...)
 		if err != nil {
 			return err
 		}
-		err = saveLinkIDs(c, p, prefixClassICD, v[i].ID, v[i].IDClassICD...)
+		err = saveLinkIDs(c, p, prefixClassICD, true, v[i].ID, v[i].IDClassICD...)
 		if err != nil {
 			return err
 		}
@@ -338,79 +338,79 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixINN, v[i].ID)
-		err = freeLinkIDs(c, p, prefixINN, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixINN, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixDrug, v[i].ID)
-		err = freeLinkIDs(c, p, prefixDrug, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixDrug, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixMaker, v[i].ID)
-		err = freeLinkIDs(c, p, prefixMaker, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixMaker, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixSpecDEC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixSpecDEC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixSpecINF, v[i].ID)
-		err = freeLinkIDs(c, p, prefixSpecINF, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixSpecINF, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassATC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassATC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassATC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassNFC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassNFC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassNFC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassFSC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassFSC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassFSC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassBFC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassBFC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassBFC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassCFC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassCFC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassCFC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassMPC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassMPC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassMPC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassCSC, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassCSC, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassCSC, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixClassICD, v[i].ID)
-		err = freeLinkIDs(c, p, prefixClassICD, v[i].ID, val...)
+		err = freeLinkIDs(c, p, prefixClassICD, true, v[i].ID, val...)
 		if err != nil {
 			return err
 		}
@@ -418,7 +418,7 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	return nil
 }
 
-func getSpecXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
+func getSpecXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -431,7 +431,7 @@ func getSpecXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	return loadSyncIDs(c, p, v, d...)
 }
 
-func getSpecX(h *dbxHelper, p string) (interface{}, error) {
+func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	v, err := jsonToSpecsFromIDs(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)

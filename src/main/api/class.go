@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"internal/ctxutil"
 
@@ -21,9 +23,10 @@ const (
 )
 
 type jsonClass struct {
-	ID     int64 `json:"id,omitempty"`
-	IDNode int64 `json:"id_node,omitempty"`
-	IDRoot int64 `json:"id_root,omitempty"`
+	ID     int64   `json:"id,omitempty"`
+	IDNode int64   `json:"id_node,omitempty"`
+	IDRoot int64   `json:"id_root,omitempty"`
+	IDNext []int64 `json:"id_next,omitempty"`
 
 	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
@@ -129,40 +132,71 @@ func jsonToClassesFromIDs(data []byte) (jsonClasses, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeClasses(v...)
+	return makeClasses(v...), nil
 }
 
-func makeClasses(x ...int64) (jsonClasses, error) {
+func makeClasses(x ...int64) jsonClasses {
 	v := make([]*jsonClass, len(x))
 	for i := range v {
 		v[i] = &jsonClass{ID: x[i]}
 	}
-	return jsonClasses(v), nil
+	return jsonClasses(v)
 }
 
-func xxxClassNext(c redis.Conn, cmd string, p string, v ...*jsonClass) error {
+func loadClassLinks(c redis.Conn, p string, v []*jsonClass) error {
 	var err error
 	for i := range v {
 		if v[i] == nil {
 			continue
 		}
-		err = c.Send(cmd, genKey(p, v[i].IDNode, "next"), v[i].ID)
+
+		v[i].IDNext, err = loadLinkIDs(c, p, "next", v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v[i].ID)
 		if err != nil {
 			return err
 		}
 	}
-	return c.Flush()
+	return nil
 }
 
-func setClassNext(c redis.Conn, p string, v ...*jsonClass) error {
-	return xxxClassNext(c, "SADD", p, v...)
+func saveClassLinks(c redis.Conn, p string, v ...*jsonClass) error {
+	var err error
+	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
+		err = saveLinkIDs(c, "next", p, false, v[i].ID, v[i].IDNode)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func remClassNext(c redis.Conn, p string, v ...*jsonClass) error {
-	return xxxClassNext(c, "SREM", p, v...)
+func freeClassLinks(c redis.Conn, p string, v ...*jsonClass) error {
+	var err error
+	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
+		err = freeLinkIDs(c, "next", p, false, v[i].ID, v[i].IDNode)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func getClassXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
+func getClassXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -175,7 +209,31 @@ func getClassXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	return loadSyncIDs(c, p, v, d...)
 }
 
-func getClassX(h *dbxHelper, p string) (interface{}, error) {
+func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	r, err := loadLinkIDs(c, p, "next", 0)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(r) == 0 {
+		return nil, fmt.Errorf("something wrong with root %s", p)
+	}
+
+	h.data = []byte("[" + strings.Join(int64ToStrings(r...), ",") + "]")
+	n, err := getClassX(h, p)
+
+	if len(n) != 1 {
+		return nil, fmt.Errorf("something wrong with root %s (%d)", p, len(n))
+	}
+
+	h.data = []byte("[" + strings.Join(int64ToStrings(n[0].IDNext...), ",") + "]")
+	return getClassX(h, p)
+}
+
+func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 	v, err := jsonToClassesFromIDs(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -186,6 +244,11 @@ func getClassX(h *dbxHelper, p string) (interface{}, error) {
 	defer h.delConn(c)
 
 	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadClassLinks(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -208,16 +271,16 @@ func setClassX(h *dbxHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
-	err = setClassNext(c, p, v...)
-	if err != nil {
-		return nil, err
-	}
-
 	if p == prefixClassATC {
 		err = saveSearchers(c, p, v)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	err = saveClassLinks(c, p, v...)
+	if err != nil {
+		return nil, err
 	}
 
 	return statusOK, nil
@@ -238,16 +301,16 @@ func delClassX(h *dbxHelper, p string) (interface{}, error) {
 		return nil, err
 	}
 
-	err = remClassNext(c, p, v...)
-	if err != nil {
-		return nil, err
-	}
-
 	if p == prefixClassATC {
 		err = freeSearchers(c, p, v)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	err = freeClassLinks(c, p, v...)
+	if err != nil {
+		return nil, err
 	}
 
 	return statusOK, nil
@@ -261,6 +324,10 @@ func getClassATCSync(h *dbxHelper) (interface{}, error) {
 
 func getClassATCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassATC, true)
+}
+
+func getClassATCRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassATC)
 }
 
 func getClassATC(h *dbxHelper) (interface{}, error) {
@@ -285,6 +352,10 @@ func getClassNFCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassNFC, true)
 }
 
+func getClassNFCRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassNFC)
+}
+
 func getClassNFC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassNFC)
 }
@@ -305,6 +376,10 @@ func getClassFSCSync(h *dbxHelper) (interface{}, error) {
 
 func getClassFSCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassFSC, true)
+}
+
+func getClassFSCRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassFSC)
 }
 
 func getClassFSC(h *dbxHelper) (interface{}, error) {
@@ -329,6 +404,10 @@ func getClassBFCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassBFC, true)
 }
 
+func getClassBFCRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassBFC)
+}
+
 func getClassBFC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassBFC)
 }
@@ -349,6 +428,10 @@ func getClassCFCSync(h *dbxHelper) (interface{}, error) {
 
 func getClassCFCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCFC, true)
+}
+
+func getClassCFCRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassCFC)
 }
 
 func getClassCFC(h *dbxHelper) (interface{}, error) {
@@ -373,6 +456,10 @@ func getClassMPCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassMPC, true)
 }
 
+func getClassMPCRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassMPC)
+}
+
 func getClassMPC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassMPC)
 }
@@ -395,6 +482,10 @@ func getClassCSCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCSC, true)
 }
 
+func getClassCSCRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassCSC)
+}
+
 func getClassCSC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCSC)
 }
@@ -415,6 +506,10 @@ func getClassICDSync(h *dbxHelper) (interface{}, error) {
 
 func getClassICDSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassICD, true)
+}
+
+func getClassICDRoot(h *dbxHelper) (interface{}, error) {
+	return getClassXRoot(h, prefixClassICD)
 }
 
 func getClassICD(h *dbxHelper) (interface{}, error) {

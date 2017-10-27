@@ -21,48 +21,56 @@ var statusOK = http.StatusText(http.StatusOK)
 var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-class-atc-sync":     getClassATCSync,
 	"get-class-atc-sync-del": getClassATCSyncDel,
+	"get-class-atc-root":     getClassATCRoot,
 	"get-class-atc":          getClassATC,
 	"set-class-atc":          setClassATC,
 	"del-class-atc":          delClassATC,
 
 	"get-class-nfc-sync":     getClassNFCSync,
 	"get-class-nfc-sync-del": getClassNFCSyncDel,
+	"get-class-nfc-root":     getClassNFCRoot,
 	"get-class-nfc":          getClassNFC,
 	"set-class-nfc":          setClassNFC,
 	"del-class-nfc":          delClassNFC,
 
 	"get-class-fsc-sync":     getClassFSCSync,
 	"get-class-fsc-sync-del": getClassFSCSyncDel,
+	"get-class-fsc-root":     getClassFSCRoot,
 	"get-class-fsc":          getClassFSC,
 	"set-class-fsc":          setClassFSC,
 	"del-class-fsc":          delClassFSC,
 
 	"get-class-bfc-sync":     getClassBFCSync,
 	"get-class-bfc-sync-del": getClassBFCSyncDel,
+	"get-class-bfc-root":     getClassBFCRoot,
 	"get-class-bfc":          getClassBFC,
 	"set-class-bfc":          setClassBFC,
 	"del-class-bfc":          delClassBFC,
 
 	"get-class-cfc-sync":     getClassCFCSync,
 	"get-class-cfc-sync-del": getClassCFCSyncDel,
+	"get-class-cfc-root":     getClassCFCRoot,
 	"get-class-cfc":          getClassCFC,
 	"set-class-cfc":          setClassCFC,
 	"del-class-cfc":          delClassCFC,
 
 	"get-class-mpc-sync":     getClassMPCSync,
 	"get-class-mpc-sync-del": getClassMPCSyncDel,
+	"get-class-mpc-root":     getClassMPCRoot,
 	"get-class-mpc":          getClassMPC,
 	"set-class-mpc":          setClassMPC,
 	"del-class-mpc":          delClassMPC,
 
 	"get-class-csc-sync":     getClassCSCSync,
 	"get-class-csc-sync-del": getClassCSCSyncDel,
+	"get-class-csc-root":     getClassCSCRoot,
 	"get-class-csc":          getClassCSC,
 	"set-class-csc":          setClassCSC,
 	"del-class-csc":          delClassCSC,
 
 	"get-class-icd-sync":     getClassICDSync,
 	"get-class-icd-sync-del": getClassICDSyncDel,
+	"get-class-icd-root":     getClassICDRoot,
 	"get-class-icd":          getClassICD,
 	"set-class-icd":          setClassICD,
 	"del-class-icd":          delClassICD,
@@ -198,7 +206,7 @@ func jsonToIDs(data []byte) ([]int64, error) {
 	return v, nil
 }
 
-func freeLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
+func freeLinkIDs(c redis.Conn, p1, p2 string, s bool, x int64, v ...int64) error {
 	if len(v) == 0 {
 		return nil
 	}
@@ -213,16 +221,18 @@ func freeLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
 		}
 	}
 
-	key = genKey(p1, x, p2)
-	err = c.Send("DEL", key)
-	if err != nil {
-		return err
+	if s { // symmetrically
+		key = genKey(p1, x, p2)
+		err = c.Send("DEL", key)
+		if err != nil {
+			return err
+		}
 	}
 
 	return c.Flush()
 }
 
-func saveLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
+func saveLinkIDs(c redis.Conn, p1, p2 string, s bool, x int64, v ...int64) error {
 	if len(v) == 0 {
 		return nil
 	}
@@ -239,11 +249,13 @@ func saveLinkIDs(c redis.Conn, p1, p2 string, x int64, v ...int64) error {
 		val[i+1] = v[i]
 	}
 
-	key = genKey(p1, x, p2)
-	val[0] = key
-	err = c.Send("SADD", val...)
-	if err != nil {
-		return err
+	if s { // symmetrically
+		key = genKey(p1, x, p2)
+		val[0] = key
+		err = c.Send("SADD", val...)
+		if err != nil {
+			return err
+		}
 	}
 
 	return c.Flush()
@@ -481,4 +493,20 @@ func genKey(v ...interface{}) string {
 		}
 	}
 	return strings.Join(a, ":")
+}
+
+func intsToInt64s(v ...int) []int64 {
+	r := make([]int64, len(v))
+	for i := range v {
+		r[i] = int64(v[i])
+	}
+	return r
+}
+
+func int64ToStrings(v ...int64) []string {
+	r := make([]string, len(v))
+	for i := range v {
+		r[i] = strconv.Itoa(int(v[i]))
+	}
+	return r
 }

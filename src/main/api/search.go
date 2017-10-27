@@ -59,7 +59,7 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	atc, err := makeClasses(ids...)
+	atc := makeClasses(ids...)
 	err = loadHashers(c, prefixClassATC, atc)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	inn, err := makeINNs(ids...)
+	inn := makeINNs(ids...)
 	err = loadHashers(c, prefixINN, inn)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	org, err := makeMakers(ids...)
+	org := makeMakers(ids...)
 	err = loadHashers(c, prefixMaker, org)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	act, err := makeSpecs(ids...)
+	act := makeSpecs(ids...)
 	err = loadHashers(c, prefixSpecACT, act)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	inf, err := makeSpecs(ids...)
+	inf := makeSpecs(ids...)
 	err = loadHashers(c, prefixSpecINF, inf)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	dec, err := makeSpecs(ids...)
+	dec := makeSpecs(ids...)
 	err = loadHashers(c, prefixSpecDEC, dec)
 	if err != nil {
 		return nil, err

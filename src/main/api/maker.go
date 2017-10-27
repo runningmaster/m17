@@ -139,18 +139,37 @@ func jsonToMakersFromIDs(data []byte) (jsonMakers, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeMakers(v...)
+	return makeMakers(v...), nil
 }
 
-func makeMakers(x ...int64) (jsonMakers, error) {
+func makeMakers(x ...int64) jsonMakers {
 	v := make([]*jsonMaker, len(x))
 	for i := range v {
 		v[i] = &jsonMaker{ID: x[i]}
 	}
-	return jsonMakers(v), nil
+	return jsonMakers(v)
 }
 
-func getMakerXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
+func loadMakerLinks(c redis.Conn, p string, v []*jsonMaker) error {
+	var err error
+	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
+		v[i].IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v[i].ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getMakerXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -163,7 +182,7 @@ func getMakerXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	return loadSyncIDs(c, p, v, d...)
 }
 
-func getMakerX(h *dbxHelper, p string) (interface{}, error) {
+func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	v, err := jsonToMakersFromIDs(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -174,6 +193,11 @@ func getMakerX(h *dbxHelper, p string) (interface{}, error) {
 	defer h.delConn(c)
 
 	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadMakerLinks(c, p, v)
 	if err != nil {
 		return nil, err
 	}

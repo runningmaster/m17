@@ -107,18 +107,37 @@ func jsonToINNsFromIDs(data []byte) (jsonINNs, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeINNs(v...)
+	return makeINNs(v...), nil
 }
 
-func makeINNs(x ...int64) (jsonINNs, error) {
+func makeINNs(x ...int64) jsonINNs {
 	v := make([]*jsonINN, len(x))
 	for i := range v {
 		v[i] = &jsonINN{ID: x[i]}
 	}
-	return jsonINNs(v), nil
+	return jsonINNs(v)
 }
 
-func getINNXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
+func loadINNLinks(c redis.Conn, p string, v []*jsonINN) error {
+	var err error
+	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+
+		v[i].IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
+		if err != nil {
+			return err
+		}
+		v[i].IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v[i].ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getINNXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -131,7 +150,7 @@ func getINNXSync(h *dbxHelper, p string, d ...bool) (interface{}, error) {
 	return loadSyncIDs(c, p, v, d...)
 }
 
-func getINNX(h *dbxHelper, p string) (interface{}, error) {
+func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 	v, err := jsonToINNsFromIDs(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -142,6 +161,11 @@ func getINNX(h *dbxHelper, p string) (interface{}, error) {
 	defer h.delConn(c)
 
 	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadINNLinks(c, p, v)
 	if err != nil {
 		return nil, err
 	}
