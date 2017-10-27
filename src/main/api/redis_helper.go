@@ -265,9 +265,9 @@ func loadLinkIDs(c redis.Conn, p1, p2 string, x int64) ([]int64, error) {
 }
 
 func loadSyncIDs(c redis.Conn, p string, v int64, deleted ...bool) ([]int64, error) {
-	key := genKeySync(p)
+	key := genKey(p, "sync")
 	if len(deleted) > 0 {
-		key = genKeySyncDel(key)
+		key = genKey(p, "sync", "del")
 	}
 	res, err := redis.Values(c.Do("ZRANGEBYSCORE", key, v, "+inf"))
 	if err != nil {
@@ -315,7 +315,7 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 			if err != nil {
 				return err
 			}
-			err = c.Send("ZADD", genKeySync(p), "CH", time.Now().Unix(), h.getID())
+			err = c.Send("ZADD", genKey(p, "sync"), "CH", time.Now().Unix(), h.getID())
 			if err != nil {
 				return err
 			}
@@ -395,11 +395,11 @@ func freeHashers(c redis.Conn, p string, v ruler) error {
 			continue
 		}
 		if h, ok := v.elem(i).(hasher); ok {
-			err = c.Send("ZREM", genKeySync(p), h.getID())
+			err = c.Send("ZREM", genKey(p, "sync"), h.getID())
 			if err != nil {
 				return err
 			}
-			err = c.Send("ZADD", genKeySyncDel(p), "CH", time.Now().Unix(), h.getID())
+			err = c.Send("ZADD", genKey(p, "sync", "del"), "CH", time.Now().Unix(), h.getID())
 			if err != nil {
 				return err
 			}
@@ -432,19 +432,11 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 				if err != nil {
 					return err
 				}
-			} else {
-				if !strings.Contains(p, "spec") {
-					println(genKey(p, "idx", "ru"), id, nameRU, nameUA)
-				}
 			}
 			if nameUA != "" {
 				err = c.Send("ZADD", genKey(p, "idx", "ua"), id, normName(nameUA))
 				if err != nil {
 					return err
-				}
-			} else {
-				if !strings.Contains(p, "spec") {
-					println(genKey(p, "idx", "ua"), id, nameRU, nameUA)
 				}
 			}
 		}
@@ -470,14 +462,6 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 		}
 	}
 	return c.Flush()
-}
-
-func genKeySync(p string) string {
-	return genKey(p, "sync")
-}
-
-func genKeySyncDel(p string) string {
-	return genKey(p, "sync", "del")
 }
 
 func genKey(v ...interface{}) string {
