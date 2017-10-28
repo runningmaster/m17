@@ -219,7 +219,7 @@ func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
 	return nil
 }
 
-func getDrugXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
+func getDrugXSync(h *dbxHelper, p string) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -229,7 +229,7 @@ func getDrugXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, p, v, d...)
+	return loadSyncIDs(c, p, v)
 }
 
 func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
@@ -294,10 +294,6 @@ func delDrugX(h *dbxHelper, p string) (interface{}, error) {
 // DRUG
 
 func getDrugSync(h *dbxHelper) (interface{}, error) {
-	return getDrugXSync(h, prefixDrug)
-}
-
-func getDrugSyncDel(h *dbxHelper) (interface{}, error) {
 	return getDrugXSync(h, prefixDrug)
 }
 

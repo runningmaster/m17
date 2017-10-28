@@ -37,6 +37,7 @@ type jsonClass struct {
 	NameUA string `json:"name_ua,omitempty"`
 	NameEN string `json:"name_en,omitempty"`
 	Slug   string `json:"slug,omitempty"`
+	Sort   string `json:"sort,omitempty"`
 }
 
 func (j *jsonClass) getID() int64 {
@@ -195,7 +196,7 @@ func freeClassLinks(c redis.Conn, p string, v ...*jsonClass) error {
 	return nil
 }
 
-func getClassXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
+func getClassXSync(h *dbxHelper, p string) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -205,7 +206,7 @@ func getClassXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, p, v, d...)
+	return loadSyncIDs(c, p, v)
 }
 
 func mineClassRootIDs(c redis.Conn, p string, v []*jsonClass) ([]int64, error) {
@@ -330,10 +331,6 @@ func getClassATCSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassATC)
 }
 
-func getClassATCSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassATC, true)
-}
-
 func getClassATC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassATC)
 }
@@ -350,10 +347,6 @@ func delClassATC(h *dbxHelper) (interface{}, error) {
 
 func getClassNFCSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassNFC)
-}
-
-func getClassNFCSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassNFC, true)
 }
 
 func getClassNFC(h *dbxHelper) (interface{}, error) {
@@ -374,10 +367,6 @@ func getClassFSCSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassFSC)
 }
 
-func getClassFSCSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassFSC, true)
-}
-
 func getClassFSC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassFSC)
 }
@@ -394,10 +383,6 @@ func delClassFSC(h *dbxHelper) (interface{}, error) {
 
 func getClassBFCSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassBFC)
-}
-
-func getClassBFCSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassBFC, true)
 }
 
 func getClassBFC(h *dbxHelper) (interface{}, error) {
@@ -418,10 +403,6 @@ func getClassCFCSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCFC)
 }
 
-func getClassCFCSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassCFC, true)
-}
-
 func getClassCFC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCFC)
 }
@@ -438,10 +419,6 @@ func delClassCFC(h *dbxHelper) (interface{}, error) {
 
 func getClassMPCSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassMPC)
-}
-
-func getClassMPCSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassMPC, true)
 }
 
 func getClassMPC(h *dbxHelper) (interface{}, error) {
@@ -462,10 +439,6 @@ func getClassCSCSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCSC)
 }
 
-func getClassCSCSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassCSC, true)
-}
-
 func getClassCSC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCSC)
 }
@@ -482,10 +455,6 @@ func delClassCSC(h *dbxHelper) (interface{}, error) {
 
 func getClassICDSync(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassICD)
-}
-
-func getClassICDSyncDel(h *dbxHelper) (interface{}, error) {
-	return getClassXSync(h, prefixClassICD, true)
 }
 
 func getClassICD(h *dbxHelper) (interface{}, error) {

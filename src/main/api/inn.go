@@ -137,7 +137,7 @@ func loadINNLinks(c redis.Conn, p string, v []*jsonINN) error {
 	return nil
 }
 
-func getINNXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
+func getINNXSync(h *dbxHelper, p string) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -147,7 +147,7 @@ func getINNXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, p, v, d...)
+	return loadSyncIDs(c, p, v)
 }
 
 func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
@@ -222,10 +222,6 @@ func delINNX(h *dbxHelper, p string) (interface{}, error) {
 // INN
 
 func getINNSync(h *dbxHelper) (interface{}, error) {
-	return getINNXSync(h, prefixINN)
-}
-
-func getINNSyncDel(h *dbxHelper) (interface{}, error) {
 	return getINNXSync(h, prefixINN)
 }
 

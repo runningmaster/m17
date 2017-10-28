@@ -19,90 +19,76 @@ import (
 var statusOK = http.StatusText(http.StatusOK)
 
 var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
-	"get-class-atc-sync":     getClassATCSync,
-	"get-class-atc-sync-del": getClassATCSyncDel,
-	"get-class-atc":          getClassATC,
-	"set-class-atc":          setClassATC,
-	"del-class-atc":          delClassATC,
+	"get-class-atc-sync": getClassATCSync,
+	"get-class-atc":      getClassATC,
+	"set-class-atc":      setClassATC,
+	"del-class-atc":      delClassATC,
 
-	"get-class-nfc-sync":     getClassNFCSync,
-	"get-class-nfc-sync-del": getClassNFCSyncDel,
-	"get-class-nfc":          getClassNFC,
-	"set-class-nfc":          setClassNFC,
-	"del-class-nfc":          delClassNFC,
+	"get-class-nfc-sync": getClassNFCSync,
+	"get-class-nfc":      getClassNFC,
+	"set-class-nfc":      setClassNFC,
+	"del-class-nfc":      delClassNFC,
 
-	"get-class-fsc-sync":     getClassFSCSync,
-	"get-class-fsc-sync-del": getClassFSCSyncDel,
-	"get-class-fsc":          getClassFSC,
-	"set-class-fsc":          setClassFSC,
-	"del-class-fsc":          delClassFSC,
+	"get-class-fsc-sync": getClassFSCSync,
+	"get-class-fsc":      getClassFSC,
+	"set-class-fsc":      setClassFSC,
+	"del-class-fsc":      delClassFSC,
 
-	"get-class-bfc-sync":     getClassBFCSync,
-	"get-class-bfc-sync-del": getClassBFCSyncDel,
-	"get-class-bfc":          getClassBFC,
-	"set-class-bfc":          setClassBFC,
-	"del-class-bfc":          delClassBFC,
+	"get-class-bfc-sync": getClassBFCSync,
+	"get-class-bfc":      getClassBFC,
+	"set-class-bfc":      setClassBFC,
+	"del-class-bfc":      delClassBFC,
 
-	"get-class-cfc-sync":     getClassCFCSync,
-	"get-class-cfc-sync-del": getClassCFCSyncDel,
-	"get-class-cfc":          getClassCFC,
-	"set-class-cfc":          setClassCFC,
-	"del-class-cfc":          delClassCFC,
+	"get-class-cfc-sync": getClassCFCSync,
+	"get-class-cfc":      getClassCFC,
+	"set-class-cfc":      setClassCFC,
+	"del-class-cfc":      delClassCFC,
 
-	"get-class-mpc-sync":     getClassMPCSync,
-	"get-class-mpc-sync-del": getClassMPCSyncDel,
-	"get-class-mpc":          getClassMPC,
-	"set-class-mpc":          setClassMPC,
-	"del-class-mpc":          delClassMPC,
+	"get-class-mpc-sync": getClassMPCSync,
+	"get-class-mpc":      getClassMPC,
+	"set-class-mpc":      setClassMPC,
+	"del-class-mpc":      delClassMPC,
 
-	"get-class-csc-sync":     getClassCSCSync,
-	"get-class-csc-sync-del": getClassCSCSyncDel,
-	"get-class-csc":          getClassCSC,
-	"set-class-csc":          setClassCSC,
-	"del-class-csc":          delClassCSC,
+	"get-class-csc-sync": getClassCSCSync,
+	"get-class-csc":      getClassCSC,
+	"set-class-csc":      setClassCSC,
+	"del-class-csc":      delClassCSC,
 
-	"get-class-icd-sync":     getClassICDSync,
-	"get-class-icd-sync-del": getClassICDSyncDel,
-	"get-class-icd":          getClassICD,
-	"set-class-icd":          setClassICD,
-	"del-class-icd":          delClassICD,
+	"get-class-icd-sync": getClassICDSync,
+	"get-class-icd":      getClassICD,
+	"set-class-icd":      setClassICD,
+	"del-class-icd":      delClassICD,
 
-	"get-inn-sync":     getINNSync,
-	"get-inn-sync-del": getINNSyncDel,
-	"get-inn":          getINN,
-	"set-inn":          setINN,
-	"del-inn":          delINN,
+	"get-inn-sync": getINNSync,
+	"get-inn":      getINN,
+	"set-inn":      setINN,
+	"del-inn":      delINN,
 
-	"get-maker-sync":     getMakerSync,
-	"get-maker-sync-del": getMakerSyncDel,
-	"get-maker":          getMaker,
-	"set-maker":          setMaker,
-	"del-maker":          delMaker,
+	"get-maker-sync": getMakerSync,
+	"get-maker":      getMaker,
+	"set-maker":      setMaker,
+	"del-maker":      delMaker,
 
-	"get-drug-sync":     getDrugSync,
-	"get-drug-sync-del": getDrugSyncDel,
-	"get-drug":          getDrug,
-	"set-drug":          setDrug,
-	"set-drug-sale":     setDrugSale,
-	"del-drug":          delDrug,
+	"get-drug-sync": getDrugSync,
+	"get-drug":      getDrug,
+	"set-drug":      setDrug,
+	"set-drug-sale": setDrugSale,
+	"del-drug":      delDrug,
 
-	"get-spec-act-sync":     getSpecACTSync,
-	"get-spec-act-sync-del": getSpecACTSyncDel,
-	"get-spec-act":          getSpecACT,
-	"set-spec-act":          setSpecACT,
-	"del-spec-act":          delSpecACT,
+	"get-spec-act-sync": getSpecACTSync,
+	"get-spec-act":      getSpecACT,
+	"set-spec-act":      setSpecACT,
+	"del-spec-act":      delSpecACT,
 
-	"get-spec-inf-sync":     getSpecINFSync,
-	"get-spec-inf-sync-del": getSpecINFSyncDel,
-	"get-spec-inf":          getSpecINF,
-	"set-spec-inf":          setSpecINF,
-	"del-spec-inf":          delSpecINF,
+	"get-spec-inf-sync": getSpecINFSync,
+	"get-spec-inf":      getSpecINF,
+	"set-spec-inf":      setSpecINF,
+	"del-spec-inf":      delSpecINF,
 
-	"get-spec-dec-sync":     getSpecDECSync,
-	"get-spec-dec-sync-del": getSpecDECSyncDel,
-	"get-spec-dec":          getSpecDEC,
-	"set-spec-dec":          setSpecDEC,
-	"del-spec-dec":          delSpecDEC,
+	"get-spec-dec-sync": getSpecDECSync,
+	"get-spec-dec":      getSpecDEC,
+	"set-spec-dec":      setSpecDEC,
+	"del-spec-dec":      delSpecDEC,
 
 	"list-sugg":   listSugg,
 	"find-sugg":   findSugg,
@@ -268,12 +254,15 @@ func loadLinkIDs(c redis.Conn, p1, p2 string, x int64) ([]int64, error) {
 	return out, nil
 }
 
-func loadSyncIDs(c redis.Conn, p string, v int64, deleted ...bool) ([]int64, error) {
-	key := genKey(p, "sync")
-	if len(deleted) > 0 {
-		key = genKey(p, "sync", "del")
+func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
+	val := make([]interface{}, 0, 3)
+	val = append(val, genKey(p, "sync"))
+	if v >= 0 {
+		val = append(val, v, "+inf")
+	} else {
+		val = append(val, "-inf", v)
 	}
-	res, err := redis.Values(c.Do("ZRANGEBYSCORE", key, v, "+inf"))
+	res, err := redis.Values(c.Do("ZRANGEBYSCORE", val...))
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +392,7 @@ func freeHashers(c redis.Conn, p string, v ruler) error {
 			if err != nil {
 				return err
 			}
-			err = c.Send("ZADD", genKey(p, "sync", "del"), "CH", time.Now().Unix(), h.getID())
+			err = c.Send("ZADD", genKey(p, "sync"), "CH", -1*time.Now().Unix(), h.getID())
 			if err != nil {
 				return err
 			}

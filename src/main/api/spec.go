@@ -418,7 +418,7 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	return nil
 }
 
-func getSpecXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
+func getSpecXSync(h *dbxHelper, p string) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -428,7 +428,7 @@ func getSpecXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	return loadSyncIDs(c, p, v, d...)
+	return loadSyncIDs(c, p, v)
 }
 
 func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
@@ -516,10 +516,6 @@ func getSpecACTSync(h *dbxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecACT)
 }
 
-func getSpecACTSyncDel(h *dbxHelper) (interface{}, error) {
-	return getSpecXSync(h, prefixSpecACT)
-}
-
 func getSpecACT(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecACT)
 }
@@ -538,10 +534,6 @@ func getSpecINFSync(h *dbxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecINF)
 }
 
-func getSpecINFSyncDel(h *dbxHelper) (interface{}, error) {
-	return getSpecXSync(h, prefixSpecINF)
-}
-
 func getSpecINF(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecINF)
 }
@@ -557,10 +549,6 @@ func delSpecINF(h *dbxHelper) (interface{}, error) {
 // DEC
 
 func getSpecDECSync(h *dbxHelper) (interface{}, error) {
-	return getSpecXSync(h, prefixSpecDEC)
-}
-
-func getSpecDECSyncDel(h *dbxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecDEC)
 }
 
