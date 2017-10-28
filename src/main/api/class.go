@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -209,28 +208,24 @@ func getClassXSync(h *dbxHelper, p string, d ...bool) ([]int64, error) {
 	return loadSyncIDs(c, p, v, d...)
 }
 
-func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
-	c := h.getConn()
-	defer h.delConn(c)
-
-	r, err := loadLinkIDs(c, p, "next", 0)
+func mineClassRootIDs(c redis.Conn, p string, v []*jsonClass) ([]int64, error) {
+	err := loadClassLinks(c, p, v)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(r) == 0 {
-		return nil, fmt.Errorf("something wrong with root %s", p)
+	// return if ICD
+	if p == prefixClassICD {
+		return v[0].IDNext, nil
 	}
 
-	h.data = []byte("[" + strings.Join(int64ToStrings(r...), ",") + "]")
-	n, err := getClassX(h, p)
-
-	if len(n) != 1 {
-		return nil, fmt.Errorf("something wrong with root %s (%d)", p, len(n))
+	v[0].ID = v[0].IDRoot
+	err = loadClassLinks(c, p, v)
+	if err != nil {
+		return nil, err
 	}
 
-	h.data = []byte("[" + strings.Join(int64ToStrings(n[0].IDNext...), ",") + "]")
-	return getClassX(h, p)
+	return v[0].IDNext, nil
 }
 
 func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
@@ -242,6 +237,19 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 
 	c := h.getConn()
 	defer h.delConn(c)
+
+	// need roots ?
+	if len(v) == 1 && v[0].ID == 0 {
+		r, err := mineClassRootIDs(c, p, v)
+		if err != nil {
+			return nil, err
+		}
+		h.data = []byte("[" + strings.Join(int64ToStrings(r...), ",") + "]")
+		v, err = jsonToClassesFromIDs(h.data)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	err = loadHashers(c, p, v)
 	if err != nil {
@@ -326,10 +334,6 @@ func getClassATCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassATC, true)
 }
 
-func getClassATCRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassATC)
-}
-
 func getClassATC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassATC)
 }
@@ -350,10 +354,6 @@ func getClassNFCSync(h *dbxHelper) (interface{}, error) {
 
 func getClassNFCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassNFC, true)
-}
-
-func getClassNFCRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassNFC)
 }
 
 func getClassNFC(h *dbxHelper) (interface{}, error) {
@@ -378,10 +378,6 @@ func getClassFSCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassFSC, true)
 }
 
-func getClassFSCRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassFSC)
-}
-
 func getClassFSC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassFSC)
 }
@@ -402,10 +398,6 @@ func getClassBFCSync(h *dbxHelper) (interface{}, error) {
 
 func getClassBFCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassBFC, true)
-}
-
-func getClassBFCRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassBFC)
 }
 
 func getClassBFC(h *dbxHelper) (interface{}, error) {
@@ -430,10 +422,6 @@ func getClassCFCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCFC, true)
 }
 
-func getClassCFCRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassCFC)
-}
-
 func getClassCFC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCFC)
 }
@@ -454,10 +442,6 @@ func getClassMPCSync(h *dbxHelper) (interface{}, error) {
 
 func getClassMPCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassMPC, true)
-}
-
-func getClassMPCRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassMPC)
 }
 
 func getClassMPC(h *dbxHelper) (interface{}, error) {
@@ -482,10 +466,6 @@ func getClassCSCSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCSC, true)
 }
 
-func getClassCSCRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassCSC)
-}
-
 func getClassCSC(h *dbxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCSC)
 }
@@ -506,10 +486,6 @@ func getClassICDSync(h *dbxHelper) (interface{}, error) {
 
 func getClassICDSyncDel(h *dbxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassICD, true)
-}
-
-func getClassICDRoot(h *dbxHelper) (interface{}, error) {
-	return getClassXRoot(h, prefixClassICD)
 }
 
 func getClassICD(h *dbxHelper) (interface{}, error) {
