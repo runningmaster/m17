@@ -71,13 +71,8 @@ func (j *jsonSpec) getNameUA(p string) string {
 	return ""
 }
 
-func (j *jsonSpec) marshalToJSON(v interface{}) []byte {
-	res, _ := json.Marshal(v)
-	return res
-}
-
-func (j *jsonSpec) unmarshalFromJSON(b []byte, v interface{}) {
-	_ = json.Unmarshal(b, v)
+func (j *jsonSpec) getNameEN(p string) string {
+	return j.NameEN
 }
 
 func (j *jsonSpec) getFields() []interface{} {
@@ -431,6 +426,18 @@ func getSpecXSync(h *dbxHelper, p string) ([]int64, error) {
 	return loadSyncIDs(c, p, v)
 }
 
+func getSpecXAbcd(h *dbxHelper, p string) ([]string, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcd(c, p, "ru")
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
 func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	v, err := jsonToSpecsFromIDs(h.data)
 	if err != nil {
@@ -492,6 +499,11 @@ func delSpecX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
 	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
@@ -516,6 +528,10 @@ func getSpecACTSync(h *dbxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecACT)
 }
 
+func getSpecACTAbcd(h *dbxHelper) (interface{}, error) {
+	return getSpecXAbcd(h, prefixSpecACT)
+}
+
 func getSpecACT(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecACT)
 }
@@ -534,6 +550,10 @@ func getSpecINFSync(h *dbxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecINF)
 }
 
+func getSpecINFAbcd(h *dbxHelper) (interface{}, error) {
+	return getSpecXAbcd(h, prefixSpecINF)
+}
+
 func getSpecINF(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecINF)
 }
@@ -550,6 +570,10 @@ func delSpecINF(h *dbxHelper) (interface{}, error) {
 
 func getSpecDECSync(h *dbxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecDEC)
+}
+
+func getSpecDECAbcd(h *dbxHelper) (interface{}, error) {
+	return getSpecXAbcd(h, prefixSpecDEC)
 }
 
 func getSpecDEC(h *dbxHelper) (interface{}, error) {

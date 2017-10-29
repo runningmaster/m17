@@ -8,14 +8,6 @@ import (
 	"internal/ctxutil"
 )
 
-const (
-	prefixSearchSPC = "search:spc"
-	prefixSearchINN = "search:inn"
-	prefixSearchORG = "search:org"
-	prefixSearchATC = "search:atc"
-	prefixSearchACT = "search:act"
-)
-
 type spec struct {
 	ID   int64   `json:"id,omitempty"`
 	Name string  `json:"name,omitempty"`

@@ -47,6 +47,10 @@ func (j *jsonMaker) getNameUA(_ string) string {
 	return j.NameUA
 }
 
+func (j *jsonMaker) getNameEN(_ string) string {
+	return j.NameEN
+}
+
 func (j *jsonMaker) getFields() []interface{} {
 	return []interface{}{
 		"id",      // 0
@@ -182,6 +186,18 @@ func getMakerXSync(h *dbxHelper, p string) ([]int64, error) {
 	return loadSyncIDs(c, p, v)
 }
 
+func getMakerXAbcd(h *dbxHelper, p string) ([]string, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcd(c, p, "ru")
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
 func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	v, err := jsonToMakersFromIDs(h.data)
 	if err != nil {
@@ -238,6 +254,11 @@ func delMakerX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
 	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
@@ -255,6 +276,10 @@ func delMakerX(h *dbxHelper, p string) (interface{}, error) {
 
 func getMakerSync(h *dbxHelper) (interface{}, error) {
 	return getMakerXSync(h, prefixMaker)
+}
+
+func getMakerAbcd(h *dbxHelper) (interface{}, error) {
+	return getMakerXAbcd(h, prefixMaker)
 }
 
 func getMaker(h *dbxHelper) (interface{}, error) {

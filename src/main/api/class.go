@@ -52,6 +52,10 @@ func (j *jsonClass) getNameUA(_ string) string {
 	return j.NameUA + "|" + j.Code
 }
 
+func (j *jsonClass) getNameEN(_ string) string {
+	return j.NameEN + "|" + j.Code
+}
+
 func (j *jsonClass) getFields() []interface{} {
 	return []interface{}{
 		"id",      // 0
@@ -304,6 +308,11 @@ func delClassX(h *dbxHelper, p string) (interface{}, error) {
 
 	c := h.getConn()
 	defer h.delConn(c)
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
 
 	err = freeHashers(c, p, v)
 	if err != nil {

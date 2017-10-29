@@ -14,6 +14,8 @@ import (
 	"internal/logger"
 
 	"github.com/garyburd/redigo/redis"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 var statusOK = http.StatusText(http.StatusOK)
@@ -60,11 +62,13 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"del-class-icd":      delClassICD,
 
 	"get-inn-sync": getINNSync,
+	"get-inn-abcd": getINNAbcd,
 	"get-inn":      getINN,
 	"set-inn":      setINN,
 	"del-inn":      delINN,
 
 	"get-maker-sync": getMakerSync,
+	"get-maker-abcd": getMakerAbcd,
 	"get-maker":      getMaker,
 	"set-maker":      setMaker,
 	"del-maker":      delMaker,
@@ -76,16 +80,19 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"del-drug":      delDrug,
 
 	"get-spec-act-sync": getSpecACTSync,
+	"get-spec-act-abcd": getSpecACTAbcd,
 	"get-spec-act":      getSpecACT,
 	"set-spec-act":      setSpecACT,
 	"del-spec-act":      delSpecACT,
 
 	"get-spec-inf-sync": getSpecINFSync,
+	"get-spec-inf-abcd": getSpecINFAbcd,
 	"get-spec-inf":      getSpecINF,
 	"set-spec-inf":      setSpecINF,
 	"del-spec-inf":      delSpecINF,
 
 	"get-spec-dec-sync": getSpecDECSync,
+	"get-spec-dec-abcd": getSpecDECAbcd,
 	"get-spec-dec":      getSpecDEC,
 	"set-spec-dec":      setSpecDEC,
 	"del-spec-dec":      delSpecDEC,
@@ -123,6 +130,7 @@ type searcher interface {
 	ider
 	getNameRU(string) string
 	getNameUA(string) string
+	getNameEN(string) string
 }
 
 type dbxHelper struct {
@@ -165,6 +173,15 @@ func (h *dbxHelper) exec(s string) (interface{}, error) {
 //	Q  float64 `json:"q,omitempty"`
 //	V  float64 `json:"v,omitempty"`
 //}
+
+func jsonToA(data []byte) (string, error) {
+	var v string
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		return "", err
+	}
+	return v, nil
+}
 
 func jsonToID(data []byte) (int64, error) {
 	var v int64
@@ -415,19 +432,65 @@ func normName(s string) string {
 
 func saveSearchers(c redis.Conn, p string, v ruler) error {
 	var id int64
-	var nameRU, nameUA string
+	var nameRU, nameUA, nameEN string
+	var abcdRU, abcdUA, abcdEN rune
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if s, ok := v.elem(i).(searcher); ok {
-			id, nameRU, nameUA = s.getID(), s.getNameRU(p), s.getNameUA(p)
+			id = s.getID()
+			nameRU = normName(s.getNameRU(p))
+			nameUA = normName(s.getNameUA(p))
+			nameEN = normName(s.getNameEN(p))
+
 			if nameRU != "" {
-				err = c.Send("ZADD", genKey(p, "idx", "ru"), id, normName(nameRU))
+				err = c.Send("ZADD", genKey(p, "srch", "ru"), id, nameRU)
+				if err != nil {
+					return err
+				}
+
+				abcdRU = []rune(nameRU)[0]
+				err = c.Send("ZADD", genKey(p, "abcd", "ru"), abcdRU, id)
+				if err != nil {
+					return err
+				}
+
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), 1, abcdRU)
 				if err != nil {
 					return err
 				}
 			}
+
 			if nameUA != "" {
-				err = c.Send("ZADD", genKey(p, "idx", "ua"), id, normName(nameUA))
+				err = c.Send("ZADD", genKey(p, "srch", "ua"), id, nameUA)
+				if err != nil {
+					return err
+				}
+
+				abcdUA = []rune(nameUA)[0]
+				err = c.Send("ZADD", genKey(p, "abcd", "ua"), abcdUA, id)
+				if err != nil {
+					return err
+				}
+
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), 1, abcdUA)
+				if err != nil {
+					return err
+				}
+			}
+
+			if nameEN != "" {
+				err = c.Send("ZADD", genKey(p, "srch", "en"), id, nameEN)
+				if err != nil {
+					return err
+				}
+
+				abcdEN = []rune(nameEN)[0]
+				err = c.Send("ZADD", genKey(p, "abcd", "en"), abcdEN, id)
+				if err != nil {
+					return err
+				}
+
+				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), 1, abcdEN)
 				if err != nil {
 					return err
 				}
@@ -440,21 +503,98 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 
 func freeSearchers(c redis.Conn, p string, v ruler) error {
 	var id int64
+	var nameRU, nameUA, nameEN string
+	var abcdRU, abcdUA, abcdEN rune
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if s, ok := v.elem(i).(searcher); ok {
 			id = s.getID()
-			err = c.Send("ZREMRANGEBYSCORE", genKey(p, "idx", "ru"), id, id)
-			if err != nil {
-				return err
+			nameRU = normName(s.getNameRU(p))
+			nameUA = normName(s.getNameUA(p))
+			nameEN = normName(s.getNameEN(p))
+
+			if nameRU != "" {
+				err = c.Send("ZREMRANGEBYSCORE", genKey(p, "srch", "ru"), id, id)
+				if err != nil {
+					return err
+				}
+
+				err = c.Send("ZREM", genKey(p, "abcd", "ru"), id)
+				if err != nil {
+					return err
+				}
+
+				abcdRU = []rune(nameRU)[0]
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), -1, abcdRU)
+				if err != nil {
+					return err
+				}
 			}
-			err = c.Send("ZREMRANGEBYSCORE", genKey(p, "idx", "ua"), id, id)
-			if err != nil {
-				return err
+
+			if nameUA != "" {
+				err = c.Send("ZREMRANGEBYSCORE", genKey(p, "srch", "ua"), id, id)
+				if err != nil {
+					return err
+				}
+
+				err = c.Send("ZREM", genKey(p, "abcd", "ua"), id)
+				if err != nil {
+					return err
+				}
+
+				abcdUA = []rune(nameUA)[0]
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), -1, abcdUA)
+				if err != nil {
+					return err
+				}
+			}
+
+			if nameEN != "" {
+				err = c.Send("ZREMRANGEBYSCORE", genKey(p, "srch", "en"), id, id)
+				if err != nil {
+					return err
+				}
+
+				err = c.Send("ZREM", genKey(p, "abcd", "en"), id)
+				if err != nil {
+					return err
+				}
+
+				abcdEN = []rune(nameEN)[0]
+				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), -1, abcdEN)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return c.Flush()
+}
+
+func loadAbcd(c redis.Conn, p, lang string) ([]string, error) {
+	res, err := redis.Ints(c.Do("ZRANGEBYSCORE", genKey(p, "rune", lang), "-inf", "+inf"))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]string, len(res))
+	for i := range res {
+		out[i] = strings.ToUpper(string(rune(res[i])))
+	}
+
+	// Sorting
+	var col *collate.Collator
+	switch lang {
+	case "ua":
+		col = collate.New(language.Ukrainian)
+	case "en":
+		col = collate.New(language.English)
+	default:
+		col = collate.New(language.Russian)
+	}
+	col.SortStrings(out)
+
+	return out, nil
 }
 
 func genKey(v ...interface{}) string {
@@ -491,3 +631,19 @@ func int64ToStrings(v ...int64) []string {
 	}
 	return r
 }
+
+/*
+func SliceUniqMap(s []int) []int {
+    seen := make(map[int]struct{}, len(s))
+    j := 0
+    for _, v := range s {
+        if _, ok := seen[v]; ok {
+            continue
+        }
+        seen[v] = struct{}{}
+        s[j] = v
+        j++
+    }
+    return s[:j]
+}
+*/

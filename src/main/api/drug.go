@@ -61,6 +61,10 @@ func (j *jsonDrug) getNameUA(_ string) string {
 	return j.NameUA
 }
 
+func (j *jsonDrug) getNameEN(_ string) string {
+	return j.NameEN
+}
+
 func (j *jsonDrug) getFields() []interface{} {
 	return []interface{}{
 		"id",      // 0
@@ -282,6 +286,11 @@ func delDrugX(h *dbxHelper, p string) (interface{}, error) {
 
 	c := h.getConn()
 	defer h.delConn(c)
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
 
 	err = freeHashers(c, p, v)
 	if err != nil {

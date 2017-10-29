@@ -39,6 +39,10 @@ func (j *jsonINN) getNameUA(_ string) string {
 	return j.NameUA
 }
 
+func (j *jsonINN) getNameEN(_ string) string {
+	return j.NameEN
+}
+
 func (j *jsonINN) getFields() []interface{} {
 	return []interface{}{
 		"id",      // 0
@@ -150,6 +154,18 @@ func getINNXSync(h *dbxHelper, p string) ([]int64, error) {
 	return loadSyncIDs(c, p, v)
 }
 
+func getINNXAbcd(h *dbxHelper, p string) ([]string, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcd(c, p, "en")
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
 func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 	v, err := jsonToINNsFromIDs(h.data)
 	if err != nil {
@@ -206,6 +222,11 @@ func delINNX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
 	err = freeHashers(c, p, v)
 	if err != nil {
 		return nil, err
@@ -223,6 +244,10 @@ func delINNX(h *dbxHelper, p string) (interface{}, error) {
 
 func getINNSync(h *dbxHelper) (interface{}, error) {
 	return getINNXSync(h, prefixINN)
+}
+
+func getINNAbcd(h *dbxHelper) (interface{}, error) {
+	return getINNXAbcd(h, prefixINN)
 }
 
 func getINN(h *dbxHelper) (interface{}, error) {
