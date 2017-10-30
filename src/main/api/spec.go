@@ -21,6 +21,7 @@ type jsonSpec struct {
 	IDDrug     []int64 `json:"id_drug,omitempty"`
 	IDMake     []int64 `json:"id_make,omitempty"`
 	IDSpec     []int64 `json:"id_spec,omitempty"` // *
+	IDSpecACT  []int64 `json:"id_spec_act,omitempty"`
 	IDSpecDEC  []int64 `json:"id_spec_dec,omitempty"`
 	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`
 	IDClassATC []int64 `json:"id_class_atc,omitempty"`
@@ -43,6 +44,7 @@ type jsonSpec struct {
 	TextRU     string  `json:"text_ru,omitempty"`
 	TextUA     string  `json:"text_ua,omitempty"`
 	TextEN     string  `json:"text_en,omitempty"`
+	IsInfo     bool    `json:"is_info,omitempty"`
 	Slug       string  `json:"slug,omitempty"`
 	SlugGP     string  `json:"slug_gp,omitempty"` // [{"name":"foo", "slug": "bar"}]
 	ImageOrg   string  `json:"image_org,omitempty"`
@@ -87,33 +89,36 @@ func (j *jsonSpec) getFields() []interface{} {
 		"text_ru",    // 7
 		"text_ua",    // 8
 		"text_en",    // 9
-		"slug",       // 10
-		"slug_gp",    // 11
-		"image_org",  // 12
-		"image_box",  // 13
-		"created_at", // 14
-		"updated_at", // 15
+		"is_info",    // 10
+		"slug",       // 11
+		"slug_gp",    // 12
+		"image_org",  // 13
+		"image_box",  // 14
+		"created_at", // 15
+		"updated_at", // 16
 	}
 }
 
 func (j *jsonSpec) getValues() []interface{} {
+	j.IsInfo = len(j.TextRU) > 0 || len(j.TextUA) > 0
 	return []interface{}{
-		j.ID,        //0
-		j.NameRU,    //1
-		j.NameUA,    //2
-		j.NameEN,    //3
-		j.HeadRU,    //4
-		j.HeadUA,    //5
-		j.HeadEN,    //6
-		j.TextRU,    //7
-		j.TextUA,    //8
-		j.TextEN,    //9
-		j.Slug,      //10
-		j.SlugGP,    //11
-		j.ImageOrg,  //12
-		j.ImageBox,  //13
-		j.CreatedAt, //14
-		j.UpdatedAt, //15
+		j.ID,        // 0
+		j.NameRU,    // 1
+		j.NameUA,    // 2
+		j.NameEN,    // 3
+		j.HeadRU,    // 4
+		j.HeadUA,    // 5
+		j.HeadEN,    // 6
+		j.TextRU,    // 7
+		j.TextUA,    // 8
+		j.TextEN,    // 9
+		j.IsInfo,    // 10
+		j.Slug,      // 11
+		j.SlugGP,    // 12
+		j.ImageOrg,  // 13
+		j.ImageBox,  // 14
+		j.CreatedAt, // 15
+		j.UpdatedAt, // 16
 	}
 }
 
@@ -144,16 +149,18 @@ func (j *jsonSpec) setValues(v ...interface{}) {
 		case 9:
 			j.TextEN, _ = redis.String(v[i], nil)
 		case 10:
-			j.Slug, _ = redis.String(v[i], nil)
+			j.IsInfo, _ = redis.Bool(v[i], nil)
 		case 11:
-			j.SlugGP, _ = redis.String(v[i], nil)
+			j.Slug, _ = redis.String(v[i], nil)
 		case 12:
-			j.ImageOrg, _ = redis.String(v[i], nil)
+			j.SlugGP, _ = redis.String(v[i], nil)
 		case 13:
-			j.ImageBox, _ = redis.String(v[i], nil)
+			j.ImageOrg, _ = redis.String(v[i], nil)
 		case 14:
-			j.CreatedAt, _ = redis.Int64(v[i], nil)
+			j.ImageBox, _ = redis.String(v[i], nil)
 		case 15:
+			j.CreatedAt, _ = redis.Int64(v[i], nil)
+		case 16:
 			j.UpdatedAt, _ = redis.Int64(v[i], nil)
 		}
 	}
@@ -217,6 +224,10 @@ func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
 		if err != nil {
 			return err
 		}
+		v[i].IDSpecACT, err = loadLinkIDs(c, p, prefixSpecACT, v[i].ID)
+		if err != nil {
+			return err
+		}
 		v[i].IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
 		if err != nil {
 			return err
@@ -277,6 +288,10 @@ func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 			return err
 		}
 		err = saveLinkIDs(c, p, prefixMaker, true, v[i].ID, v[i].IDMake...)
+		if err != nil {
+			return err
+		}
+		err = saveLinkIDs(c, p, prefixSpecACT, true, v[i].ID, v[i].IDSpecACT...)
 		if err != nil {
 			return err
 		}
@@ -438,6 +453,42 @@ func getSpecXAbcd(h *dbxHelper, p string) ([]string, error) {
 	return v, nil
 }
 
+func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
+	a, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcdLs(c, p, a, "ru")
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
+	v, err := jsonToSpecsFromIDs(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	//v, err := loadAbcdList(c, p, "ru")
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return v, nil
+}
+
 func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	v, err := jsonToSpecsFromIDs(h.data)
 	if err != nil {
@@ -532,6 +583,14 @@ func getSpecACTAbcd(h *dbxHelper) (interface{}, error) {
 	return getSpecXAbcd(h, prefixSpecACT)
 }
 
+func getSpecACTAbcdLs(h *dbxHelper) (interface{}, error) {
+	return getSpecXAbcdLs(h, prefixSpecACT)
+}
+
+func getSpecACTList(h *dbxHelper) (interface{}, error) {
+	return getSpecXList(h, prefixSpecACT)
+}
+
 func getSpecACT(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecACT)
 }
@@ -554,6 +613,14 @@ func getSpecINFAbcd(h *dbxHelper) (interface{}, error) {
 	return getSpecXAbcd(h, prefixSpecINF)
 }
 
+func getSpecINFAbcdLs(h *dbxHelper) (interface{}, error) {
+	return getSpecXAbcdLs(h, prefixSpecINF)
+}
+
+func getSpecINFList(h *dbxHelper) (interface{}, error) {
+	return getSpecXList(h, prefixSpecINF)
+}
+
 func getSpecINF(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecINF)
 }
@@ -574,6 +641,14 @@ func getSpecDECSync(h *dbxHelper) (interface{}, error) {
 
 func getSpecDECAbcd(h *dbxHelper) (interface{}, error) {
 	return getSpecXAbcd(h, prefixSpecDEC)
+}
+
+func getSpecDECAbcdLs(h *dbxHelper) (interface{}, error) {
+	return getSpecXAbcdLs(h, prefixSpecDEC)
+}
+
+func getSpecDECList(h *dbxHelper) (interface{}, error) {
+	return getSpecXList(h, prefixSpecDEC)
 }
 
 func getSpecDEC(h *dbxHelper) (interface{}, error) {

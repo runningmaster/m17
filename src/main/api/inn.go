@@ -166,6 +166,42 @@ func getINNXAbcd(h *dbxHelper, p string) ([]string, error) {
 	return v, nil
 }
 
+func getINNXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
+	a, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcdLs(c, p, a, "en")
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
+	v, err := jsonToINNsFromIDs(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	//v, err := loadAbcdList(c, p, "ru")
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return v, nil
+}
+
 func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 	v, err := jsonToINNsFromIDs(h.data)
 	if err != nil {
@@ -248,6 +284,14 @@ func getINNSync(h *dbxHelper) (interface{}, error) {
 
 func getINNAbcd(h *dbxHelper) (interface{}, error) {
 	return getINNXAbcd(h, prefixINN)
+}
+
+func getINNAbcdLs(h *dbxHelper) (interface{}, error) {
+	return getINNXAbcdLs(h, prefixINN)
+}
+
+func getINNList(h *dbxHelper) (interface{}, error) {
+	return getINNXList(h, prefixINN)
 }
 
 func getINN(h *dbxHelper) (interface{}, error) {

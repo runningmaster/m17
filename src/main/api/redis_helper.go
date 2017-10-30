@@ -61,17 +61,21 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"set-class-icd":      setClassICD,
 	"del-class-icd":      delClassICD,
 
-	"get-inn-sync": getINNSync,
-	"get-inn-abcd": getINNAbcd,
-	"get-inn":      getINN,
-	"set-inn":      setINN,
-	"del-inn":      delINN,
+	"get-inn-sync":    getINNSync,
+	"get-inn-abcd":    getINNAbcd,
+	"get-inn-abcd-ls": getINNAbcdLs,
+	"get-inn-list":    getINNList,
+	"get-inn":         getINN,
+	"set-inn":         setINN,
+	"del-inn":         delINN,
 
-	"get-maker-sync": getMakerSync,
-	"get-maker-abcd": getMakerAbcd,
-	"get-maker":      getMaker,
-	"set-maker":      setMaker,
-	"del-maker":      delMaker,
+	"get-maker-sync":    getMakerSync,
+	"get-maker-abcd":    getMakerAbcd,
+	"get-maker-abcd-ls": getMakerAbcdLs,
+	"get-maker-list":    getMakerList,
+	"get-maker":         getMaker,
+	"set-maker":         setMaker,
+	"del-maker":         delMaker,
 
 	"get-drug-sync": getDrugSync,
 	"get-drug":      getDrug,
@@ -79,23 +83,29 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"set-drug-sale": setDrugSale,
 	"del-drug":      delDrug,
 
-	"get-spec-act-sync": getSpecACTSync,
-	"get-spec-act-abcd": getSpecACTAbcd,
-	"get-spec-act":      getSpecACT,
-	"set-spec-act":      setSpecACT,
-	"del-spec-act":      delSpecACT,
+	"get-spec-act-sync":    getSpecACTSync,
+	"get-spec-act-abcd":    getSpecACTAbcd,
+	"get-spec-act-abcd-ls": getSpecACTAbcdLs,
+	"get-spec-act-list":    getSpecACTList,
+	"get-spec-act":         getSpecACT,
+	"set-spec-act":         setSpecACT,
+	"del-spec-act":         delSpecACT,
 
-	"get-spec-inf-sync": getSpecINFSync,
-	"get-spec-inf-abcd": getSpecINFAbcd,
-	"get-spec-inf":      getSpecINF,
-	"set-spec-inf":      setSpecINF,
-	"del-spec-inf":      delSpecINF,
+	"get-spec-inf-sync":    getSpecINFSync,
+	"get-spec-inf-abcd":    getSpecINFAbcd,
+	"get-spec-inf-abcd-ls": getSpecINFAbcdLs,
+	"get-spec-inf-list":    getSpecINFList,
+	"get-spec-inf":         getSpecINF,
+	"set-spec-inf":         setSpecINF,
+	"del-spec-inf":         delSpecINF,
 
-	"get-spec-dec-sync": getSpecDECSync,
-	"get-spec-dec-abcd": getSpecDECAbcd,
-	"get-spec-dec":      getSpecDEC,
-	"set-spec-dec":      setSpecDEC,
-	"del-spec-dec":      delSpecDEC,
+	"get-spec-dec-sync":    getSpecDECSync,
+	"get-spec-dec-abcd":    getSpecDECAbcd,
+	"get-spec-dec-abcd-ls": getSpecDECAbcdLs,
+	"get-spec-dec-list":    getSpecDECList,
+	"get-spec-dec":         getSpecDEC,
+	"set-spec-dec":         setSpecDEC,
+	"del-spec-dec":         delSpecDEC,
 
 	"list-sugg":   listSugg,
 	"find-sugg":   findSugg,
@@ -593,6 +603,27 @@ func loadAbcd(c redis.Conn, p, lang string) ([]string, error) {
 		col = collate.New(language.Russian)
 	}
 	col.SortStrings(out)
+
+	return out, nil
+}
+
+func loadAbcdLs(c redis.Conn, p, a, lang string) ([]int64, error) {
+	r := []rune(normName(a))
+	if len(r) == 0 {
+		return nil, fmt.Errorf("someting wrong with abcd %s", p)
+	}
+
+	res, err := redis.Ints(c.Do("ZRANGEBYSCORE", genKey(p, "abcd", lang), r[0], r[0]))
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]int64, len(res))
+	for i := range res {
+		out[i] = int64(res[i])
+	}
+
+	// FIXME sort magic (info first)
 
 	return out, nil
 }

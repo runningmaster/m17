@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -224,7 +225,16 @@ func mineClassRootIDs(c redis.Conn, p string, v []*jsonClass) ([]int64, error) {
 		return v[0].IDNext, nil
 	}
 
-	v[0].ID = v[0].IDRoot
+	if len(v[0].IDNext) == 0 {
+		return nil, fmt.Errorf("something wrong with %s roots", p)
+	}
+
+	v[0].ID = v[0].IDNext[0]
+	// fucking workaround for CFC
+	if p == prefixClassCFC {
+		v[0].ID = v[0].IDRoot
+	}
+
 	err = loadClassLinks(c, p, v)
 	if err != nil {
 		return nil, err

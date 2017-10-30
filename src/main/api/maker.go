@@ -198,6 +198,42 @@ func getMakerXAbcd(h *dbxHelper, p string) ([]string, error) {
 	return v, nil
 }
 
+func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
+	a, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcdLs(c, p, a, "ru")
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
+	v, err := jsonToMakersFromIDs(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	//v, err := loadAbcdList(c, p, "ru")
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return v, nil
+}
+
 func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	v, err := jsonToMakersFromIDs(h.data)
 	if err != nil {
@@ -280,6 +316,14 @@ func getMakerSync(h *dbxHelper) (interface{}, error) {
 
 func getMakerAbcd(h *dbxHelper) (interface{}, error) {
 	return getMakerXAbcd(h, prefixMaker)
+}
+
+func getMakerAbcdLs(h *dbxHelper) (interface{}, error) {
+	return getMakerXAbcdLs(h, prefixMaker)
+}
+
+func getMakerList(h *dbxHelper) (interface{}, error) {
+	return getMakerXList(h, prefixMaker)
 }
 
 func getMaker(h *dbxHelper) (interface{}, error) {
