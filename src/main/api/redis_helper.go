@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -14,8 +15,6 @@ import (
 	"internal/logger"
 
 	"github.com/garyburd/redigo/redis"
-	"golang.org/x/text/collate"
-	"golang.org/x/text/language"
 )
 
 var statusOK = http.StatusText(http.StatusOK)
@@ -436,6 +435,8 @@ func normName(s string) string {
 		"*", "",
 		"&", "",
 		"†", "",
+		"<I>", "",
+		"</I>", "",
 	)
 	return strings.TrimSpace(strings.ToLower(r.Replace(s)))
 }
@@ -592,17 +593,7 @@ func loadAbcd(c redis.Conn, p, lang string) ([]string, error) {
 		out[i] = strings.ToUpper(string(rune(res[i])))
 	}
 
-	// Sorting
-	var col *collate.Collator
-	switch lang {
-	case "ua":
-		col = collate.New(language.Ukrainian)
-	case "en":
-		col = collate.New(language.English)
-	default:
-		col = collate.New(language.Russian)
-	}
-	col.SortStrings(out)
+	sort.Strings(out)
 
 	return out, nil
 }
@@ -622,8 +613,6 @@ func loadAbcdLs(c redis.Conn, p, a, lang string) ([]int64, error) {
 	for i := range res {
 		out[i] = int64(res[i])
 	}
-
-	// FIXME sort magic (info first)
 
 	return out, nil
 }

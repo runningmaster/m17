@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
+	"strings"
 
 	"internal/ctxutil"
 
@@ -185,19 +187,19 @@ func getINNXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 }
 
 func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
-	v, err := jsonToINNsFromIDs(h.data)
+	v, err := getINNX(h, p)
 	if err != nil {
-		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
-	c := h.getConn()
-	defer h.delConn(c)
-
-	//v, err := loadAbcdList(c, p, "ru")
-	//if err != nil {
-	//	return nil, err
-	//}
+	sort.Slice(v,
+		func(i, j int) bool {
+			return strings.Compare(
+				strings.ToLower(v[i].NameRU),
+				strings.ToLower(v[j].NameRU),
+			) < 0
+		},
+	)
 
 	return v, nil
 }
