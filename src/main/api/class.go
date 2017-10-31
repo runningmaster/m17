@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"internal/ctxutil"
@@ -38,7 +39,6 @@ type jsonClass struct {
 	NameUA string `json:"name_ua,omitempty"`
 	NameEN string `json:"name_en,omitempty"`
 	Slug   string `json:"slug,omitempty"`
-	Sort   string `json:"sort,omitempty"`
 }
 
 func (j *jsonClass) getID() int64 {
@@ -275,6 +275,15 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	sort.Slice(v,
+		func(i, j int) bool {
+			return strings.Compare(
+				strings.ToLower(v[i].Slug),
+				strings.ToLower(v[j].Slug),
+			) < 0
+		},
+	)
 
 	return v, nil
 }
