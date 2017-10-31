@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -40,6 +41,23 @@ func (j *jsonINN) getNameUA(_ string) string {
 
 func (j *jsonINN) getNameEN(_ string) string {
 	return j.NameEN
+}
+
+func (j *jsonINN) lang(l, _ string) {
+	switch l {
+	case "ru":
+		j.Name = fmt.Sprintf("%s (%s)", j.NameEN, j.NameRU)
+		j.IDSpecDEC = nil
+	case "ua":
+		j.Name = fmt.Sprintf("%s (%s)", j.NameEN, j.NameUA)
+		j.IDSpecINF = nil
+	}
+
+	if l == "ru" || l == "ua" {
+		j.NameRU = ""
+		j.NameUA = ""
+		j.NameEN = ""
+	}
 }
 
 func (j *jsonINN) getFields() []interface{} {
@@ -191,10 +209,10 @@ func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
 
 	sort.Slice(v,
 		func(i, j int) bool {
-			return strings.Compare(
-				strings.ToLower(v[i].NameRU),
-				strings.ToLower(v[j].NameRU),
-			) < 0
+			if v[i] == nil || v[j] == nil {
+				return false
+			}
+			return strings.Compare(v[i].Name, v[j].Name) < 0
 		},
 	)
 
@@ -220,6 +238,8 @@ func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	return v, nil
 }

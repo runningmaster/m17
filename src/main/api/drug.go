@@ -62,43 +62,45 @@ func (j *jsonDrug) getNameEN(_ string) string {
 	return j.NameEN
 }
 
-func (j *jsonDrug) lang(l string) {
+func (j *jsonDrug) lang(l, _ string) {
 	switch l {
 	case "ru":
-		j.Name
-		j.NameRU
-		j.NameUA
-		j.NameEN
-		j.Form
-		j.FormRU
-		j.FormUA
-		j.FormEN
-		j.Dose
-		j.DoseRU
-		j.DoseUA
-		j.DoseEN
-		j.Pack
-		j.PackRU
-		j.PackUA
-		j.PackEN
-		j.Note
-		j.NoteRU
-		j.NoteUA
-		j.NoteEN
-		j.Numb
-		j.Make
-		j.MakeRU
-		j.MakeUA
-		j.MakeEN
+		j.Name = j.NameRU
+		j.Form = j.FormRU
+		j.Dose = j.DoseRU
+		j.Pack = j.PackRU
+		j.Note = j.NoteRU
+		j.Make = j.MakeRU
 		j.IDSpecDEC = nil
 	case "ua":
 		j.Name = j.NameUA
+		j.Form = j.FormRU
+		j.Dose = j.DoseRU
+		j.Pack = j.PackRU
+		j.Note = j.NoteRU
+		j.Make = j.MakeRU
 		j.IDSpecINF = nil
 	}
-	if l != "" {
+
+	if l == "ru" || l == "ua" {
 		j.NameRU = ""
 		j.NameUA = ""
 		j.NameEN = ""
+		j.FormRU = ""
+		j.FormUA = ""
+		j.FormEN = ""
+		j.DoseRU = ""
+		j.DoseUA = ""
+		j.DoseEN = ""
+		j.PackRU = ""
+		j.PackUA = ""
+		j.PackEN = ""
+		j.NoteRU = ""
+		j.NoteUA = ""
+		j.NoteEN = ""
+		j.MakeRU = ""
+		j.MakeUA = ""
+		j.MakeEN = ""
 	}
 }
 
@@ -292,6 +294,8 @@ func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	return v, nil
 }

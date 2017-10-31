@@ -78,6 +78,35 @@ func (j *jsonSpec) getNameEN(p string) string {
 	return j.NameEN
 }
 
+func (j *jsonSpec) lang(l, p string) {
+	switch l {
+	case "ru":
+		if p != prefixSpecDEC {
+			j.Name = j.NameRU
+			j.Head = j.HeadRU
+			j.Text = j.TextRU
+		}
+	case "ua":
+		if p == prefixSpecDEC {
+			j.Name = j.NameUA
+			j.Head = j.HeadUA
+			j.Text = j.TextUA
+		}
+	}
+
+	if l == "ru" || l == "ua" {
+		j.NameRU = ""
+		j.NameUA = ""
+		j.NameEN = ""
+		j.HeadRU = ""
+		j.HeadUA = ""
+		j.HeadEN = ""
+		j.TextRU = ""
+		j.TextUA = ""
+		j.TextEN = ""
+	}
+}
+
 func (j *jsonSpec) getFields() []interface{} {
 	return []interface{}{
 		"id",         // 0

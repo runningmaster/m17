@@ -28,8 +28,7 @@ type jsonMaker struct {
 	TextRU    string  `json:"text_ru,omitempty"`
 	TextUA    string  `json:"text_ua,omitempty"`
 	TextEN    string  `json:"text_en,omitempty"`
-	IsComp    bool    `json:"is_comp,omitempty"` // *
-	IsGP      bool    `json:"is_gp,omitempty"`   // *
+	IsGP      bool    `json:"is_gp,omitempty"` // *
 	Logo      string  `json:"logo,omitempty"`
 	Slug      string  `json:"slug,omitempty"`
 }
@@ -48,6 +47,28 @@ func (j *jsonMaker) getNameUA(_ string) string {
 
 func (j *jsonMaker) getNameEN(_ string) string {
 	return j.NameEN
+}
+
+func (j *jsonMaker) lang(l, _ string) {
+	switch l {
+	case "ru":
+		j.Name = j.NameRU
+		j.Text = j.TextRU
+		j.IDSpecDEC = nil
+	case "ua":
+		j.Name = j.NameUA
+		j.Text = j.TextUA
+		j.IDSpecINF = nil
+	}
+
+	if l == "ru" || l == "ua" {
+		j.NameRU = ""
+		j.NameUA = ""
+		j.NameEN = ""
+		j.TextRU = ""
+		j.TextUA = ""
+		j.TextEN = ""
+	}
 }
 
 func (j *jsonMaker) getFields() []interface{} {
@@ -223,10 +244,10 @@ func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
 
 	sort.Slice(v,
 		func(i, j int) bool {
-			return strings.Compare(
-				strings.ToLower(v[i].NameRU),
-				strings.ToLower(v[j].NameRU),
-			) < 0
+			if v[i] == nil || v[j] == nil {
+				return false
+			}
+			return strings.Compare(v[i].Name, v[j].Name) < 0
 		},
 	)
 
@@ -252,6 +273,8 @@ func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	return v, nil
 }

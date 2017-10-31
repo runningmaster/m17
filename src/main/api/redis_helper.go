@@ -21,41 +21,57 @@ var statusOK = http.StatusText(http.StatusOK)
 
 var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-class-atc-sync": getClassATCSync,
+	"get-class-atc-root": getClassATCRoot,
+	"get-class-atc-next": getClassATCNext,
 	"get-class-atc":      getClassATC,
 	"set-class-atc":      setClassATC,
 	"del-class-atc":      delClassATC,
 
 	"get-class-nfc-sync": getClassNFCSync,
+	"get-class-nfc-root": getClassNFCRoot,
+	"get-class-nfc-next": getClassNFCNext,
 	"get-class-nfc":      getClassNFC,
 	"set-class-nfc":      setClassNFC,
 	"del-class-nfc":      delClassNFC,
 
 	"get-class-fsc-sync": getClassFSCSync,
+	"get-class-fsc-root": getClassFSCRoot,
+	"get-class-fsc-next": getClassFSCNext,
 	"get-class-fsc":      getClassFSC,
 	"set-class-fsc":      setClassFSC,
 	"del-class-fsc":      delClassFSC,
 
 	"get-class-bfc-sync": getClassBFCSync,
+	"get-class-bfc-root": getClassBFCRoot,
+	"get-class-bfc-next": getClassBFCNext,
 	"get-class-bfc":      getClassBFC,
 	"set-class-bfc":      setClassBFC,
 	"del-class-bfc":      delClassBFC,
 
 	"get-class-cfc-sync": getClassCFCSync,
+	"get-class-cfc-root": getClassCFCRoot,
+	"get-class-cfc-next": getClassCFCNext,
 	"get-class-cfc":      getClassCFC,
 	"set-class-cfc":      setClassCFC,
 	"del-class-cfc":      delClassCFC,
 
 	"get-class-mpc-sync": getClassMPCSync,
+	"get-class-mpc-root": getClassMPCRoot,
+	"get-class-mpc-next": getClassMPCNext,
 	"get-class-mpc":      getClassMPC,
 	"set-class-mpc":      setClassMPC,
 	"del-class-mpc":      delClassMPC,
 
 	"get-class-csc-sync": getClassCSCSync,
+	"get-class-csc-root": getClassCSCRoot,
+	"get-class-csc-next": getClassCSCNext,
 	"get-class-csc":      getClassCSC,
 	"set-class-csc":      setClassCSC,
 	"del-class-csc":      delClassCSC,
 
 	"get-class-icd-sync": getClassICDSync,
+	"get-class-icd-root": getClassICDRoot,
+	"get-class-icd-next": getClassICDNext,
 	"get-class-icd":      getClassICD,
 	"set-class-icd":      setClassICD,
 	"del-class-icd":      delClassICD,
@@ -75,12 +91,6 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-maker":         getMaker,
 	"set-maker":         setMaker,
 	"del-maker":         delMaker,
-
-	"get-drug-sync": getDrugSync,
-	"get-drug":      getDrug,
-	"set-drug":      setDrug,
-	"set-drug-sale": setDrugSale,
-	"del-drug":      delDrug,
 
 	"get-spec-act-sync":    getSpecACTSync,
 	"get-spec-act-abcd":    getSpecACTAbcd,
@@ -105,6 +115,12 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-spec-dec":         getSpecDEC,
 	"set-spec-dec":         setSpecDEC,
 	"del-spec-dec":         delSpecDEC,
+
+	"get-drug-sync": getDrugSync,
+	"get-drug":      getDrug,
+	"set-drug":      setDrug,
+	"set-drug-sale": setDrugSale,
+	"del-drug":      delDrug,
 
 	"list-sugg":   listSugg,
 	"find-sugg":   findSugg,
@@ -136,7 +152,7 @@ type niller interface {
 }
 
 type langer interface {
-	lang(string)
+	lang(string, string)
 }
 
 type searcher interface {
@@ -305,13 +321,13 @@ func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
 	return out, nil
 }
 
-func normLang(s string, v ruler) {
+func normLang(s, p string, v ruler) {
 	if s == "" {
 		return
 	}
 	for i := 0; i < v.len(); i++ {
 		if l, ok := v.elem(i).(langer); ok {
-			l.lang(s)
+			l.lang(s, p)
 		}
 	}
 }
