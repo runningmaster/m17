@@ -16,25 +16,22 @@ const (
 )
 
 type jsonMaker struct {
-	ID     int64 `json:"id,omitempty"`
-	IDNode int64 `json:"id_node,omitempty"`
-
-	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
+	ID        int64   `json:"id,omitempty"`
+	IDNode    int64   `json:"id_node,omitempty"`
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-
-	Name   string `json:"name,omitempty"` // *
-	NameRU string `json:"name_ru,omitempty"`
-	NameUA string `json:"name_ua,omitempty"`
-	NameEN string `json:"name_en,omitempty"`
-	Text   string `json:"text,omitempty"` // *
-	TextRU string `json:"text_ru,omitempty"`
-	TextUA string `json:"text_ua,omitempty"`
-	TextEN string `json:"text_en,omitempty"`
-	IsComp bool   `json:"is_comp,omitempty"` // *
-	IsGP   bool   `json:"is_gp,omitempty"`   // *
-	Logo   string `json:"logo,omitempty"`
-	Slug   string `json:"slug,omitempty"`
+	Name      string  `json:"name,omitempty"`        // *
+	NameRU    string  `json:"name_ru,omitempty"`
+	NameUA    string  `json:"name_ua,omitempty"`
+	NameEN    string  `json:"name_en,omitempty"`
+	Text      string  `json:"text,omitempty"` // *
+	TextRU    string  `json:"text_ru,omitempty"`
+	TextUA    string  `json:"text_ua,omitempty"`
+	TextEN    string  `json:"text_en,omitempty"`
+	IsComp    bool    `json:"is_comp,omitempty"` // *
+	IsGP      bool    `json:"is_gp,omitempty"`   // *
+	Logo      string  `json:"logo,omitempty"`
+	Slug      string  `json:"slug,omitempty"`
 }
 
 func (j *jsonMaker) getID() int64 {
@@ -63,7 +60,7 @@ func (j *jsonMaker) getFields() []interface{} {
 		"text_ru", // 5
 		"text_ua", // 6
 		"text_en", // 7
-		"is_comp", // 8
+		"is_gp",   // 8
 		"logo",    // 9
 		"slug",    // 10
 	}
@@ -79,7 +76,7 @@ func (j *jsonMaker) getValues() []interface{} {
 		j.TextRU, // 5
 		j.TextUA, // 6
 		j.TextEN, // 7
-		j.IsComp, // 8
+		j.IsGP,   // 8
 		j.Logo,   // 9
 		j.Slug,   // 10
 	}
@@ -108,7 +105,7 @@ func (j *jsonMaker) setValues(v ...interface{}) {
 		case 7:
 			j.TextEN, _ = redis.String(v[i], nil)
 		case 8:
-			j.IsComp, _ = redis.Bool(v[i], nil)
+			j.IsGP, _ = redis.Bool(v[i], nil)
 		case 9:
 			j.Logo, _ = redis.String(v[i], nil)
 		case 10:

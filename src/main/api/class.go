@@ -24,21 +24,18 @@ const (
 )
 
 type jsonClass struct {
-	ID     int64   `json:"id,omitempty"`
-	IDNode int64   `json:"id_node,omitempty"`
-	IDRoot int64   `json:"id_root,omitempty"`
-	IDNext []int64 `json:"id_next,omitempty"`
-
-	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
+	ID        int64   `json:"id,omitempty"`
+	IDNode    int64   `json:"id_node,omitempty"`
+	IDRoot    int64   `json:"id_root,omitempty"`
+	IDNext    []int64 `json:"id_next,omitempty"`
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-
-	Code   string `json:"code,omitempty"`
-	Name   string `json:"name,omitempty"` // *
-	NameRU string `json:"name_ru,omitempty"`
-	NameUA string `json:"name_ua,omitempty"`
-	NameEN string `json:"name_en,omitempty"`
-	Slug   string `json:"slug,omitempty"`
+	Code      string  `json:"code,omitempty"`
+	Name      string  `json:"name,omitempty"` // *
+	NameRU    string  `json:"name_ru,omitempty"`
+	NameUA    string  `json:"name_ua,omitempty"`
+	NameEN    string  `json:"name_en,omitempty"`
+	Slug      string  `json:"slug,omitempty"`
 }
 
 func (j *jsonClass) getID() int64 {
@@ -55,6 +52,22 @@ func (j *jsonClass) getNameUA(_ string) string {
 
 func (j *jsonClass) getNameEN(_ string) string {
 	return j.NameEN + "|" + j.Code
+}
+
+func (j *jsonClass) lang(l string) {
+	switch l {
+	case "ru":
+		j.Name = j.NameRU
+		j.IDSpecDEC = nil
+	case "ua":
+		j.Name = j.NameUA
+		j.IDSpecINF = nil
+	}
+	if l != "" {
+		j.NameRU = ""
+		j.NameUA = ""
+		j.NameEN = ""
+	}
 }
 
 func (j *jsonClass) getFields() []interface{} {
@@ -276,6 +289,7 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 		return nil, err
 	}
 
+	normLang(h.lang, v)
 	sort.Slice(v,
 		func(i, j int) bool {
 			return strings.Compare(

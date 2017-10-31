@@ -135,6 +135,10 @@ type niller interface {
 	nill(int)
 }
 
+type langer interface {
+	lang(string)
+}
+
 type searcher interface {
 	ider
 	getNameRU(string) string
@@ -150,7 +154,7 @@ type dbxHelper struct {
 	w    http.ResponseWriter
 	meta []byte
 	data []byte
-	//	lang string
+	lang string
 }
 
 func (h *dbxHelper) getConn() redis.Conn {
@@ -299,6 +303,17 @@ func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
 	}
 
 	return out, nil
+}
+
+func normLang(s string, v ruler) {
+	if s == "" {
+		return
+	}
+	for i := 0; i < v.len(); i++ {
+		if l, ok := v.elem(i).(langer); ok {
+			l.lang(s)
+		}
+	}
 }
 
 func mixKeyAndFields(p string, h hasher) []interface{} {

@@ -22,7 +22,6 @@ type jsonSpec struct {
 	IDINN      []int64 `json:"id_inn,omitempty"`
 	IDDrug     []int64 `json:"id_drug,omitempty"`
 	IDMake     []int64 `json:"id_make,omitempty"`
-	IDSpec     []int64 `json:"id_spec,omitempty"` // *
 	IDSpecACT  []int64 `json:"id_spec_act,omitempty"`
 	IDSpecDEC  []int64 `json:"id_spec_dec,omitempty"`
 	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"main/version"
 
@@ -73,6 +74,7 @@ func exec(rdb rediser) http.HandlerFunc {
 			w,
 			[]byte(r.Header.Get("Content-Meta")),
 			ctxutil.BodyFrom(ctx),
+			mineRUorUA(r.Header.Get("Accept-Language")),
 		}
 
 		res, err := dbx.exec(router.ParamValueFrom(ctx, "func"))
@@ -85,3 +87,36 @@ func exec(rdb rediser) http.HandlerFunc {
 		*r = *r.WithContext(ctx)
 	})
 }
+
+func mineRUorUA(s string) string {
+	s = strings.ToLower(s)
+	if strings.Contains(s, "uk") || strings.Contains(s, "ua") {
+		return "ua"
+	}
+	if strings.Contains(s, "ru") {
+		return "ru"
+	}
+	return ""
+}
+
+/*
+func (j *jsonHead) uaInsteadRu(fn func(string, string) (string, string)) {
+	if fn == nil {
+		return
+	}
+	j.Name, j.NameUA = fn(j.Name, j.NameUA)
+	j.NameFull, j.NameFullUA = fn(j.NameFull, j.NameFullUA)
+	j.NameShort, j.NameShortUA = fn(j.NameShort, j.NameShortUA)
+	j.Addr1Country, j.Addr1CountryUA = fn(j.Addr1Country, j.Addr1CountryUA)
+	j.Addr1Area, j.Addr1AreaUA = fn(j.Addr1Area, j.Addr1AreaUA)
+	j.Addr1Region, j.Addr1RegionUA = fn(j.Addr1Region, j.Addr1RegionUA)
+	j.Addr1City, j.Addr1CityUA = fn(j.Addr1City, j.Addr1CityUA)
+	j.Addr1Street, j.Addr1StreetUA = fn(j.Addr1Street, j.Addr1StreetUA)
+	j.Addr2Country, j.Addr2CountryUA = fn(j.Addr2Country, j.Addr2CountryUA)
+	j.Addr2Area, j.Addr2AreaUA = fn(j.Addr2Area, j.Addr2AreaUA)
+	j.Addr2Area, j.Addr2AreaUA = fn(j.Addr2Area, j.Addr2AreaUA)
+	j.Addr2City, j.Addr2CityUA = fn(j.Addr2City, j.Addr2CityUA)
+	j.Addr2StreetUA, j.Addr2StreetUA = fn(j.Addr2StreetUA, j.Addr2StreetUA)
+
+}
+*/

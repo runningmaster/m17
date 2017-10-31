@@ -16,17 +16,14 @@ const (
 )
 
 type jsonINN struct {
-	ID int64 `json:"id,omitempty"`
-
-	IDSpec    []int64 `json:"id_spec,omitempty"`     // ? // *
+	ID        int64   `json:"id,omitempty"`
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-
-	Name   string `json:"name,omitempty"` // *
-	NameRU string `json:"name_ru,omitempty"`
-	NameUA string `json:"name_ua,omitempty"`
-	NameEN string `json:"name_en,omitempty"`
-	Slug   string `json:"slug,omitempty"`
+	Name      string  `json:"name,omitempty"`        // *
+	NameRU    string  `json:"name_ru,omitempty"`
+	NameUA    string  `json:"name_ua,omitempty"`
+	NameEN    string  `json:"name_en,omitempty"`
+	Slug      string  `json:"slug,omitempty"`
 }
 
 func (j *jsonINN) getID() int64 {

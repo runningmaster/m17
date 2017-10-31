@@ -14,37 +14,34 @@ const (
 )
 
 type jsonDrug struct {
-	ID int64 `json:"id,omitempty"`
-
-	IDSpec    []int64 `json:"id_spec,omitempty"` // ? // *
+	ID        int64   `json:"id,omitempty"`
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
-
-	Name   string `json:"name,omitempty"` // *
-	NameRU string `json:"name_ru,omitempty"`
-	NameUA string `json:"name_ua,omitempty"`
-	NameEN string `json:"name_en,omitempty"`
-	Form   string `json:"form,omitempty"` // *
-	FormRU string `json:"form_ru,omitempty"`
-	FormUA string `json:"form_ua,omitempty"`
-	FormEN string `json:"form_en,omitempty"`
-	Dose   string `json:"dose,omitempty"` // *
-	DoseRU string `json:"dose_ru,omitempty"`
-	DoseUA string `json:"dose_ua,omitempty"`
-	DoseEN string `json:"dose_en,omitempty"`
-	Pack   string `json:"pack,omitempty"` // *
-	PackRU string `json:"pack_ru,omitempty"`
-	PackUA string `json:"pack_ua,omitempty"`
-	PackEN string `json:"pack_en,omitempty"`
-	Note   string `json:"note,omitempty"` // *
-	NoteRU string `json:"note_ru,omitempty"`
-	NoteUA string `json:"note_ua,omitempty"`
-	NoteEN string `json:"note_en,omitempty"`
-	Numb   string `json:"numb,omitempty"`
-	Make   string `json:"make,omitempty"` // *
-	MakeRU string `json:"make_ru,omitempty"`
-	MakeUA string `json:"make_ua,omitempty"`
-	MakeEN string `json:"make_en,omitempty"`
+	Name      string  `json:"name,omitempty"` // *
+	NameRU    string  `json:"name_ru,omitempty"`
+	NameUA    string  `json:"name_ua,omitempty"`
+	NameEN    string  `json:"name_en,omitempty"`
+	Form      string  `json:"form,omitempty"` // *
+	FormRU    string  `json:"form_ru,omitempty"`
+	FormUA    string  `json:"form_ua,omitempty"`
+	FormEN    string  `json:"form_en,omitempty"`
+	Dose      string  `json:"dose,omitempty"` // *
+	DoseRU    string  `json:"dose_ru,omitempty"`
+	DoseUA    string  `json:"dose_ua,omitempty"`
+	DoseEN    string  `json:"dose_en,omitempty"`
+	Pack      string  `json:"pack,omitempty"` // *
+	PackRU    string  `json:"pack_ru,omitempty"`
+	PackUA    string  `json:"pack_ua,omitempty"`
+	PackEN    string  `json:"pack_en,omitempty"`
+	Note      string  `json:"note,omitempty"` // *
+	NoteRU    string  `json:"note_ru,omitempty"`
+	NoteUA    string  `json:"note_ua,omitempty"`
+	NoteEN    string  `json:"note_en,omitempty"`
+	Numb      string  `json:"numb,omitempty"`
+	Make      string  `json:"make,omitempty"` // *
+	MakeRU    string  `json:"make_ru,omitempty"`
+	MakeUA    string  `json:"make_ua,omitempty"`
+	MakeEN    string  `json:"make_en,omitempty"`
 
 	Sale float64 `json:"sale,omitempty"`
 }
@@ -63,6 +60,46 @@ func (j *jsonDrug) getNameUA(_ string) string {
 
 func (j *jsonDrug) getNameEN(_ string) string {
 	return j.NameEN
+}
+
+func (j *jsonDrug) lang(l string) {
+	switch l {
+	case "ru":
+		j.Name
+		j.NameRU
+		j.NameUA
+		j.NameEN
+		j.Form
+		j.FormRU
+		j.FormUA
+		j.FormEN
+		j.Dose
+		j.DoseRU
+		j.DoseUA
+		j.DoseEN
+		j.Pack
+		j.PackRU
+		j.PackUA
+		j.PackEN
+		j.Note
+		j.NoteRU
+		j.NoteUA
+		j.NoteEN
+		j.Numb
+		j.Make
+		j.MakeRU
+		j.MakeUA
+		j.MakeEN
+		j.IDSpecDEC = nil
+	case "ua":
+		j.Name = j.NameUA
+		j.IDSpecINF = nil
+	}
+	if l != "" {
+		j.NameRU = ""
+		j.NameUA = ""
+		j.NameEN = ""
+	}
 }
 
 func (j *jsonDrug) getFields() []interface{} {
