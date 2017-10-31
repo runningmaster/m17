@@ -26,4 +26,4 @@ github.com/klauspost/compress/gzip
 #github.com/pkg/errors
 
 # Package collate contains types for comparing and sorting Unicode strings according to a given collation order.
-golang.org/x/text/collate
+#golang.org/x/text/collate
