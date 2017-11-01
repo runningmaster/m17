@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"internal/ctxutil"
 
@@ -18,9 +17,9 @@ const (
 
 type jsonINN struct {
 	ID        int64   `json:"id,omitempty"`
-	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
-	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-	Name      string  `json:"name,omitempty"`        // *
+	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
+	Name      string  `json:"name,omitempty"` // *
 	NameRU    string  `json:"name_ru,omitempty"`
 	NameUA    string  `json:"name_ua,omitempty"`
 	NameEN    string  `json:"name_en,omitempty"`
@@ -28,22 +27,37 @@ type jsonINN struct {
 }
 
 func (j *jsonINN) getID() int64 {
+	if j == nil {
+		return 0
+	}
 	return j.ID
 }
 
 func (j *jsonINN) getNameRU(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameRU
 }
 
 func (j *jsonINN) getNameUA(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameUA
 }
 
 func (j *jsonINN) getNameEN(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameEN
 }
 
 func (j *jsonINN) lang(l, _ string) {
+	if j == nil {
+		return
+	}
 	switch l {
 	case "ru":
 		j.Name = fmt.Sprintf("%s (%s)", j.NameEN, j.NameRU)
@@ -61,6 +75,9 @@ func (j *jsonINN) lang(l, _ string) {
 }
 
 func (j *jsonINN) getFields() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		"id",      // 0
 		"name_ru", // 1
@@ -71,6 +88,9 @@ func (j *jsonINN) getFields() []interface{} {
 }
 
 func (j *jsonINN) getValues() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		j.ID,     // 0
 		j.NameRU, // 1
@@ -81,6 +101,9 @@ func (j *jsonINN) getValues() []interface{} {
 }
 
 func (j *jsonINN) setValues(v ...interface{}) {
+	if j == nil {
+		return
+	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -175,7 +198,7 @@ func getINNXAbcd(h *dbxHelper, p string) ([]string, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcd(c, p, "en")
+	v, err := loadAbcd(c, p, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -193,10 +216,13 @@ func getINNXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, "en")
+	v, err := loadAbcdLs(c, p, a, h.lang)
 	if err != nil {
 		return nil, err
 	}
+
+	//	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	//	x, err := getINNXList
 
 	return v, nil
 }
@@ -207,12 +233,13 @@ func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
 		return nil, err
 	}
 
+	coll := newCollator(h.lang)
 	sort.Slice(v,
 		func(i, j int) bool {
 			if v[i] == nil || v[j] == nil {
-				return false
+				return true
 			}
-			return strings.Compare(v[i].Name, v[j].Name) < 0
+			return coll.CompareString(v[i].Name, v[j].Name) < 0
 		},
 	)
 

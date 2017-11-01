@@ -47,22 +47,37 @@ type jsonDrug struct {
 }
 
 func (j *jsonDrug) getID() int64 {
+	if j == nil {
+		return 0
+	}
 	return j.ID
 }
 
 func (j *jsonDrug) getNameRU(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameRU
 }
 
 func (j *jsonDrug) getNameUA(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameUA
 }
 
 func (j *jsonDrug) getNameEN(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameEN
 }
 
 func (j *jsonDrug) lang(l, _ string) {
+	if j == nil {
+		return
+	}
 	switch l {
 	case "ru":
 		j.Name = j.NameRU
@@ -105,6 +120,9 @@ func (j *jsonDrug) lang(l, _ string) {
 }
 
 func (j *jsonDrug) getFields() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		"id",      // 0
 		"name_ru", // 1
@@ -130,6 +148,9 @@ func (j *jsonDrug) getFields() []interface{} {
 }
 
 func (j *jsonDrug) getValues() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		j.ID,     // 0
 		j.NameRU, // 1
@@ -155,6 +176,9 @@ func (j *jsonDrug) getValues() []interface{} {
 }
 
 func (j *jsonDrug) setValues(v ...interface{}) {
+	if j == nil {
+		return
+	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -206,16 +230,16 @@ func (j *jsonDrug) setValues(v ...interface{}) {
 
 type jsonDrugs []*jsonDrug
 
-func (j jsonDrugs) len() int {
-	return len(j)
+func (v jsonDrugs) len() int {
+	return len(v)
 }
 
-func (j jsonDrugs) elem(i int) interface{} {
-	return j[i]
+func (v jsonDrugs) elem(i int) interface{} {
+	return v[i]
 }
 
-func (j jsonDrugs) nill(i int) {
-	j[i] = nil
+func (v jsonDrugs) nill(i int) {
+	v[i] = nil
 }
 
 func jsonToDrugs(data []byte) (jsonDrugs, error) {

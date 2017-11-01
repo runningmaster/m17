@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +14,8 @@ import (
 	"internal/logger"
 
 	"github.com/garyburd/redigo/redis"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 var statusOK = http.StatusText(http.StatusOK)
@@ -466,7 +467,7 @@ func normName(s string) string {
 		"*", "",
 		"&", "",
 		"†", "",
-		"<I>", "",
+		"<I>", "", // FIXME: need full HTTML cleanup
 		"</I>", "",
 	)
 	return strings.TrimSpace(strings.ToLower(r.Replace(s)))
@@ -613,6 +614,17 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 	return c.Flush()
 }
 
+func newCollator(lang string) *collate.Collator {
+	switch lang {
+	case "ru":
+		return collate.New(language.Russian)
+	case "ua":
+		return collate.New(language.Ukrainian)
+	default:
+		return collate.New(language.English)
+	}
+}
+
 func loadAbcd(c redis.Conn, p, lang string) ([]string, error) {
 	res, err := redis.Ints(c.Do("ZRANGEBYSCORE", genKey(p, "rune", lang), "-inf", "+inf"))
 	if err != nil {
@@ -624,7 +636,8 @@ func loadAbcd(c redis.Conn, p, lang string) ([]string, error) {
 		out[i] = strings.ToUpper(string(rune(res[i])))
 	}
 
-	sort.Strings(out)
+	coll := newCollator(lang)
+	coll.SortStrings(out)
 
 	return out, nil
 }

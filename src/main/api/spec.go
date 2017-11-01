@@ -2,9 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"internal/ctxutil"
 
@@ -57,10 +57,16 @@ type jsonSpec struct {
 }
 
 func (j *jsonSpec) getID() int64 {
+	if j == nil {
+		return 0
+	}
 	return j.ID
 }
 
 func (j *jsonSpec) getNameRU(p string) string {
+	if j == nil {
+		return ""
+	}
 	if p != prefixSpecDEC {
 		return j.NameRU
 	}
@@ -68,6 +74,9 @@ func (j *jsonSpec) getNameRU(p string) string {
 }
 
 func (j *jsonSpec) getNameUA(p string) string {
+	if j == nil {
+		return ""
+	}
 	if p == prefixSpecDEC {
 		return j.NameUA
 	}
@@ -75,16 +84,25 @@ func (j *jsonSpec) getNameUA(p string) string {
 }
 
 func (j *jsonSpec) getNameEN(p string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameEN
 }
 
 func (j *jsonSpec) lang(l, p string) {
+	if j == nil {
+		return
+	}
 	switch l {
 	case "ru":
 		if p != prefixSpecDEC {
 			j.Name = j.NameRU
 			j.Head = j.HeadRU
 			j.Text = j.TextRU
+		}
+		if p == prefixSpecACT {
+			j.Name = fmt.Sprintf("%s (%s)", j.NameEN, j.NameRU)
 		}
 	case "ua":
 		if p == prefixSpecDEC {
@@ -108,6 +126,9 @@ func (j *jsonSpec) lang(l, p string) {
 }
 
 func (j *jsonSpec) getFields() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		"id",         // 0
 		"name_ru",    // 1
@@ -130,6 +151,9 @@ func (j *jsonSpec) getFields() []interface{} {
 }
 
 func (j *jsonSpec) getValues() []interface{} {
+	if j == nil {
+		return nil
+	}
 	j.IsInfo = len(j.TextRU) > 0 || len(j.TextUA) > 0
 	return []interface{}{
 		j.ID,        // 0
@@ -153,6 +177,9 @@ func (j *jsonSpec) getValues() []interface{} {
 }
 
 func (j *jsonSpec) setValues(v ...interface{}) {
+	if j == nil {
+		return
+	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -475,7 +502,7 @@ func getSpecXAbcd(h *dbxHelper, p string) ([]string, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcd(c, p, "ru")
+	v, err := loadAbcd(c, p, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -493,7 +520,7 @@ func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, "ru")
+	v, err := loadAbcdLs(c, p, a, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -507,12 +534,13 @@ func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
 		return nil, err
 	}
 
+	coll := newCollator(h.lang)
 	sort.Slice(v,
 		func(i, j int) bool {
-			return strings.Compare(
-				strings.ToLower(v[i].NameRU),
-				strings.ToLower(v[j].NameRU),
-			) < 0
+			if v[i] == nil || v[j] == nil {
+				return true
+			}
+			return coll.CompareString(v[i].Name, v[j].Name) < 0
 		},
 	)
 
@@ -538,6 +566,8 @@ func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	return v, nil
 }

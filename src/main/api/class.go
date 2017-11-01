@@ -28,8 +28,8 @@ type jsonClass struct {
 	IDNode    int64   `json:"id_node,omitempty"`
 	IDRoot    int64   `json:"id_root,omitempty"`
 	IDNext    []int64 `json:"id_next,omitempty"`
-	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
-	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
+	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
 	Code      string  `json:"code,omitempty"`
 	Name      string  `json:"name,omitempty"` // *
 	NameRU    string  `json:"name_ru,omitempty"`
@@ -39,22 +39,37 @@ type jsonClass struct {
 }
 
 func (j *jsonClass) getID() int64 {
+	if j == nil {
+		return 0
+	}
 	return j.ID
 }
 
 func (j *jsonClass) getNameRU(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameRU + "|" + j.Code
 }
 
 func (j *jsonClass) getNameUA(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameUA + "|" + j.Code
 }
 
 func (j *jsonClass) getNameEN(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameEN + "|" + j.Code
 }
 
 func (j *jsonClass) lang(l, _ string) {
+	if j == nil {
+		return
+	}
 	switch l {
 	case "ru":
 		j.Name = j.NameRU
@@ -73,6 +88,9 @@ func (j *jsonClass) lang(l, _ string) {
 }
 
 func (j *jsonClass) getFields() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		"id",      // 0
 		"id_node", // 1
@@ -86,6 +104,9 @@ func (j *jsonClass) getFields() []interface{} {
 }
 
 func (j *jsonClass) getValues() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		j.ID,     // 0
 		j.IDNode, // 1
@@ -99,6 +120,9 @@ func (j *jsonClass) getValues() []interface{} {
 }
 
 func (j *jsonClass) setValues(v ...interface{}) {
+	if j == nil {
+		return
+	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -216,14 +240,6 @@ func freeClassLinks(c redis.Conn, p string, v ...*jsonClass) error {
 	return nil
 }
 
-func getClassXRoot(h *dbxHelper, p string) ([]int64, error) {
-	return nil, nil
-}
-
-func getClassXNext(h *dbxHelper, p string) ([]int64, error) {
-	return nil, nil
-}
-
 func getClassXSync(h *dbxHelper, p string) ([]int64, error) {
 	v, err := jsonToID(h.data)
 	if err != nil {
@@ -266,6 +282,49 @@ func mineClassRootIDs(c redis.Conn, p string, v []*jsonClass) ([]int64, error) {
 	return v[0].IDNext, nil
 }
 
+func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
+	h.data = []byte("[0]")
+	v, err := jsonToClassesFromIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	r, err := mineClassRootIDs(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	h.data = []byte("[" + strings.Join(int64ToStrings(r...), ",") + "]")
+	v, err = jsonToClassesFromIDs(h.data)
+	if err != nil {
+		return nil, err
+	}
+
+	return getClassXNext(h, p)
+}
+
+func getClassXNext(h *dbxHelper, p string) (jsonClasses, error) {
+	v, err := getClassX(h, p)
+	if err != nil {
+		return nil, err
+	}
+
+	coll := newCollator(h.lang)
+	sort.Slice(v,
+		func(i, j int) bool {
+			if v[i] == nil || v[j] == nil {
+				return true
+			}
+			return coll.CompareString(v[i].Slug, v[j].Slug) < 0
+		},
+	)
+
+	return v, nil
+}
+
 func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 	v, err := jsonToClassesFromIDs(h.data)
 	if err != nil {
@@ -275,19 +334,6 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 
 	c := h.getConn()
 	defer h.delConn(c)
-
-	// need roots ?
-	if len(v) == 1 && v[0].ID == 0 {
-		r, err := mineClassRootIDs(c, p, v)
-		if err != nil {
-			return nil, err
-		}
-		h.data = []byte("[" + strings.Join(int64ToStrings(r...), ",") + "]")
-		v, err = jsonToClassesFromIDs(h.data)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	err = loadHashers(c, p, v)
 	if err != nil {
@@ -300,14 +346,6 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 	}
 
 	normLang(h.lang, p, v)
-	sort.Slice(v,
-		func(i, j int) bool {
-			if v[i] == nil || v[j] == nil {
-				return false
-			}
-			return strings.Compare(v[i].Slug, v[j].Slug) < 0
-		},
-	)
 
 	return v, nil
 }

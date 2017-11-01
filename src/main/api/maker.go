@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
-	"strings"
 
 	"internal/ctxutil"
 
@@ -18,9 +17,9 @@ const (
 type jsonMaker struct {
 	ID        int64   `json:"id,omitempty"`
 	IDNode    int64   `json:"id_node,omitempty"`
-	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"` // ?
-	IDSpecINF []int64 `json:"id_spec_inf,omitempty"` // ?
-	Name      string  `json:"name,omitempty"`        // *
+	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
+	Name      string  `json:"name,omitempty"` // *
 	NameRU    string  `json:"name_ru,omitempty"`
 	NameUA    string  `json:"name_ua,omitempty"`
 	NameEN    string  `json:"name_en,omitempty"`
@@ -28,28 +27,43 @@ type jsonMaker struct {
 	TextRU    string  `json:"text_ru,omitempty"`
 	TextUA    string  `json:"text_ua,omitempty"`
 	TextEN    string  `json:"text_en,omitempty"`
-	IsGP      bool    `json:"is_gp,omitempty"` // *
+	IsGP      bool    `json:"is_gp,omitempty"`
 	Logo      string  `json:"logo,omitempty"`
 	Slug      string  `json:"slug,omitempty"`
 }
 
 func (j *jsonMaker) getID() int64 {
+	if j == nil {
+		return 0
+	}
 	return j.ID
 }
 
 func (j *jsonMaker) getNameRU(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameRU
 }
 
 func (j *jsonMaker) getNameUA(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameUA
 }
 
 func (j *jsonMaker) getNameEN(_ string) string {
+	if j == nil {
+		return ""
+	}
 	return j.NameEN
 }
 
 func (j *jsonMaker) lang(l, _ string) {
+	if j == nil {
+		return
+	}
 	switch l {
 	case "ru":
 		j.Name = j.NameRU
@@ -72,6 +86,9 @@ func (j *jsonMaker) lang(l, _ string) {
 }
 
 func (j *jsonMaker) getFields() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		"id",      // 0
 		"id_node", // 1
@@ -88,6 +105,9 @@ func (j *jsonMaker) getFields() []interface{} {
 }
 
 func (j *jsonMaker) getValues() []interface{} {
+	if j == nil {
+		return nil
+	}
 	return []interface{}{
 		j.ID,     // 0
 		j.IDNode, // 1
@@ -104,6 +124,9 @@ func (j *jsonMaker) getValues() []interface{} {
 }
 
 func (j *jsonMaker) setValues(v ...interface{}) {
+	if j == nil {
+		return
+	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -210,7 +233,7 @@ func getMakerXAbcd(h *dbxHelper, p string) ([]string, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcd(c, p, "ru")
+	v, err := loadAbcd(c, p, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +251,7 @@ func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, "ru")
+	v, err := loadAbcdLs(c, p, a, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -242,14 +265,17 @@ func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
 		return nil, err
 	}
 
+	coll := newCollator(h.lang)
 	sort.Slice(v,
 		func(i, j int) bool {
 			if v[i] == nil || v[j] == nil {
-				return false
+				return true
 			}
-			return strings.Compare(v[i].Name, v[j].Name) < 0
+			return coll.CompareString(v[i].Name, v[j].Name) < 0
 		},
 	)
+
+	normLang(h.lang, p, v)
 
 	return v, nil
 }
@@ -273,8 +299,6 @@ func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	normLang(h.lang, p, v)
 
 	return v, nil
 }
