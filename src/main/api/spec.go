@@ -217,6 +217,24 @@ func (j jsonSpecs) nill(i int) {
 	j[i] = nil
 }
 
+func (v jsonSpecs) sort(lang string) {
+	coll := newCollator(lang)
+	sort.Slice(v,
+		func(i, j int) bool {
+			if v[i] == nil && v[j] == nil {
+				return true
+			}
+			if v[i] == nil && v[j] != nil {
+				return false
+			}
+			if v[i] != nil && v[j] == nil {
+				return true
+			}
+			return coll.CompareString(v[i].Name, v[j].Name) < 0
+		},
+	)
+}
+
 func jsonToSpecs(data []byte) (jsonSpecs, error) {
 	var v []*jsonSpec
 	err := json.Unmarshal(data, &v)
@@ -514,15 +532,7 @@ func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
 		return nil, err
 	}
 
-	coll := newCollator(h.lang)
-	sort.Slice(v,
-		func(i, j int) bool {
-			if v[i] == nil || v[j] == nil {
-				return true
-			}
-			return coll.CompareString(v[i].Name, v[j].Name) < 0
-		},
-	)
+	v.sort(h.lang)
 
 	return v, nil
 }

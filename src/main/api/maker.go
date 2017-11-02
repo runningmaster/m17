@@ -152,6 +152,24 @@ func (j jsonMakers) nill(i int) {
 	j[i] = nil
 }
 
+func (v jsonMakers) sort(lang string) {
+	coll := newCollator(lang)
+	sort.Slice(v,
+		func(i, j int) bool {
+			if v[i] == nil && v[j] == nil {
+				return true
+			}
+			if v[i] == nil && v[j] != nil {
+				return false
+			}
+			if v[i] != nil && v[j] == nil {
+				return true
+			}
+			return coll.CompareString(v[i].Name, v[j].Name) < 0
+		},
+	)
+}
+
 func jsonToMakers(data []byte) (jsonMakers, error) {
 	var v []*jsonMaker
 	err := json.Unmarshal(data, &v)
@@ -245,17 +263,7 @@ func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
 		return nil, err
 	}
 
-	coll := newCollator(h.lang)
-	sort.Slice(v,
-		func(i, j int) bool {
-			if v[i] == nil || v[j] == nil {
-				return true
-			}
-			return coll.CompareString(v[i].Name, v[j].Name) < 0
-		},
-	)
-
-	normLang(h.lang, p, v)
+	v.sort(h.lang)
 
 	return v, nil
 }
@@ -279,6 +287,8 @@ func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	return v, nil
 }

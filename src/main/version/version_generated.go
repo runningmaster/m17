@@ -18,8 +18,8 @@ const (
 	PreRelease = prerelease
 
 	// BuildTime is build metadata and it may be denoted by appending a plus sign and a series of dot separated identifiers immediately following the patch or pre-release version.
-	BuildTime = "20171102140656"
+	BuildTime = "20171102145922"
 
 	// GitCommit is build metadata and it may be denoted by appending a plus sign and a series of dot separated identifiers immediately following the patch or pre-release version.
-	GitCommit = "6eed1cea"
+	GitCommit = "6aeb9474"
 )

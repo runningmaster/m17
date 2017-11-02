@@ -246,6 +246,18 @@ func (j jsonDrugs) nill(i int) {
 	j[i] = nil
 }
 
+func (v jsonDrugs) sort(_ string) {
+	//coll := newCollator(lang)
+	//sort.Slice(v,
+	//	func(i, j int) bool {
+	//		if v[i] == nil || v[j] == nil {
+	//			return true
+	//		}
+	//		return coll.CompareString(v[i].Slug, v[j].Slug) < 0
+	//	},
+	//)
+}
+
 func jsonToDrugs(data []byte) (jsonDrugs, error) {
 	var v []*jsonDrug
 	err := json.Unmarshal(data, &v)

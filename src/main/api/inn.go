@@ -117,6 +117,24 @@ func (j jsonINNs) nill(i int) {
 	j[i] = nil
 }
 
+func (v jsonINNs) sort(lang string) {
+	coll := newCollator(lang)
+	sort.Slice(v,
+		func(i, j int) bool {
+			if v[i] == nil && v[j] == nil {
+				return true
+			}
+			if v[i] == nil && v[j] != nil {
+				return false
+			}
+			if v[i] != nil && v[j] == nil {
+				return true
+			}
+			return coll.CompareString(v[i].Name, v[j].Name) < 0
+		},
+	)
+}
+
 func jsonToINNs(data []byte) (jsonINNs, error) {
 	var v []*jsonINN
 	err := json.Unmarshal(data, &v)
@@ -213,15 +231,7 @@ func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
 		return nil, err
 	}
 
-	coll := newCollator(h.lang)
-	sort.Slice(v,
-		func(i, j int) bool {
-			if v[i] == nil || v[j] == nil {
-				return true
-			}
-			return coll.CompareString(v[i].Name, v[j].Name) < 0
-		},
-	)
+	v.sort(h.lang)
 
 	return v, nil
 }

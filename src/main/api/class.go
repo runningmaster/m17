@@ -142,6 +142,24 @@ func (j jsonClasses) nill(i int) {
 	j[i] = nil
 }
 
+func (v jsonClasses) sort(lang string) {
+	coll := newCollator(lang)
+	sort.Slice(v,
+		func(i, j int) bool {
+			if v[i] == nil && v[j] == nil {
+				return true
+			}
+			if v[i] == nil && v[j] != nil {
+				return false
+			}
+			if v[i] != nil && v[j] == nil {
+				return true
+			}
+			return coll.CompareString(v[i].Slug, v[j].Slug) < 0
+		},
+	)
+}
+
 func jsonToClasses(data []byte) (jsonClasses, error) {
 	var v []*jsonClass
 	err := json.Unmarshal(data, &v)
@@ -292,15 +310,7 @@ func getClassXNext(h *dbxHelper, p string) (jsonClasses, error) {
 		return nil, err
 	}
 
-	coll := newCollator(h.lang)
-	sort.Slice(v,
-		func(i, j int) bool {
-			if v[i] == nil || v[j] == nil {
-				return true
-			}
-			return coll.CompareString(v[i].Slug, v[j].Slug) < 0
-		},
-	)
+	v.sort(h.lang)
 
 	return v, nil
 }
