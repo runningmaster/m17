@@ -39,37 +39,22 @@ type jsonClass struct {
 }
 
 func (j *jsonClass) getID() int64 {
-	if j == nil {
-		return 0
-	}
 	return j.ID
 }
 
 func (j *jsonClass) getNameRU(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameRU + "|" + j.Code
 }
 
 func (j *jsonClass) getNameUA(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameUA + "|" + j.Code
 }
 
 func (j *jsonClass) getNameEN(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameEN + "|" + j.Code
 }
 
 func (j *jsonClass) lang(l, _ string) {
-	if j == nil {
-		return
-	}
 	switch l {
 	case "ru":
 		j.Name = j.NameRU
@@ -88,9 +73,6 @@ func (j *jsonClass) lang(l, _ string) {
 }
 
 func (j *jsonClass) getFields() []interface{} {
-	if j == nil {
-		return nil
-	}
 	return []interface{}{
 		"id",      // 0
 		"id_node", // 1
@@ -104,9 +86,6 @@ func (j *jsonClass) getFields() []interface{} {
 }
 
 func (j *jsonClass) getValues() []interface{} {
-	if j == nil {
-		return nil
-	}
 	return []interface{}{
 		j.ID,     // 0
 		j.IDNode, // 1
@@ -120,9 +99,6 @@ func (j *jsonClass) getValues() []interface{} {
 }
 
 func (j *jsonClass) setValues(v ...interface{}) {
-	if j == nil {
-		return
-	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -156,6 +132,10 @@ func (j jsonClasses) len() int {
 
 func (j jsonClasses) elem(i int) interface{} {
 	return j[i]
+}
+
+func (j jsonClasses) null(i int) bool {
+	return j[i] == nil
 }
 
 func (j jsonClasses) nill(i int) {

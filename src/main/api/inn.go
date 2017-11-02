@@ -27,37 +27,22 @@ type jsonINN struct {
 }
 
 func (j *jsonINN) getID() int64 {
-	if j == nil {
-		return 0
-	}
 	return j.ID
 }
 
 func (j *jsonINN) getNameRU(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameRU
 }
 
 func (j *jsonINN) getNameUA(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameUA
 }
 
 func (j *jsonINN) getNameEN(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameEN
 }
 
 func (j *jsonINN) lang(l, _ string) {
-	if j == nil {
-		return
-	}
 	switch l {
 	case "ru":
 		j.Name = fmt.Sprintf("%s (%s)", j.NameEN, j.NameRU)
@@ -75,9 +60,6 @@ func (j *jsonINN) lang(l, _ string) {
 }
 
 func (j *jsonINN) getFields() []interface{} {
-	if j == nil {
-		return nil
-	}
 	return []interface{}{
 		"id",      // 0
 		"name_ru", // 1
@@ -88,9 +70,6 @@ func (j *jsonINN) getFields() []interface{} {
 }
 
 func (j *jsonINN) getValues() []interface{} {
-	if j == nil {
-		return nil
-	}
 	return []interface{}{
 		j.ID,     // 0
 		j.NameRU, // 1
@@ -101,9 +80,6 @@ func (j *jsonINN) getValues() []interface{} {
 }
 
 func (j *jsonINN) setValues(v ...interface{}) {
-	if j == nil {
-		return
-	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -131,6 +107,10 @@ func (j jsonINNs) len() int {
 
 func (j jsonINNs) elem(i int) interface{} {
 	return j[i]
+}
+
+func (j jsonINNs) null(i int) bool {
+	return j[i] == nil
 }
 
 func (j jsonINNs) nill(i int) {

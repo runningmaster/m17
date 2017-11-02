@@ -57,16 +57,10 @@ type jsonSpec struct {
 }
 
 func (j *jsonSpec) getID() int64 {
-	if j == nil {
-		return 0
-	}
 	return j.ID
 }
 
 func (j *jsonSpec) getNameRU(p string) string {
-	if j == nil {
-		return ""
-	}
 	if p != prefixSpecDEC {
 		return j.NameRU
 	}
@@ -74,9 +68,6 @@ func (j *jsonSpec) getNameRU(p string) string {
 }
 
 func (j *jsonSpec) getNameUA(p string) string {
-	if j == nil {
-		return ""
-	}
 	if p == prefixSpecDEC {
 		return j.NameUA
 	}
@@ -84,16 +75,10 @@ func (j *jsonSpec) getNameUA(p string) string {
 }
 
 func (j *jsonSpec) getNameEN(p string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameEN
 }
 
 func (j *jsonSpec) lang(l, p string) {
-	if j == nil {
-		return
-	}
 	switch l {
 	case "ru":
 		if p != prefixSpecDEC {
@@ -126,9 +111,6 @@ func (j *jsonSpec) lang(l, p string) {
 }
 
 func (j *jsonSpec) getFields() []interface{} {
-	if j == nil {
-		return nil
-	}
 	return []interface{}{
 		"id",         // 0
 		"name_ru",    // 1
@@ -151,9 +133,6 @@ func (j *jsonSpec) getFields() []interface{} {
 }
 
 func (j *jsonSpec) getValues() []interface{} {
-	if j == nil {
-		return nil
-	}
 	j.IsInfo = len(j.TextRU) > 0 || len(j.TextUA) > 0
 	return []interface{}{
 		j.ID,        // 0
@@ -177,9 +156,6 @@ func (j *jsonSpec) getValues() []interface{} {
 }
 
 func (j *jsonSpec) setValues(v ...interface{}) {
-	if j == nil {
-		return
-	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -231,6 +207,10 @@ func (j jsonSpecs) len() int {
 
 func (j jsonSpecs) elem(i int) interface{} {
 	return j[i]
+}
+
+func (j jsonSpecs) null(i int) bool {
+	return j[i] == nil
 }
 
 func (j jsonSpecs) nill(i int) {

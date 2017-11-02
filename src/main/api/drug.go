@@ -230,16 +230,20 @@ func (j *jsonDrug) setValues(v ...interface{}) {
 
 type jsonDrugs []*jsonDrug
 
-func (v jsonDrugs) len() int {
-	return len(v)
+func (j jsonDrugs) len() int {
+	return len(j)
 }
 
-func (v jsonDrugs) elem(i int) interface{} {
-	return v[i]
+func (j jsonDrugs) elem(i int) interface{} {
+	return j[i]
 }
 
-func (v jsonDrugs) nill(i int) {
-	v[i] = nil
+func (j jsonDrugs) null(i int) bool {
+	return j[i] == nil
+}
+
+func (j jsonDrugs) nill(i int) {
+	j[i] = nil
 }
 
 func jsonToDrugs(data []byte) (jsonDrugs, error) {

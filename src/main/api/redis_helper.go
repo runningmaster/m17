@@ -139,6 +139,7 @@ type ider interface {
 type ruler interface {
 	len() int
 	elem(int) interface{}
+	null(int) bool
 }
 
 type hasher interface {
@@ -326,7 +327,12 @@ func normLang(s, p string, v ruler) {
 	if s == "" {
 		return
 	}
+
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		if l, ok := v.elem(i).(langer); ok {
 			l.lang(s, p)
 		}
@@ -358,6 +364,10 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 
 	var err error
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		if h, ok := v.elem(i).(hasher); ok {
 			if h.getID() == 0 {
 				return fmt.Errorf("ID must have value (%s)", p)
@@ -383,6 +393,10 @@ func loadHashers(c redis.Conn, p string, v ruler) error {
 
 	var err error
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		if h, ok := v.elem(i).(hasher); ok {
 			err = c.Send("HMGET", mixKeyAndFields(p, h)...)
 			if err != nil {
@@ -398,6 +412,10 @@ func loadHashers(c redis.Conn, p string, v ruler) error {
 
 	var r []interface{}
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		r, err = redis.Values(c.Receive())
 		if err != nil {
 			return err
@@ -423,6 +441,10 @@ func freeHashers(c redis.Conn, p string, v ruler) error {
 
 	var err error
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		if h, ok := v.elem(i).(hasher); ok {
 			err = c.Send("DEL", genKey(p, h.getID()))
 			if err != nil {
@@ -438,6 +460,10 @@ func freeHashers(c redis.Conn, p string, v ruler) error {
 
 	var r bool
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		r, err = redis.Bool(c.Receive())
 		if err != nil {
 			return err
@@ -479,6 +505,10 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 	var abcdRU, abcdUA, abcdEN rune
 	var err error
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		if s, ok := v.elem(i).(searcher); ok {
 			id = s.getID()
 			nameRU = normName(s.getNameRU(p))
@@ -550,6 +580,10 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 	var abcdRU, abcdUA, abcdEN rune
 	var err error
 	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+
 		if s, ok := v.elem(i).(searcher); ok {
 			id = s.getID()
 			nameRU = normName(s.getNameRU(p))

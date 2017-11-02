@@ -33,37 +33,22 @@ type jsonMaker struct {
 }
 
 func (j *jsonMaker) getID() int64 {
-	if j == nil {
-		return 0
-	}
 	return j.ID
 }
 
 func (j *jsonMaker) getNameRU(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameRU
 }
 
 func (j *jsonMaker) getNameUA(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameUA
 }
 
 func (j *jsonMaker) getNameEN(_ string) string {
-	if j == nil {
-		return ""
-	}
 	return j.NameEN
 }
 
 func (j *jsonMaker) lang(l, _ string) {
-	if j == nil {
-		return
-	}
 	switch l {
 	case "ru":
 		j.Name = j.NameRU
@@ -86,9 +71,6 @@ func (j *jsonMaker) lang(l, _ string) {
 }
 
 func (j *jsonMaker) getFields() []interface{} {
-	if j == nil {
-		return nil
-	}
 	return []interface{}{
 		"id",      // 0
 		"id_node", // 1
@@ -105,9 +87,6 @@ func (j *jsonMaker) getFields() []interface{} {
 }
 
 func (j *jsonMaker) getValues() []interface{} {
-	if j == nil {
-		return nil
-	}
 	return []interface{}{
 		j.ID,     // 0
 		j.IDNode, // 1
@@ -124,9 +103,6 @@ func (j *jsonMaker) getValues() []interface{} {
 }
 
 func (j *jsonMaker) setValues(v ...interface{}) {
-	if j == nil {
-		return
-	}
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -166,6 +142,10 @@ func (j jsonMakers) len() int {
 
 func (j jsonMakers) elem(i int) interface{} {
 	return j[i]
+}
+
+func (j jsonMakers) null(i int) bool {
+	return j[i] == nil
 }
 
 func (j jsonMakers) nill(i int) {
