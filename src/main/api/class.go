@@ -72,7 +72,7 @@ func (j *jsonClass) lang(l, _ string) {
 	}
 }
 
-func (j *jsonClass) getFields() []interface{} {
+func (j *jsonClass) getFields(_ bool) []interface{} {
 	return []interface{}{
 		"id",      // 0
 		"id_node", // 1
@@ -98,7 +98,7 @@ func (j *jsonClass) getValues() []interface{} {
 	}
 }
 
-func (j *jsonClass) setValues(v ...interface{}) {
+func (j *jsonClass) setValues(_ bool, v ...interface{}) {
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -325,7 +325,7 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +380,7 @@ func delClassX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}

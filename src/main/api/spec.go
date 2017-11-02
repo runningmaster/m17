@@ -87,7 +87,7 @@ func (j *jsonSpec) lang(l, p string) {
 			j.Text = j.TextRU
 		}
 		if p == prefixSpecACT {
-			j.Name = fmt.Sprintf("%s (%s)", j.NameEN, j.NameRU)
+			j.Name = fmt.Sprintf("%s (%s)", j.NameRU, j.NameEN)
 		}
 	case "ua":
 		if p == prefixSpecDEC {
@@ -110,7 +110,18 @@ func (j *jsonSpec) lang(l, p string) {
 	}
 }
 
-func (j *jsonSpec) getFields() []interface{} {
+func (j *jsonSpec) getFields(list bool) []interface{} {
+	if list {
+		return []interface{}{
+			"id",      // 0
+			"name_ru", // 1
+			"name_ua", // 2
+			"name_en", // 3
+			"is_info", // 4
+			"slug",    // 5
+			"sale",    // 6
+		}
+	}
 	return []interface{}{
 		"id",         // 0
 		"name_ru",    // 1
@@ -155,9 +166,28 @@ func (j *jsonSpec) getValues() []interface{} {
 	}
 }
 
-func (j *jsonSpec) setValues(v ...interface{}) {
+func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 	for i := range v {
 		if v[i] == nil {
+			continue
+		}
+		if list {
+			switch i {
+			case 0:
+				j.ID, _ = redis.Int64(v[i], nil)
+			case 1:
+				j.NameRU, _ = redis.String(v[i], nil)
+			case 2:
+				j.NameUA, _ = redis.String(v[i], nil)
+			case 3:
+				j.NameEN, _ = redis.String(v[i], nil)
+			case 4:
+				j.IsInfo, _ = redis.Bool(v[i], nil)
+			case 5:
+				j.Slug, _ = redis.String(v[i], nil)
+			case 6:
+				j.Sale, _ = redis.Float64(v[i], nil)
+			}
 			continue
 		}
 		switch i {
@@ -224,11 +254,21 @@ func (v jsonSpecs) sort(lang string) {
 			if v[i] == nil && v[j] == nil {
 				return true
 			}
+			if v[i] != nil && v[j] == nil {
+				return true
+			}
 			if v[i] == nil && v[j] != nil {
 				return false
 			}
-			if v[i] != nil && v[j] == nil {
+			if v[i].IsInfo && !v[j].IsInfo {
 				return true
+			} else if !v[i].IsInfo && v[j].IsInfo {
+				return false
+			}
+			if v[i].Sale > v[j].Sale {
+				return true
+			} else if v[i].Sale < v[j].Sale {
+				return false
 			}
 			return coll.CompareString(v[i].Name, v[j].Name) < 0
 		},
@@ -527,10 +567,21 @@ func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 }
 
 func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
-	v, err := getSpecX(h, p)
+	v, err := jsonToSpecsFromIDs(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, true, v)
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	v.sort(h.lang)
 
@@ -547,7 +598,7 @@ func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}
@@ -600,7 +651,7 @@ func delSpecX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}

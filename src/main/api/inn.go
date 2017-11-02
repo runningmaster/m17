@@ -59,7 +59,7 @@ func (j *jsonINN) lang(l, _ string) {
 	}
 }
 
-func (j *jsonINN) getFields() []interface{} {
+func (j *jsonINN) getFields(_ bool) []interface{} {
 	return []interface{}{
 		"id",      // 0
 		"name_ru", // 1
@@ -79,7 +79,7 @@ func (j *jsonINN) getValues() []interface{} {
 	}
 }
 
-func (j *jsonINN) setValues(v ...interface{}) {
+func (j *jsonINN) setValues(_ bool, v ...interface{}) {
 	for i := range v {
 		if v[i] == nil {
 			continue
@@ -226,10 +226,21 @@ func getINNXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 }
 
 func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
-	v, err := getINNX(h, p)
+	v, err := jsonToINNsFromIDs(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, true, v)
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	v.sort(h.lang)
 
@@ -246,7 +257,7 @@ func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +305,7 @@ func delINNX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}

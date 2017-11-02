@@ -119,7 +119,7 @@ func (j *jsonDrug) lang(l, _ string) {
 	}
 }
 
-func (j *jsonDrug) getFields() []interface{} {
+func (j *jsonDrug) getFields(_ bool) []interface{} {
 	if j == nil {
 		return nil
 	}
@@ -175,7 +175,7 @@ func (j *jsonDrug) getValues() []interface{} {
 	}
 }
 
-func (j *jsonDrug) setValues(v ...interface{}) {
+func (j *jsonDrug) setValues(_ bool, v ...interface{}) {
 	if j == nil {
 		return
 	}
@@ -325,7 +325,7 @@ func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +368,7 @@ func delDrugX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}

@@ -144,9 +144,9 @@ type ruler interface {
 
 type hasher interface {
 	ider
-	getFields() []interface{}
+	getFields(bool) []interface{}
 	getValues() []interface{}
-	setValues(...interface{})
+	setValues(bool, ...interface{})
 }
 
 type niller interface {
@@ -339,14 +339,14 @@ func normLang(s, p string, v ruler) {
 	}
 }
 
-func mixKeyAndFields(p string, h hasher) []interface{} {
-	f := h.getFields()
+func mixKeyAndFields(p string, list bool, h hasher) []interface{} {
+	f := h.getFields(list)
 	r := make([]interface{}, 0, 1+len(f))
 	return append(append(r, genKey(p, h.getID())), f...)
 }
 
 func mixKeyAndFieldsAndValues(p string, h hasher) []interface{} {
-	f := h.getFields()
+	f := h.getFields(false)
 	v := h.getValues()
 	r := make([]interface{}, 0, 1+len(f)*2)
 	r = append(r, genKey(p, h.getID()))
@@ -386,7 +386,7 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 	return c.Flush()
 }
 
-func loadHashers(c redis.Conn, p string, v ruler) error {
+func loadHashers(c redis.Conn, p string, list bool, v ruler) error {
 	if v.len() == 0 {
 		return nil
 	}
@@ -398,7 +398,7 @@ func loadHashers(c redis.Conn, p string, v ruler) error {
 		}
 
 		if h, ok := v.elem(i).(hasher); ok {
-			err = c.Send("HMGET", mixKeyAndFields(p, h)...)
+			err = c.Send("HMGET", mixKeyAndFields(p, list, h)...)
 			if err != nil {
 				return err
 			}
@@ -427,7 +427,7 @@ func loadHashers(c redis.Conn, p string, v ruler) error {
 			continue
 		}
 		if h, ok := v.elem(i).(hasher); ok {
-			h.setValues(r...)
+			h.setValues(list, r...)
 		}
 	}
 

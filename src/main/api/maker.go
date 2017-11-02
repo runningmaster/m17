@@ -70,7 +70,17 @@ func (j *jsonMaker) lang(l, _ string) {
 	}
 }
 
-func (j *jsonMaker) getFields() []interface{} {
+func (j *jsonMaker) getFields(list bool) []interface{} {
+	if list {
+		return []interface{}{
+			"id",      // 0
+			"name_ru", // 1
+			"name_ua", // 2
+			"name_en", // 3
+			"is_gp",   // 4
+			"slug",    // 5
+		}
+	}
 	return []interface{}{
 		"id",      // 0
 		"id_node", // 1
@@ -102,9 +112,26 @@ func (j *jsonMaker) getValues() []interface{} {
 	}
 }
 
-func (j *jsonMaker) setValues(v ...interface{}) {
+func (j *jsonMaker) setValues(list bool, v ...interface{}) {
 	for i := range v {
 		if v[i] == nil {
+			continue
+		}
+		if list {
+			switch i {
+			case 0:
+				j.ID, _ = redis.Int64(v[i], nil)
+			case 1:
+				j.NameRU, _ = redis.String(v[i], nil)
+			case 2:
+				j.NameUA, _ = redis.String(v[i], nil)
+			case 3:
+				j.NameEN, _ = redis.String(v[i], nil)
+			case 4:
+				j.IsGP, _ = redis.Bool(v[i], nil)
+			case 5:
+				j.Slug, _ = redis.String(v[i], nil)
+			}
 			continue
 		}
 		switch i {
@@ -258,10 +285,21 @@ func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 }
 
 func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
-	v, err := getMakerX(h, p)
+	v, err := jsonToMakersFromIDs(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, true, v)
 	if err != nil {
 		return nil, err
 	}
+
+	normLang(h.lang, p, v)
 
 	v.sort(h.lang)
 
@@ -278,7 +316,7 @@ func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +364,7 @@ func delMakerX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, v)
+	err = loadHashers(c, p, false, v)
 	if err != nil {
 		return nil, err
 	}
