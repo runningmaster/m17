@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	"internal/ctxutil"
 
@@ -247,6 +248,25 @@ func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
 	return v, nil
 }
 
+func getINNXListAZ(h *dbxHelper, p string) (jsonINNs, error) {
+	a, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcdLs(c, p, a, h.lang)
+	if err != nil {
+		return nil, err
+	}
+
+	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	return getINNXList(h, p)
+}
+
 func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 	v, err := jsonToINNsFromIDs(h.data)
 	if err != nil {
@@ -339,6 +359,10 @@ func getINNAbcdLs(h *dbxHelper) (interface{}, error) {
 
 func getINNList(h *dbxHelper) (interface{}, error) {
 	return getINNXList(h, prefixINN)
+}
+
+func getINNListAZ(h *dbxHelper) (interface{}, error) {
+	return getINNXListAZ(h, prefixINN)
 }
 
 func getINN(h *dbxHelper) (interface{}, error) {

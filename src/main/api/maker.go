@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
+	"strings"
 
 	"internal/ctxutil"
 
@@ -306,6 +307,25 @@ func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
 	return v, nil
 }
 
+func getMakerXListAZ(h *dbxHelper, p string) (jsonMakers, error) {
+	a, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcdLs(c, p, a, h.lang)
+	if err != nil {
+		return nil, err
+	}
+
+	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	return getMakerXList(h, p)
+}
+
 func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	v, err := jsonToMakersFromIDs(h.data)
 	if err != nil {
@@ -398,6 +418,10 @@ func getMakerAbcdLs(h *dbxHelper) (interface{}, error) {
 
 func getMakerList(h *dbxHelper) (interface{}, error) {
 	return getMakerXList(h, prefixMaker)
+}
+
+func getMakerListAZ(h *dbxHelper) (interface{}, error) {
+	return getMakerXListAZ(h, prefixMaker)
 }
 
 func getMaker(h *dbxHelper) (interface{}, error) {

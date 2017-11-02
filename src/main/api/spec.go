@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	"internal/ctxutil"
 
@@ -588,6 +589,25 @@ func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
 	return v, nil
 }
 
+func getSpecXListAZ(h *dbxHelper, p string) (jsonSpecs, error) {
+	a, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := loadAbcdLs(c, p, a, h.lang)
+	if err != nil {
+		return nil, err
+	}
+
+	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	return getSpecXList(h, p)
+}
+
 func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	v, err := jsonToSpecsFromIDs(h.data)
 	if err != nil {
@@ -692,6 +712,10 @@ func getSpecACTList(h *dbxHelper) (interface{}, error) {
 	return getSpecXList(h, prefixSpecACT)
 }
 
+func getSpecACTListAZ(h *dbxHelper) (interface{}, error) {
+	return getSpecXListAZ(h, prefixSpecACT)
+}
+
 func getSpecACT(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecACT)
 }
@@ -722,6 +746,10 @@ func getSpecINFList(h *dbxHelper) (interface{}, error) {
 	return getSpecXList(h, prefixSpecINF)
 }
 
+func getSpecINFListAZ(h *dbxHelper) (interface{}, error) {
+	return getSpecXListAZ(h, prefixSpecINF)
+}
+
 func getSpecINF(h *dbxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecINF)
 }
@@ -750,6 +778,10 @@ func getSpecDECAbcdLs(h *dbxHelper) (interface{}, error) {
 
 func getSpecDECList(h *dbxHelper) (interface{}, error) {
 	return getSpecXList(h, prefixSpecDEC)
+}
+
+func getSpecDECListAZ(h *dbxHelper) (interface{}, error) {
+	return getSpecXListAZ(h, prefixSpecDEC)
 }
 
 func getSpecDEC(h *dbxHelper) (interface{}, error) {

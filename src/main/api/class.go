@@ -296,11 +296,6 @@ func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
 	}
 
 	h.data = []byte("[" + strings.Join(int64ToStrings(r...), ",") + "]")
-	v, err = jsonToClassesFromIDs(h.data)
-	if err != nil {
-		return nil, err
-	}
-
 	return getClassXNext(h, p)
 }
 
