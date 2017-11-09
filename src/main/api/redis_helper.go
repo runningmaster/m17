@@ -99,6 +99,7 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-spec-act-abcd":    getSpecACTAbcd,
 	"get-spec-act-abcd-ls": getSpecACTAbcdLs,
 	"get-spec-act-list":    getSpecACTList,
+	"get-spec-act-list-az": getSpecACTListAZ,
 	"get-spec-act":         getSpecACT,
 	"set-spec-act":         setSpecACT,
 	"del-spec-act":         delSpecACT,
