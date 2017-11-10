@@ -448,10 +448,8 @@ func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 		if err != nil {
 			return err
 		}
-
-		// gp
-
 	}
+
 	return nil
 }
 
@@ -564,6 +562,7 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
