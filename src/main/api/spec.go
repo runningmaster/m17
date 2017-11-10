@@ -379,59 +379,98 @@ func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixDrug, true, v[i].ID, v[i].IDDrug...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixMaker, true, v[i].ID, v[i].IDMake...)
 		if err != nil {
 			return err
 		}
+		err = workaroundMakerGPLinks(c, p, saveLinkIDs, v[i].ID, v[i].IDMake...)
+		if err != nil {
+			return err
+		}
+
 		err = saveLinkIDs(c, p, prefixSpecACT, true, v[i].ID, v[i].IDSpecACT...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixSpecDEC, true, v[i].ID, v[i].IDSpecDEC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixSpecINF, true, v[i].ID, v[i].IDSpecINF...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassATC, true, v[i].ID, v[i].IDClassATC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassNFC, true, v[i].ID, v[i].IDClassNFC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassFSC, true, v[i].ID, v[i].IDClassFSC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassBFC, true, v[i].ID, v[i].IDClassBFC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassCFC, true, v[i].ID, v[i].IDClassCFC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassMPC, true, v[i].ID, v[i].IDClassMPC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassCSC, true, v[i].ID, v[i].IDClassCSC...)
 		if err != nil {
 			return err
 		}
+
 		err = saveLinkIDs(c, p, prefixClassICD, true, v[i].ID, v[i].IDClassICD...)
 		if err != nil {
 			return err
 		}
+
+		// gp
+
 	}
+	return nil
+}
+
+func workaroundMakerGPLinks(c redis.Conn, p string, f func(redis.Conn, string, string, bool, int64, ...int64) error, x int64, v ...int64) error {
+	m := makeMakers(v...)
+	err := loadHashers(c, prefixMaker, true, m)
+	if err != nil {
+		return err
+	}
+
+	for i := range m {
+		if m[i].IDNode != 0 {
+			err = f(c, p, prefixMaker, false, x, m[i].IDNode)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -456,6 +495,10 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixMaker, v[i].ID)
+		err = workaroundMakerGPLinks(c, p, freeLinkIDs, v[i].ID, val...)
+		if err != nil {
+			return err
+		}
 		err = freeLinkIDs(c, p, prefixMaker, true, v[i].ID, val...)
 		if err != nil {
 			return err
