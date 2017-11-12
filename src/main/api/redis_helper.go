@@ -700,6 +700,40 @@ func loadAbcdLs(c redis.Conn, p, a, lang string) ([]int64, error) {
 	return out, nil
 }
 
+type findRes struct {
+	ID   int64
+	Name string
+}
+
+func findIn(c redis.Conn, p, lang, match string) ([]*findRes, error) {
+	res := make([]*findRes, 0, 100)
+	var next int
+	var vals []interface{}
+	for done := false; !done; {
+		v, err := redis.Values(c.Do("ZSCAN", genKey(p, "srch", lang), next, "MATCH", match, "COUNT", 100))
+		if err != nil {
+			return nil, err
+		}
+
+		next, _ = redis.Int(v[0], err)
+		vals, _ = redis.Values(v[1], err)
+
+		var r *findRes
+		for i := range vals {
+			if i&1 != 1 {
+				continue // ignore even
+			}
+			r = &findRes{}
+			r.ID, _ = redis.Int64(vals[i], err)
+			r.Name, _ = redis.String(vals[i-1], err)
+			res = append(res, r)
+		}
+		done = next == 0
+	}
+
+	return res, nil
+}
+
 func genKey(v ...interface{}) string {
 	a := make([]string, 0, len(v))
 	for i := range v {

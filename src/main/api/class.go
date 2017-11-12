@@ -43,15 +43,15 @@ func (j *jsonClass) getID() int64 {
 }
 
 func (j *jsonClass) getNameRU(_ string) string {
-	return j.NameRU + "|" + j.Code
+	return j.NameRU
 }
 
 func (j *jsonClass) getNameUA(_ string) string {
-	return j.NameUA + "|" + j.Code
+	return j.NameUA
 }
 
 func (j *jsonClass) getNameEN(_ string) string {
-	return j.NameEN + "|" + j.Code
+	return j.NameEN
 }
 
 func (j *jsonClass) lang(l, _ string) {

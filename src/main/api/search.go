@@ -1,12 +1,47 @@
 package api
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"internal/ctxutil"
 )
+
+var (
+	mapPX = map[string][]string{
+		"ru": []string{prefixINN, prefixMaker, prefixClassATC, prefixSpecINF, prefixSpecACT},
+		"ua": []string{prefixINN, prefixMaker, prefixClassATC, prefixSpecDEC},
+	}
+
+	mapKB = map[string][]rune{
+		"en": []rune("qwertyuiop[]\\asdfghjkl;'zxcvbnm,./`QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?~!@#$%^&*()_+"),
+		"ru": []rune("йцукенгшщзхъ\\фывапролджэячсмитьбю.ёЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,Ё!\"№;%:?*()_+"),
+		"uk": []rune("йцукенгшщзхї\\фівапролджєячсмитьбю.'ЙЦУКЕНГШЩЗХЇ/ФІВАПРОЛДЖЄЯЧСМИТЬБЮ,₴!\"№;%:?*()_+"),
+	}
+)
+
+func convKB(s, from, to string) string {
+	lang1 := mapKB[from]
+	lang2 := mapKB[to]
+	if lang1 == nil || lang2 == nil {
+		return s
+	}
+
+	src := []rune(s)
+	res := make([]rune, len(src))
+	for i := range src {
+		for j := range lang1 {
+			if lang1[j] == src[i] {
+				res[i] = lang2[j]
+				break
+			}
+			res[i] = src[i]
+		}
+	}
+	return string(res)
+}
 
 type spec struct {
 	ID   int64   `json:"id,omitempty"`
@@ -22,20 +57,81 @@ type item struct {
 }
 
 type result struct {
-	INF []*item `json:"inf,omitempty"`
+	SPC []*item `json:"spc,omitempty"`
 	INN []*item `json:"inn,omitempty"`
 	ATC []*item `json:"atc,omitempty"`
 	ACT []*item `json:"act,omitempty"`
 	ORG []*item `json:"org,omitempty"`
 }
 
-func jsonToString(data []byte) (string, error) {
-	var v string
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return "", err
+/*
+	convName := convKB(v.Name, "en", "ru")
+	if langUA(r.Header) {
+		convName = convKB(v.Name, "en", "uk")
 	}
-	return v, nil
+*/
+func listSugg(h *dbxHelper) (interface{}, error) {
+	s, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	spx := mapPX[h.lang]
+	msg := make(chan string)
+	end := make(chan bool)
+	var wg sync.WaitGroup
+	for i := range spx {
+		p := spx[i]
+		wg.Add(1)
+		go func() {
+			c := h.getConn()
+			defer h.delConn(c)
+
+			r, err := findIn(c, p, h.lang, "*"+s+"*")
+			if err != nil {
+				fmt.Println(err)
+				return //nil, err
+			}
+			//fmt.Println(p, len(r))
+			for i := range r {
+				msg <- r[i].Name
+			}
+			wg.Done()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		end <- true
+	}()
+
+L:
+	for {
+		select {
+		case m := <-msg:
+			fmt.Println(m)
+		case <-end:
+			close(msg)
+			close(end)
+			break L
+		}
+	}
+
+	return s, nil
+}
+
+func findSugg(h *dbxHelper) (interface{}, error) {
+	s, err := jsonToA(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	return s, nil
 }
 
 func heatSearch(h *dbxHelper) (interface{}, error) {
@@ -132,34 +228,4 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	}
 
 	return time.Since(start).String(), nil
-}
-
-func listSugg(h *dbxHelper) (interface{}, error) {
-	s, err := jsonToString(h.data)
-	if err != nil {
-		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
-		return nil, err
-	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	//var wg sync.WaitGroup
-	//wg.Add(1)
-	//wg.Wait()
-
-	return s, nil
-}
-
-func findSugg(h *dbxHelper) (interface{}, error) {
-	s, err := jsonToString(h.data)
-	if err != nil {
-		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
-		return nil, err
-	}
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	return s, nil
 }
