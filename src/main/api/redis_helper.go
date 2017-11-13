@@ -705,12 +705,19 @@ type findRes struct {
 	Name string
 }
 
-func findIn(c redis.Conn, p, lang, match string) ([]*findRes, error) {
+//
+func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
+	text = strings.TrimSpace(strings.ToLower(text))
+	strs := strings.Split(text, " ")
+	if conj {
+		text = strs[0]
+	}
+
 	res := make([]*findRes, 0, 100)
 	var next int
 	var vals []interface{}
 	for done := false; !done; {
-		v, err := redis.Values(c.Do("ZSCAN", genKey(p, "srch", lang), next, "MATCH", match, "COUNT", 100))
+		v, err := redis.Values(c.Do("ZSCAN", genKey(p, "srch", lang), next, "MATCH", "*"+text+"*", "COUNT", 100))
 		if err != nil {
 			return nil, err
 		}
@@ -719,14 +726,28 @@ func findIn(c redis.Conn, p, lang, match string) ([]*findRes, error) {
 		vals, _ = redis.Values(v[1], err)
 
 		var r *findRes
+		var s string
+		var y bool
 		for i := range vals {
 			if i&1 != 1 {
 				continue // ignore even
 			}
-			r = &findRes{}
-			r.ID, _ = redis.Int64(vals[i], err)
-			r.Name, _ = redis.String(vals[i-1], err)
-			res = append(res, r)
+			s, _ = redis.String(vals[i-1], err)
+			y = true
+			if conj {
+				for j := 1; j < len(strs); j++ {
+					y = strings.Contains(s, strs[j])
+					if !y {
+						break
+					}
+				}
+			}
+			if y {
+				r = &findRes{}
+				r.ID, _ = redis.Int64(vals[i], err)
+				r.Name = s
+				res = append(res, r)
+			}
 		}
 		done = next == 0
 	}

@@ -23,7 +23,7 @@ var (
 	}
 )
 
-func convKB(s, from, to string) string {
+func convLayout(s, from, to string) string {
 	lang1 := mapKB[from]
 	lang2 := mapKB[to]
 	if lang1 == nil || lang2 == nil {
@@ -65,11 +65,8 @@ type result struct {
 	ORG []*item `json:"org,omitempty"`
 }
 
-/*
-
- */
 func listSugg(h *dbxHelper) (interface{}, error) {
-	a, err := jsonToA(h.data)
+	s, err := jsonToA(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -77,60 +74,78 @@ func listSugg(h *dbxHelper) (interface{}, error) {
 
 	// FIXME: check len(rune(s))
 
-	s := strings.Split(strings.TrimSpace(a), " ")
+	res := make([]string, 0, 100)
 	spx := mapPX[h.lang]
-	msg := make(chan string)
+	if len(spx) == 0 {
+		return res, nil
+	}
+
+	errc := make(chan error)
+	sugc := make(chan string)
 	var wg sync.WaitGroup
+
 	for i := range spx {
 		p := spx[i]
 		wg.Add(1)
-		go func() {
+		go func(s string) {
+			defer wg.Done()
+
 			c := h.getConn()
 			defer h.delConn(c)
 
-			r, err := findIn(c, p, h.lang, "*"+s[0]+"*")
+			r, err := findIn(c, p, h.lang, s, true)
 			if err != nil {
-				fmt.Println(err)
-				wg.Done()
-				return //nil, err
+				errc <- err // FIXME: add more context
+				return
 			}
 
+			// workaround for en layout
 			if len(r) == 0 {
-				s = convKB(s, "en", h.lang)
-				r, err = findIn(c, p, h.lang, "*"+s[0]+"*")
+				s = convLayout(s, "en", h.lang)
+				r, err = findIn(c, p, h.lang, s, true)
 				if err != nil {
-					fmt.Println(err)
-					wg.Done()
-					return //nil, err
+					errc <- err
+					return
 				}
 			}
-			//fmt.Println(p, len(r))
+
 			for i := range r {
-				msg <- r[i].Name
+				sugc <- r[i].Name
 			}
-			wg.Done()
-		}()
+		}(s)
 	}
 
-	end := make(chan bool)
+	done := make(chan struct{})
 	go func() {
 		wg.Wait()
-		end <- true
+		done <- struct{}{}
 	}()
 
-L:
+loop:
 	for {
 		select {
-		case m := <-msg:
-			fmt.Println(m)
-		case <-end:
-			close(msg)
-			close(end)
-			break L
+		case e := <-errc:
+			err = fmt.Errorf("%v", e)
+			if err != nil && strings.Compare(err.Error(), e.Error()) != 0 {
+				err = fmt.Errorf("%v: %v", err, e)
+			}
+		case s := <-sugc:
+			res = append(res, s)
+		case <-done:
+			close(done)
+			close(errc)
+			close(sugc)
+			break loop
 		}
 	}
 
-	return s, nil
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME: dupl > upper > sort (+ sw and c)
+
+	return res, nil
 }
 
 func findSugg(h *dbxHelper) (interface{}, error) {
