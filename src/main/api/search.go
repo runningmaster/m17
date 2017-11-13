@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,7 +19,7 @@ var (
 	mapKB = map[string][]rune{
 		"en": []rune("qwertyuiop[]\\asdfghjkl;'zxcvbnm,./`QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?~!@#$%^&*()_+"),
 		"ru": []rune("йцукенгшщзхъ\\фывапролджэячсмитьбю.ёЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,Ё!\"№;%:?*()_+"),
-		"uk": []rune("йцукенгшщзхї\\фівапролджєячсмитьбю.'ЙЦУКЕНГШЩЗХЇ/ФІВАПРОЛДЖЄЯЧСМИТЬБЮ,₴!\"№;%:?*()_+"),
+		"ua": []rune("йцукенгшщзхї\\фівапролджєячсмитьбю.'ЙЦУКЕНГШЩЗХЇ/ФІВАПРОЛДЖЄЯЧСМИТЬБЮ,₴!\"№;%:?*()_+"),
 	}
 )
 
@@ -65,21 +66,20 @@ type result struct {
 }
 
 /*
-	convName := convKB(v.Name, "en", "ru")
-	if langUA(r.Header) {
-		convName = convKB(v.Name, "en", "uk")
-	}
-*/
+
+ */
 func listSugg(h *dbxHelper) (interface{}, error) {
-	s, err := jsonToA(h.data)
+	a, err := jsonToA(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
 
+	// FIXME: check len(rune(s))
+
+	s := strings.Split(strings.TrimSpace(a), " ")
 	spx := mapPX[h.lang]
 	msg := make(chan string)
-	end := make(chan bool)
 	var wg sync.WaitGroup
 	for i := range spx {
 		p := spx[i]
@@ -88,10 +88,21 @@ func listSugg(h *dbxHelper) (interface{}, error) {
 			c := h.getConn()
 			defer h.delConn(c)
 
-			r, err := findIn(c, p, h.lang, "*"+s+"*")
+			r, err := findIn(c, p, h.lang, "*"+s[0]+"*")
 			if err != nil {
 				fmt.Println(err)
+				wg.Done()
 				return //nil, err
+			}
+
+			if len(r) == 0 {
+				s = convKB(s, "en", h.lang)
+				r, err = findIn(c, p, h.lang, "*"+s[0]+"*")
+				if err != nil {
+					fmt.Println(err)
+					wg.Done()
+					return //nil, err
+				}
 			}
 			//fmt.Println(p, len(r))
 			for i := range r {
@@ -101,6 +112,7 @@ func listSugg(h *dbxHelper) (interface{}, error) {
 		}()
 	}
 
+	end := make(chan bool)
 	go func() {
 		wg.Wait()
 		end <- true
