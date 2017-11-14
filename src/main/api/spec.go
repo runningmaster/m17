@@ -20,6 +20,7 @@ const (
 
 type jsonSpec struct {
 	ID         int64   `json:"id,omitempty"`
+	IDGP       int64   `json:"id_gp,omitempty"`
 	IDINN      []int64 `json:"id_inn,omitempty"`
 	IDDrug     []int64 `json:"id_drug,omitempty"`
 	IDMake     []int64 `json:"id_make,omitempty"`
@@ -36,8 +37,11 @@ type jsonSpec struct {
 	IDClassICD []int64 `json:"id_class_icd,omitempty"`
 	Name       string  `json:"name,omitempty"` // *
 	NameRU     string  `json:"name_ru,omitempty"`
+	NameRUSrc  string  `json:"name_ru_src,omitempty"`
 	NameUA     string  `json:"name_ua,omitempty"`
+	NameUASrc  string  `json:"name_ua_src,omitempty"`
 	NameEN     string  `json:"name_en,omitempty"`
+	NameENSrc  string  `json:"name_en_src,omitempty"`
 	Head       string  `json:"head,omitempty"` // *
 	HeadRU     string  `json:"head_ru,omitempty"`
 	HeadUA     string  `json:"head_ua,omitempty"`
@@ -63,6 +67,9 @@ func (j *jsonSpec) getID() int64 {
 
 func (j *jsonSpec) getNameRU(p string) string {
 	if p != prefixSpecDEC {
+		if j.NameRUSrc != "" {
+			return j.NameRUSrc
+		}
 		return j.NameRU
 	}
 	return ""
@@ -70,12 +77,18 @@ func (j *jsonSpec) getNameRU(p string) string {
 
 func (j *jsonSpec) getNameUA(p string) string {
 	if p == prefixSpecDEC {
+		if j.NameUASrc != "" {
+			return j.NameUASrc
+		}
 		return j.NameUA
 	}
 	return ""
 }
 
 func (j *jsonSpec) getNameEN(p string) string {
+	if j.NameRUSrc != "" {
+		return j.NameENSrc
+	}
 	return j.NameEN
 }
 
