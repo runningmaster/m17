@@ -707,10 +707,9 @@ type findRes struct {
 
 //
 func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
-	text = strings.TrimSpace(strings.ToLower(text))
-	strs := strings.Split(text, " ")
+	flds := strings.Fields(strings.ToLower(text))
 	if conj {
-		text = strs[0]
+		text = flds[0]
 	}
 
 	res := make([]*findRes, 0, 100)
@@ -735,8 +734,8 @@ func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
 			s, _ = redis.String(vals[i-1], err)
 			y = true
 			if conj {
-				for j := 1; j < len(strs); j++ {
-					y = strings.Contains(s, strs[j])
+				for j := 1; j < len(flds); j++ {
+					y = strings.Contains(s, flds[j])
 					if !y {
 						break
 					}
@@ -788,6 +787,34 @@ func int64ToStrings(v ...int64) []string {
 		r[i] = strconv.Itoa(int(v[i]))
 	}
 	return r
+}
+
+func uniqString(s []string) []string {
+	seen := make(map[string]struct{}, len(s))
+	j := 0
+	for _, v := range s {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		s[j] = v
+		j++
+	}
+	return s[:j]
+}
+
+func uniqInt64(s []int64) []int64 {
+	seen := make(map[int64]struct{}, len(s))
+	j := 0
+	for _, v := range s {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		s[j] = v
+		j++
+	}
+	return s[:j]
 }
 
 /*

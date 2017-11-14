@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -83,7 +84,6 @@ func listSugg(h *dbxHelper) (interface{}, error) {
 	errc := make(chan error)
 	sugc := make(chan string)
 	var wg sync.WaitGroup
-
 	for i := range spx {
 		p := spx[i]
 		wg.Add(1)
@@ -95,7 +95,7 @@ func listSugg(h *dbxHelper) (interface{}, error) {
 
 			r, err := findIn(c, p, h.lang, s, true)
 			if err != nil {
-				errc <- err // FIXME: add more context
+				errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
 				return
 			}
 
@@ -104,7 +104,7 @@ func listSugg(h *dbxHelper) (interface{}, error) {
 				s = convLayout(s, "en", h.lang)
 				r, err = findIn(c, p, h.lang, s, true)
 				if err != nil {
-					errc <- err
+					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
 					return
 				}
 			}
@@ -143,8 +143,33 @@ loop:
 		return nil, err
 	}
 
-	// FIXME: dupl > upper > sort (+ sw and c)
+	var n int // FIXME: remove n
+	for i := range res {
+		n = strings.Index(res[i], " (")
+		if n > 0 {
+			res[i] = res[i][:n]
+		}
+		n = strings.Index(res[i], "|")
+		if n > 0 {
+			res[i] = res[i][:n]
+		}
+		res[i] = strings.ToUpper(res[i])
+	}
+	res = uniqString(res)
 
+	s = strings.ToUpper(s)
+	coll := newCollator(h.lang)
+	sort.Slice(res,
+		func(i, j int) bool {
+			if strings.HasPrefix(res[i], s) && !strings.HasPrefix(res[j], s) {
+				return true
+			} else if !strings.HasPrefix(res[i], s) && strings.HasPrefix(res[j], s) {
+				return false
+			}
+
+			return coll.CompareString(res[i], res[j]) < 0
+		},
+	)
 	return res, nil
 }
 
