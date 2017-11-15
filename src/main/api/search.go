@@ -45,27 +45,6 @@ func convLayout(s, from, to string) string {
 	return string(res)
 }
 
-type spec struct {
-	ID   int64   `json:"id,omitempty"`
-	Name string  `json:"name,omitempty"`
-	Sale float64 `json:"sale,omitempty"`
-	Text bool    `json:"text,omitempty"`
-}
-
-type item struct {
-	ID   int64   `json:"id,omitempty"`
-	Name string  `json:"name,omitempty"`
-	Spec []*spec `json:"spec,omitempty"`
-}
-
-type result struct {
-	SPC []*item `json:"spc,omitempty"`
-	INN []*item `json:"inn,omitempty"`
-	ATC []*item `json:"atc,omitempty"`
-	ACT []*item `json:"act,omitempty"`
-	ORG []*item `json:"org,omitempty"`
-}
-
 func listSugg(h *dbxHelper) (interface{}, error) {
 	s, err := jsonToA(h.data)
 	if err != nil {
@@ -173,6 +152,25 @@ loop:
 	return res, nil
 }
 
+//type spec struct {
+//	ID   int64   `json:"id,omitempty"`
+//	Name string  `json:"name,omitempty"`
+//	Sale float64 `json:"sale,omitempty"`
+//	Text bool    `json:"text,omitempty"`
+//}
+
+type item struct {
+	ID        int64   `json:"id,omitempty"`
+	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
+	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
+	Name      string  `json:"name,omitempty"`
+}
+
+type result struct {
+	Kind string  `json:"kind,omitempty"`
+	Item []*item `json:"item,omitempty"`
+}
+
 func findSugg(h *dbxHelper) (interface{}, error) {
 	s, err := jsonToA(h.data)
 	if err != nil {
@@ -180,10 +178,107 @@ func findSugg(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
-	c := h.getConn()
-	defer h.delConn(c)
+	var res []*result
+	spx := mapPX[h.lang]
+	if len(spx) == 0 {
+		return res, nil
+	}
 
-	return s, nil
+	errc := make(chan error)
+	sugc := make(chan *item)
+	var wg sync.WaitGroup
+	for i := range spx {
+		p := spx[i]
+		wg.Add(1)
+		go func(s string) {
+			defer wg.Done()
+
+			c := h.getConn()
+			defer h.delConn(c)
+
+			r, err := findIn(c, p, h.lang, s, false)
+			if err != nil {
+				errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+				return
+			}
+
+			for i := range r {
+				sugc <- &item{r[i].ID, nil, nil, p}
+			}
+		}(s)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		done <- struct{}{}
+	}()
+
+	pmap := make(map[string][]int64, 5)
+loop:
+	for {
+		select {
+		case e := <-errc:
+			err = fmt.Errorf("%v", e)
+			if err != nil && strings.Compare(err.Error(), e.Error()) != 0 {
+				err = fmt.Errorf("%v: %v", err, e)
+			}
+		case s := <-sugc:
+			pmap[s.Name] = append(pmap[s.Name], s.ID)
+		case <-done:
+			close(done)
+			close(errc)
+			close(sugc)
+			break loop
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	res = makeResult(pmap)
+	//res = mineResult(res)
+	// 			res = append(res, s)
+	return res, nil
+}
+
+func makeResult(m map[string][]int64) []*result {
+	res := make([]*result, 0, 5)
+	var r *result
+	for k := range m {
+		r = &result{
+			Kind: k,
+		}
+		switch k {
+		case prefixSpecINF:
+			r.Item = []*item{
+				&item{
+					ID:        0,
+					IDSpecINF: m[k],
+					IDSpecDEC: nil,
+					Name:      "",
+				},
+			}
+		case prefixSpecDEC:
+			r.Item = []*item{
+				&item{
+					ID:        0,
+					IDSpecINF: nil,
+					IDSpecDEC: m[k],
+					Name:      "",
+				},
+			}
+		default:
+			for _, v := range m[k] {
+				r.Item = append(r.Item, &item{v, nil, nil, ""})
+			}
+		}
+
+		res = append(res, r)
+	}
+
+	return res
 }
 
 func heatSearch(h *dbxHelper) (interface{}, error) {
