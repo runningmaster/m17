@@ -708,9 +708,7 @@ type findRes struct {
 //
 func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
 	flds := strings.Fields(strings.ToLower(text))
-	if conj {
-		text = flds[0]
-	}
+	text = flds[0]
 
 	res := make([]*findRes, 0, 100)
 	var next int
