@@ -161,6 +161,16 @@ func makeINNs(x ...int64) jsonINNs {
 	return jsonINNs(v)
 }
 
+func makeINNsFromINNs(x ...*jsonINN) jsonINNs {
+	v := make([]int64, 0, len(x))
+	for i := range x {
+		if x[i] != nil {
+			v = append(v, x[i].ID)
+		}
+	}
+	return makeINNs(v...)
+}
+
 func loadINNLinks(c redis.Conn, p string, v []*jsonINN) error {
 	var err error
 	for i := range v {
@@ -298,15 +308,24 @@ func setINNX(h *dbxHelper, p string) (interface{}, error) {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
+	x := makeINNsFromINNs(v...)
 
 	c := h.getConn()
 	defer h.delConn(c)
+
+	err = loadHashers(c, p, false, x)
+	if err != nil {
+		return nil, err
+	}
+	err = freeSearchers(c, p, x)
+	if err != nil {
+		return nil, err
+	}
 
 	err = saveHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
-
 	err = saveSearchers(c, p, v)
 	if err != nil {
 		return nil, err

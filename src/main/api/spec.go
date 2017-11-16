@@ -20,10 +20,10 @@ const (
 
 type jsonSpec struct {
 	ID         int64   `json:"id,omitempty"`
-	IDGP       int64   `json:"id_gp,omitempty"`
 	IDINN      []int64 `json:"id_inn,omitempty"`
 	IDDrug     []int64 `json:"id_drug,omitempty"`
 	IDMake     []int64 `json:"id_make,omitempty"`
+	IDMakeGP   int64   `json:"id_make_gp,omitempty"`
 	IDSpecACT  []int64 `json:"id_spec_act,omitempty"`
 	IDSpecDEC  []int64 `json:"id_spec_dec,omitempty"`
 	IDSpecINF  []int64 `json:"id_spec_inf,omitempty"`
@@ -50,7 +50,7 @@ type jsonSpec struct {
 	TextRU     string  `json:"text_ru,omitempty"`
 	TextUA     string  `json:"text_ua,omitempty"`
 	TextEN     string  `json:"text_en,omitempty"`
-	IsInfo     bool    `json:"is_info,omitempty"`
+	Flag       int64   `json:"flag,omitempty"`
 	Slug       string  `json:"slug,omitempty"`
 	SlugGP     string  `json:"slug_gp,omitempty"` // [{"name":"foo", "slug": "bar"}]
 	ImageOrg   string  `json:"image_org,omitempty"`
@@ -67,29 +67,20 @@ func (j *jsonSpec) getID() int64 {
 
 func (j *jsonSpec) getNameRU(p string) string {
 	if p != prefixSpecDEC {
-		if j.NameRUSrc != "" {
-			return j.NameRUSrc
-		}
-		return j.NameRU
+		return j.NameRUSrc
 	}
 	return ""
 }
 
 func (j *jsonSpec) getNameUA(p string) string {
 	if p == prefixSpecDEC {
-		if j.NameUASrc != "" {
-			return j.NameUASrc
-		}
-		return j.NameUA
+		return j.NameUASrc
 	}
 	return ""
 }
 
 func (j *jsonSpec) getNameEN(p string) string {
-	if j.NameRUSrc != "" {
-		return j.NameENSrc
-	}
-	return j.NameEN
+	return j.NameENSrc
 }
 
 func (j *jsonSpec) lang(l, p string) {
@@ -131,52 +122,56 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 			"name_ru", // 1
 			"name_ua", // 2
 			"name_en", // 3
-			"is_info", // 4
+			"flag",    // 4
 			"slug",    // 5
 			"sale",    // 6
 		}
 	}
 	return []interface{}{
 		"id",         // 0
-		"name_ru",    // 1
-		"name_ua",    // 2
-		"name_en",    // 3
-		"head_ru",    // 4
-		"head_ua",    // 5
-		"head_en",    // 6
-		"text_ru",    // 7
-		"text_ua",    // 8
-		"text_en",    // 9
-		"is_info",    // 10
-		"slug",       // 11
-		"slug_gp",    // 12
-		"image_org",  // 13
-		"image_box",  // 14
-		"created_at", // 15
-		"updated_at", // 16
+		"id_make_gp", // 1
+		"name_ru",    // 2
+		"name_ua",    // 3
+		"name_en",    // 4
+		"head_ru",    // 5
+		"head_ua",    // 6
+		"head_en",    // 7
+		"text_ru",    // 8
+		"text_ua",    // 9
+		"text_en",    // 10
+		"flag",       // 11
+		"slug",       // 12
+		"slug_gp",    // 13
+		"image_org",  // 14
+		"image_box",  // 15
+		"created_at", // 16
+		"updated_at", // 17
 	}
 }
 
 func (j *jsonSpec) getValues() []interface{} {
-	j.IsInfo = len(j.TextRU) > 0 || len(j.TextUA) > 0
+	if len(j.TextRU) > 0 || len(j.TextUA) > 0 {
+		j.Flag = 1
+	}
 	return []interface{}{
 		j.ID,        // 0
-		j.NameRU,    // 1
-		j.NameUA,    // 2
-		j.NameEN,    // 3
-		j.HeadRU,    // 4
-		j.HeadUA,    // 5
-		j.HeadEN,    // 6
-		j.TextRU,    // 7
-		j.TextUA,    // 8
-		j.TextEN,    // 9
-		j.IsInfo,    // 10
-		j.Slug,      // 11
-		j.SlugGP,    // 12
-		j.ImageOrg,  // 13
-		j.ImageBox,  // 14
-		j.CreatedAt, // 15
-		j.UpdatedAt, // 16
+		j.IDMakeGP,  // 1
+		j.NameRU,    // 2
+		j.NameUA,    // 3
+		j.NameEN,    // 4
+		j.HeadRU,    // 5
+		j.HeadUA,    // 6
+		j.HeadEN,    // 7
+		j.TextRU,    // 8
+		j.TextUA,    // 9
+		j.TextEN,    // 10
+		j.Flag,      // 11
+		j.Slug,      // 12
+		j.SlugGP,    // 13
+		j.ImageOrg,  // 14
+		j.ImageBox,  // 15
+		j.CreatedAt, // 16
+		j.UpdatedAt, // 17
 	}
 }
 
@@ -196,7 +191,7 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 			case 3:
 				j.NameEN, _ = redis.String(v[i], nil)
 			case 4:
-				j.IsInfo, _ = redis.Bool(v[i], nil)
+				j.Flag, _ = redis.Int64(v[i], nil)
 			case 5:
 				j.Slug, _ = redis.String(v[i], nil)
 			case 6:
@@ -208,36 +203,38 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
 		case 1:
-			j.NameRU, _ = redis.String(v[i], nil)
+			j.IDMakeGP, _ = redis.Int64(v[i], nil)
 		case 2:
-			j.NameUA, _ = redis.String(v[i], nil)
+			j.NameRU, _ = redis.String(v[i], nil)
 		case 3:
-			j.NameEN, _ = redis.String(v[i], nil)
+			j.NameUA, _ = redis.String(v[i], nil)
 		case 4:
-			j.HeadRU, _ = redis.String(v[i], nil)
+			j.NameEN, _ = redis.String(v[i], nil)
 		case 5:
-			j.HeadUA, _ = redis.String(v[i], nil)
+			j.HeadRU, _ = redis.String(v[i], nil)
 		case 6:
-			j.HeadEN, _ = redis.String(v[i], nil)
+			j.HeadUA, _ = redis.String(v[i], nil)
 		case 7:
-			j.TextRU, _ = redis.String(v[i], nil)
+			j.HeadEN, _ = redis.String(v[i], nil)
 		case 8:
-			j.TextUA, _ = redis.String(v[i], nil)
+			j.TextRU, _ = redis.String(v[i], nil)
 		case 9:
-			j.TextEN, _ = redis.String(v[i], nil)
+			j.TextUA, _ = redis.String(v[i], nil)
 		case 10:
-			j.IsInfo, _ = redis.Bool(v[i], nil)
+			j.TextEN, _ = redis.String(v[i], nil)
 		case 11:
-			j.Slug, _ = redis.String(v[i], nil)
+			j.Flag, _ = redis.Int64(v[i], nil)
 		case 12:
-			j.SlugGP, _ = redis.String(v[i], nil)
+			j.Slug, _ = redis.String(v[i], nil)
 		case 13:
-			j.ImageOrg, _ = redis.String(v[i], nil)
+			j.SlugGP, _ = redis.String(v[i], nil)
 		case 14:
-			j.ImageBox, _ = redis.String(v[i], nil)
+			j.ImageOrg, _ = redis.String(v[i], nil)
 		case 15:
-			j.CreatedAt, _ = redis.Int64(v[i], nil)
+			j.ImageBox, _ = redis.String(v[i], nil)
 		case 16:
+			j.CreatedAt, _ = redis.Int64(v[i], nil)
+		case 17:
 			j.UpdatedAt, _ = redis.Int64(v[i], nil)
 		}
 	}
@@ -274,9 +271,9 @@ func (v jsonSpecs) sort(lang string) {
 			if v[i] == nil && v[j] != nil {
 				return false
 			}
-			if v[i].IsInfo && !v[j].IsInfo {
+			if v[i].Flag != 0 && v[j].Flag == 0 {
 				return true
-			} else if !v[i].IsInfo && v[j].IsInfo {
+			} else if v[i].Flag == 0 && v[j].Flag != 0 {
 				return false
 			}
 			if v[i].Sale > v[j].Sale {
@@ -312,6 +309,16 @@ func makeSpecs(x ...int64) jsonSpecs {
 		v[i] = &jsonSpec{ID: x[i]}
 	}
 	return jsonSpecs(v)
+}
+
+func makeSpecsFromSpecs(x ...*jsonSpec) jsonSpecs {
+	v := make([]int64, 0, len(x))
+	for i := range x {
+		if x[i] != nil {
+			v = append(v, x[i].ID)
+		}
+	}
+	return makeSpecs(v...)
 }
 
 func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
@@ -402,9 +409,15 @@ func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 		if err != nil {
 			return err
 		}
-		err = workaroundMakerGPLinks(c, p, saveLinkIDs, v[i].ID, v[i].IDMake...)
-		if err != nil {
-			return err
+		if v[i].IDMakeGP != 0 {
+			err = saveLinkIDs(c, p, prefixMaker, false, v[i].ID, v[i].IDMakeGP)
+			if err != nil {
+				return err
+			}
+			err = saveMakerGPLinks(c, v[i].IDMakeGP, v[i].IDMake...)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = saveLinkIDs(c, p, prefixSpecACT, true, v[i].ID, v[i].IDSpecACT...)
@@ -466,25 +479,6 @@ func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	return nil
 }
 
-func workaroundMakerGPLinks(c redis.Conn, p string, f func(redis.Conn, string, string, bool, int64, ...int64) error, x int64, v ...int64) error {
-	m := makeMakers(v...)
-	err := loadHashers(c, prefixMaker, true, m)
-	if err != nil {
-		return err
-	}
-
-	for i := range m {
-		if m[i].IDNode != 0 {
-			err = f(c, p, prefixMaker, false, x, m[i].IDNode)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	var val []int64
 	var err error
@@ -505,11 +499,17 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 			return err
 		}
 
-		val, _ = loadLinkIDs(c, p, prefixMaker, v[i].ID)
-		err = workaroundMakerGPLinks(c, p, freeLinkIDs, v[i].ID, val...)
-		if err != nil {
-			return err
+		if v[i].IDMakeGP != 0 {
+			err = freeMakerGPLinks(c, v[i].IDMakeGP, v[i].IDMake...)
+			if err != nil {
+				return err
+			}
+			err = freeLinkIDs(c, p, prefixMaker, false, v[i].ID, v[i].IDMakeGP)
+			if err != nil {
+				return err
+			}
 		}
+		val, _ = loadLinkIDs(c, p, prefixMaker, v[i].ID)
 		err = freeLinkIDs(c, p, prefixMaker, true, v[i].ID, val...)
 		if err != nil {
 			return err
@@ -694,20 +694,36 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
+	x := makeSpecsFromSpecs(v...)
 
 	c := h.getConn()
 	defer h.delConn(c)
+
+	err = loadHashers(c, p, false, x)
+	if err != nil {
+		return nil, err
+	}
+	err = loadSpecLinks(c, p, x)
+	if err != nil {
+		return nil, err
+	}
+	err = freeSearchers(c, p, x)
+	if err != nil {
+		return nil, err
+	}
+	err = freeSpecLinks(c, p, x...)
+	if err != nil {
+		return nil, err
+	}
 
 	err = saveHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
-
 	err = saveSearchers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
-
 	err = saveSpecLinks(c, p, v...)
 	if err != nil {
 		return nil, err

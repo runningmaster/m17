@@ -122,16 +122,16 @@ loop:
 		return nil, err
 	}
 
-	var n int // FIXME: remove n
+	//var n int // FIXME: remove n
 	for i := range res {
-		n = strings.Index(res[i], " (")
-		if n > 0 {
-			res[i] = res[i][:n]
-		}
-		n = strings.Index(res[i], "|")
-		if n > 0 {
-			res[i] = res[i][:n]
-		}
+		//n = strings.Index(res[i], " (")
+		//if n > 0 {
+		//	res[i] = res[i][:n]
+		//}
+		//n = strings.Index(res[i], "|")
+		//if n > 0 {
+		//	res[i] = res[i][:n]
+		//}
 		res[i] = strings.ToUpper(res[i])
 	}
 	res = uniqString(res)

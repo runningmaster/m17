@@ -28,7 +28,7 @@ type jsonMaker struct {
 	TextRU    string  `json:"text_ru,omitempty"`
 	TextUA    string  `json:"text_ua,omitempty"`
 	TextEN    string  `json:"text_en,omitempty"`
-	IsGP      bool    `json:"is_gp,omitempty"`
+	FlagGP    int64   `json:"flag_gp,omitempty"`
 	Logo      string  `json:"logo,omitempty"`
 	Slug      string  `json:"slug,omitempty"`
 }
@@ -78,7 +78,7 @@ func (j *jsonMaker) getFields(list bool) []interface{} {
 			"name_ru", // 1
 			"name_ua", // 2
 			"name_en", // 3
-			"is_gp",   // 4
+			"flag_gp", // 4
 			"slug",    // 5
 		}
 	}
@@ -91,7 +91,7 @@ func (j *jsonMaker) getFields(list bool) []interface{} {
 		"text_ru", // 5
 		"text_ua", // 6
 		"text_en", // 7
-		"is_gp",   // 8
+		"flag_gp", // 8
 		"logo",    // 9
 		"slug",    // 10
 	}
@@ -107,7 +107,7 @@ func (j *jsonMaker) getValues() []interface{} {
 		j.TextRU, // 5
 		j.TextUA, // 6
 		j.TextEN, // 7
-		j.IsGP,   // 8
+		j.FlagGP, // 8
 		j.Logo,   // 9
 		j.Slug,   // 10
 	}
@@ -129,7 +129,7 @@ func (j *jsonMaker) setValues(list bool, v ...interface{}) {
 			case 3:
 				j.NameEN, _ = redis.String(v[i], nil)
 			case 4:
-				j.IsGP, _ = redis.Bool(v[i], nil)
+				j.FlagGP, _ = redis.Int64(v[i], nil)
 			case 5:
 				j.Slug, _ = redis.String(v[i], nil)
 			}
@@ -153,7 +153,7 @@ func (j *jsonMaker) setValues(list bool, v ...interface{}) {
 		case 7:
 			j.TextEN, _ = redis.String(v[i], nil)
 		case 8:
-			j.IsGP, _ = redis.Bool(v[i], nil)
+			j.FlagGP, _ = redis.Int64(v[i], nil)
 		case 9:
 			j.Logo, _ = redis.String(v[i], nil)
 		case 10:
@@ -221,6 +221,54 @@ func makeMakers(x ...int64) jsonMakers {
 		v[i] = &jsonMaker{ID: x[i]}
 	}
 	return jsonMakers(v)
+}
+
+func makeMakersFromMakers(x ...*jsonMaker) jsonMakers {
+	v := make([]int64, 0, len(x))
+	for i := range x {
+		if x[i] != nil {
+			v = append(v, x[i].ID)
+		}
+	}
+	return makeMakers(v...)
+}
+
+func saveMakerGPLinks(c redis.Conn, x int64, v ...int64) error {
+	var err error
+	for i := range v {
+		if v[i] != x {
+			err = c.Send("HSET", genKey(prefixMaker, v[i]), "id_node", x)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = c.Send("HINCRBY", genKey(prefixMaker, x), "flag_gp", 1)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return c.Flush()
+}
+
+func freeMakerGPLinks(c redis.Conn, x int64, v ...int64) error {
+	var err error
+	for i := range v {
+		if v[i] != x {
+			err = c.Send("HSET", genKey(prefixMaker, v[i]), "id_node", 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = c.Send("HINCRBY", genKey(prefixMaker, x), "flag_gp", -1)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return c.Flush()
 }
 
 func loadMakerLinks(c redis.Conn, p string, v []*jsonMaker) error {
@@ -357,15 +405,24 @@ func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
+	x := makeMakersFromMakers(v...)
 
 	c := h.getConn()
 	defer h.delConn(c)
+
+	err = loadHashers(c, p, false, x)
+	if err != nil {
+		return nil, err
+	}
+	err = freeSearchers(c, p, x)
+	if err != nil {
+		return nil, err
+	}
 
 	err = saveHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
-
 	err = saveSearchers(c, p, v)
 	if err != nil {
 		return nil, err

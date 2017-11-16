@@ -377,6 +377,10 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 			if h.getID() == 0 {
 				return fmt.Errorf("ID must have value (%s)", p)
 			}
+			err = c.Send("DEL", genKey(p, h.getID()))
+			if err != nil {
+				return err
+			}
 			err = c.Send("HMSET", mixKeyAndFieldsAndValues(p, h)...)
 			if err != nil {
 				return err
@@ -498,8 +502,6 @@ func normName(s string) string {
 		"*", "",
 		"&", "",
 		"†", "",
-		"<I>", "", // FIXME: need full HTTML cleanup
-		"</I>", "",
 	)
 	return strings.TrimSpace(strings.ToLower(r.Replace(s)))
 }
