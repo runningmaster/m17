@@ -17,7 +17,6 @@ const (
 
 type jsonMaker struct {
 	ID        int64   `json:"id,omitempty"`
-	IDNode    int64   `json:"id_node,omitempty"`
 	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
 	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
 	Name      string  `json:"name,omitempty"` // *
@@ -28,7 +27,7 @@ type jsonMaker struct {
 	TextRU    string  `json:"text_ru,omitempty"`
 	TextUA    string  `json:"text_ua,omitempty"`
 	TextEN    string  `json:"text_en,omitempty"`
-	FlagGP    int64   `json:"flag_gp,omitempty"`
+	MarkGP    bool    `json:"mark_gp,omitempty"`
 	Logo      string  `json:"logo,omitempty"`
 	Slug      string  `json:"slug,omitempty"`
 }
@@ -78,38 +77,36 @@ func (j *jsonMaker) getFields(list bool) []interface{} {
 			"name_ru", // 1
 			"name_ua", // 2
 			"name_en", // 3
-			"flag_gp", // 4
+			"mark_gp", // 4
 			"slug",    // 5
 		}
 	}
 	return []interface{}{
 		"id",      // 0
-		"id_node", // 1
-		"name_ru", // 2
-		"name_ua", // 3
-		"name_en", // 4
-		"text_ru", // 5
-		"text_ua", // 6
-		"text_en", // 7
-		"flag_gp", // 8
-		"logo",    // 9
-		"slug",    // 10
+		"name_ru", // 1
+		"name_ua", // 2
+		"name_en", // 3
+		"text_ru", // 4
+		"text_ua", // 5
+		"text_en", // 6
+		"mark_gp", // 7
+		"logo",    // 8
+		"slug",    // 9
 	}
 }
 
 func (j *jsonMaker) getValues() []interface{} {
 	return []interface{}{
 		j.ID,     // 0
-		j.IDNode, // 1
-		j.NameRU, // 2
-		j.NameUA, // 3
-		j.NameEN, // 4
-		j.TextRU, // 5
-		j.TextUA, // 6
-		j.TextEN, // 7
-		j.FlagGP, // 8
-		j.Logo,   // 9
-		j.Slug,   // 10
+		j.NameRU, // 1
+		j.NameUA, // 2
+		j.NameEN, // 3
+		j.TextRU, // 4
+		j.TextUA, // 5
+		j.TextEN, // 6
+		j.MarkGP, // 7
+		j.Logo,   // 8
+		j.Slug,   // 9
 	}
 }
 
@@ -129,7 +126,7 @@ func (j *jsonMaker) setValues(list bool, v ...interface{}) {
 			case 3:
 				j.NameEN, _ = redis.String(v[i], nil)
 			case 4:
-				j.FlagGP, _ = redis.Int64(v[i], nil)
+				j.MarkGP, _ = redis.Bool(v[i], nil)
 			case 5:
 				j.Slug, _ = redis.String(v[i], nil)
 			}
@@ -139,24 +136,22 @@ func (j *jsonMaker) setValues(list bool, v ...interface{}) {
 		case 0:
 			j.ID, _ = redis.Int64(v[i], nil)
 		case 1:
-			j.IDNode, _ = redis.Int64(v[i], nil)
-		case 2:
 			j.NameRU, _ = redis.String(v[i], nil)
-		case 3:
+		case 2:
 			j.NameUA, _ = redis.String(v[i], nil)
-		case 4:
+		case 3:
 			j.NameEN, _ = redis.String(v[i], nil)
-		case 5:
+		case 4:
 			j.TextRU, _ = redis.String(v[i], nil)
-		case 6:
+		case 5:
 			j.TextUA, _ = redis.String(v[i], nil)
-		case 7:
+		case 6:
 			j.TextEN, _ = redis.String(v[i], nil)
+		case 7:
+			j.MarkGP, _ = redis.Bool(v[i], nil)
 		case 8:
-			j.FlagGP, _ = redis.Int64(v[i], nil)
-		case 9:
 			j.Logo, _ = redis.String(v[i], nil)
-		case 10:
+		case 9:
 			j.Slug, _ = redis.String(v[i], nil)
 		}
 	}
@@ -221,54 +216,6 @@ func makeMakers(x ...int64) jsonMakers {
 		v[i] = &jsonMaker{ID: x[i]}
 	}
 	return jsonMakers(v)
-}
-
-func makeMakersFromMakers(x ...*jsonMaker) jsonMakers {
-	v := make([]int64, 0, len(x))
-	for i := range x {
-		if x[i] != nil {
-			v = append(v, x[i].ID)
-		}
-	}
-	return makeMakers(v...)
-}
-
-func saveMakerGPLinks(c redis.Conn, x int64, v ...int64) error {
-	var err error
-	for i := range v {
-		if v[i] != x {
-			err = c.Send("HSET", genKey(prefixMaker, v[i]), "id_node", x)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = c.Send("HINCRBY", genKey(prefixMaker, x), "flag_gp", 1)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return c.Flush()
-}
-
-func freeMakerGPLinks(c redis.Conn, x int64, v ...int64) error {
-	var err error
-	for i := range v {
-		if v[i] != x {
-			err = c.Send("HSET", genKey(prefixMaker, v[i]), "id_node", 0)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = c.Send("HINCRBY", genKey(prefixMaker, x), "flag_gp", -1)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return c.Flush()
 }
 
 func loadMakerLinks(c redis.Conn, p string, v []*jsonMaker) error {
@@ -405,18 +352,25 @@ func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
-	x := makeMakersFromMakers(v...)
 
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, x)
+	i, err := findExistsIDs(c, p, mineIDsFromHashers(v)...)
 	if err != nil {
 		return nil, err
 	}
-	err = freeSearchers(c, p, x)
-	if err != nil {
-		return nil, err
+
+	x := makeMakers(i...)
+	if len(x) > 0 {
+		err = loadHashers(c, p, false, x)
+		if err != nil {
+			return nil, err
+		}
+		err = freeSearchers(c, p, x)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = saveHashers(c, p, v)

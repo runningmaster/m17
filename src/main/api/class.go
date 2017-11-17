@@ -185,16 +185,6 @@ func makeClasses(x ...int64) jsonClasses {
 	return jsonClasses(v)
 }
 
-func makeClassesFromClasses(x ...*jsonClass) jsonClasses {
-	v := make([]int64, 0, len(x))
-	for i := range x {
-		if x[i] != nil {
-			v = append(v, x[i].ID)
-		}
-	}
-	return makeClasses(v...)
-}
-
 func loadClassLinks(c redis.Conn, p string, v []*jsonClass) error {
 	var err error
 	for i := range v {
@@ -351,28 +341,35 @@ func setClassX(h *dbxHelper, p string) (interface{}, error) {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
-	x := makeClassesFromClasses(v...)
 
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, x)
+	i, err := findExistsIDs(c, p, mineIDsFromHashers(v)...)
 	if err != nil {
 		return nil, err
 	}
-	err = loadClassLinks(c, p, x)
-	if err != nil {
-		return nil, err
-	}
-	if p == prefixClassATC {
-		err = freeSearchers(c, p, x)
+
+	x := makeClasses(i...)
+	if len(x) > 0 {
+		err = loadHashers(c, p, false, x)
 		if err != nil {
 			return nil, err
 		}
-	}
-	err = freeClassLinks(c, p, x...)
-	if err != nil {
-		return nil, err
+		err = loadClassLinks(c, p, x)
+		if err != nil {
+			return nil, err
+		}
+		if p == prefixClassATC {
+			err = freeSearchers(c, p, x)
+			if err != nil {
+				return nil, err
+			}
+		}
+		err = freeClassLinks(c, p, x...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = saveHashers(c, p, v)

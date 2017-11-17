@@ -50,9 +50,9 @@ type jsonSpec struct {
 	TextRU     string  `json:"text_ru,omitempty"`
 	TextUA     string  `json:"text_ua,omitempty"`
 	TextEN     string  `json:"text_en,omitempty"`
-	Flag       int64   `json:"flag,omitempty"`
 	Slug       string  `json:"slug,omitempty"`
-	SlugGP     string  `json:"slug_gp,omitempty"` // [{"name":"foo", "slug": "bar"}]
+	Fake       string  `json:"fake,omitempty"` // [{"name":"foo", "slug": "bar"}]
+	Full       bool    `json:"full,omitempty"`
 	ImageOrg   string  `json:"image_org,omitempty"`
 	ImageBox   string  `json:"image_box,omitempty"`
 	CreatedAt  int64   `json:"created_at,omitempty"`
@@ -122,8 +122,8 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 			"name_ru", // 1
 			"name_ua", // 2
 			"name_en", // 3
-			"flag",    // 4
-			"slug",    // 5
+			"slug",    // 4
+			"fake",    // 5
 			"sale",    // 6
 		}
 	}
@@ -139,9 +139,9 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 		"text_ru",    // 8
 		"text_ua",    // 9
 		"text_en",    // 10
-		"flag",       // 11
-		"slug",       // 12
-		"slug_gp",    // 13
+		"slug",       // 11
+		"fake",       // 12
+		"full",       // 13
 		"image_org",  // 14
 		"image_box",  // 15
 		"created_at", // 16
@@ -150,9 +150,7 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 }
 
 func (j *jsonSpec) getValues() []interface{} {
-	if len(j.TextRU) > 0 || len(j.TextUA) > 0 {
-		j.Flag = 1
-	}
+	j.Full = len(j.TextRU) > 0 || len(j.TextUA) > 0
 	return []interface{}{
 		j.ID,        // 0
 		j.IDMakeGP,  // 1
@@ -165,9 +163,9 @@ func (j *jsonSpec) getValues() []interface{} {
 		j.TextRU,    // 8
 		j.TextUA,    // 9
 		j.TextEN,    // 10
-		j.Flag,      // 11
-		j.Slug,      // 12
-		j.SlugGP,    // 13
+		j.Slug,      // 11
+		j.Fake,      // 12
+		j.Full,      // 13
 		j.ImageOrg,  // 14
 		j.ImageBox,  // 15
 		j.CreatedAt, // 16
@@ -191,9 +189,9 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 			case 3:
 				j.NameEN, _ = redis.String(v[i], nil)
 			case 4:
-				j.Flag, _ = redis.Int64(v[i], nil)
-			case 5:
 				j.Slug, _ = redis.String(v[i], nil)
+			case 5:
+				j.Full, _ = redis.Bool(v[i], nil)
 			case 6:
 				j.Sale, _ = redis.Float64(v[i], nil)
 			}
@@ -223,11 +221,11 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 		case 10:
 			j.TextEN, _ = redis.String(v[i], nil)
 		case 11:
-			j.Flag, _ = redis.Int64(v[i], nil)
-		case 12:
 			j.Slug, _ = redis.String(v[i], nil)
+		case 12:
+			j.Fake, _ = redis.String(v[i], nil)
 		case 13:
-			j.SlugGP, _ = redis.String(v[i], nil)
+			j.Full, _ = redis.Bool(v[i], nil)
 		case 14:
 			j.ImageOrg, _ = redis.String(v[i], nil)
 		case 15:
@@ -271,9 +269,9 @@ func (v jsonSpecs) sort(lang string) {
 			if v[i] == nil && v[j] != nil {
 				return false
 			}
-			if v[i].Flag != 0 && v[j].Flag == 0 {
+			if v[i].Full && !v[j].Full {
 				return true
-			} else if v[i].Flag == 0 && v[j].Flag != 0 {
+			} else if !v[i].Full && v[j].Full {
 				return false
 			}
 			if v[i].Sale > v[j].Sale {
@@ -309,16 +307,6 @@ func makeSpecs(x ...int64) jsonSpecs {
 		v[i] = &jsonSpec{ID: x[i]}
 	}
 	return jsonSpecs(v)
-}
-
-func makeSpecsFromSpecs(x ...*jsonSpec) jsonSpecs {
-	v := make([]int64, 0, len(x))
-	for i := range x {
-		if x[i] != nil {
-			v = append(v, x[i].ID)
-		}
-	}
-	return makeSpecs(v...)
 }
 
 func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
@@ -414,10 +402,6 @@ func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 			if err != nil {
 				return err
 			}
-			err = saveMakerGPLinks(c, v[i].IDMakeGP, v[i].IDMake...)
-			if err != nil {
-				return err
-			}
 		}
 
 		err = saveLinkIDs(c, p, prefixSpecACT, true, v[i].ID, v[i].IDSpecACT...)
@@ -499,20 +483,16 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 			return err
 		}
 
-		if v[i].IDMakeGP != 0 {
-			err = freeMakerGPLinks(c, v[i].IDMakeGP, v[i].IDMake...)
-			if err != nil {
-				return err
-			}
-			err = freeLinkIDs(c, p, prefixMaker, false, v[i].ID, v[i].IDMakeGP)
-			if err != nil {
-				return err
-			}
-		}
 		val, _ = loadLinkIDs(c, p, prefixMaker, v[i].ID)
 		err = freeLinkIDs(c, p, prefixMaker, true, v[i].ID, val...)
 		if err != nil {
 			return err
+		}
+		if v[i].IDMakeGP != 0 {
+			err = freeLinkIDs(c, p, prefixMaker, false, v[i].ID, v[i].IDMakeGP)
+			if err != nil {
+				return err
+			}
 		}
 
 		val, _ = loadLinkIDs(c, p, prefixSpecDEC, v[i].ID)
@@ -694,26 +674,33 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
 	}
-	x := makeSpecsFromSpecs(v...)
 
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, x)
+	i, err := findExistsIDs(c, p, mineIDsFromHashers(v)...)
 	if err != nil {
 		return nil, err
 	}
-	err = loadSpecLinks(c, p, x)
-	if err != nil {
-		return nil, err
-	}
-	err = freeSearchers(c, p, x)
-	if err != nil {
-		return nil, err
-	}
-	err = freeSpecLinks(c, p, x...)
-	if err != nil {
-		return nil, err
+
+	x := makeSpecs(i...)
+	if len(x) > 0 {
+		err = loadHashers(c, p, false, x)
+		if err != nil {
+			return nil, err
+		}
+		err = loadSpecLinks(c, p, x)
+		if err != nil {
+			return nil, err
+		}
+		err = freeSearchers(c, p, x)
+		if err != nil {
+			return nil, err
+		}
+		err = freeSpecLinks(c, p, x...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = saveHashers(c, p, v)

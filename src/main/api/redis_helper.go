@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -344,6 +345,10 @@ func normLang(s, p string, v ruler) {
 	}
 }
 
+func notZeroValue(v interface{}) bool {
+	return !(v == nil || reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface()))
+}
+
 func mixKeyAndFields(p string, list bool, h hasher) []interface{} {
 	f := h.getFields(list)
 	r := make([]interface{}, 0, 1+len(f))
@@ -356,8 +361,9 @@ func mixKeyAndFieldsAndValues(p string, h hasher) []interface{} {
 	r := make([]interface{}, 0, 1+len(f)*2)
 	r = append(r, genKey(p, h.getID()))
 	for i := range v {
-		// ? check zero values here
-		r = append(r, f[i], v[i])
+		if notZeroValue(v) {
+			r = append(r, f[i], v[i])
+		}
 	}
 	return r
 }
@@ -495,6 +501,52 @@ func freeHashers(c redis.Conn, p string, v ruler) error {
 	return c.Flush()
 }
 
+func mineIDsFromHashers(v ruler) []int64 {
+	x := make([]int64, 0, v.len())
+	for i := 0; i < v.len(); i++ {
+		if v.null(i) {
+			continue
+		}
+		if h, ok := v.elem(i).(hasher); ok {
+			x = append(x, h.getID())
+		}
+	}
+	return x
+}
+
+func findExistsIDs(c redis.Conn, p string, v ...int64) ([]int64, error) {
+	if len(v) == 0 {
+		return nil, nil
+	}
+
+	var err error
+	for i := range v {
+		err = c.Send("EXISTS", genKey(p, v[i]))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = c.Flush()
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]int64, 0, len(v))
+	var r bool
+	for i := range v {
+		r, err = redis.Bool(c.Receive())
+		if err != nil {
+			return nil, err
+		}
+		if r {
+			res = append(res, v[i])
+		}
+	}
+
+	return res, nil
+}
+
 func normName(s string) string {
 	r := strings.NewReplacer(
 		"®", "",
@@ -507,6 +559,10 @@ func normName(s string) string {
 }
 
 func saveSearchers(c redis.Conn, p string, v ruler) error {
+	if v.len() == 0 {
+		return nil
+	}
+
 	var id int64
 	var nameRU, nameUA, nameEN string
 	var abcdRU, abcdUA, abcdEN rune
@@ -582,6 +638,10 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 }
 
 func freeSearchers(c redis.Conn, p string, v ruler) error {
+	if v.len() == 0 {
+		return nil
+	}
+
 	var id int64
 	var nameRU, nameUA, nameEN string
 	var abcdRU, abcdUA, abcdEN rune
