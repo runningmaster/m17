@@ -46,7 +46,7 @@ func convLayout(s, from, to string) string {
 }
 
 func listSugg(h *dbxHelper) (interface{}, error) {
-	s, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -172,7 +172,7 @@ type result struct {
 }
 
 func findSugg(h *dbxHelper) (interface{}, error) {
-	s, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -287,14 +287,12 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	var ids []int64
 	var err error
 
-	ids, err = loadSyncIDs(c, prefixClassATC, 0)
+	atc, err := makeClassesFromIDs(loadSyncIDs(c, prefixClassATC, 0))
 	if err != nil {
 		return nil, err
 	}
-	atc := makeClasses(ids...)
 	err = loadHashers(c, prefixClassATC, true, atc)
 	if err != nil {
 		return nil, err
@@ -304,11 +302,10 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
-	ids, err = loadSyncIDs(c, prefixINN, 0)
+	inn, err := makeINNsFromIDs(loadSyncIDs(c, prefixINN, 0))
 	if err != nil {
 		return nil, err
 	}
-	inn := makeINNs(ids...)
 	err = loadHashers(c, prefixINN, true, inn)
 	if err != nil {
 		return nil, err
@@ -318,11 +315,10 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
-	ids, err = loadSyncIDs(c, prefixMaker, 0)
+	org, err := makeMakersFromIDs(loadSyncIDs(c, prefixMaker, 0))
 	if err != nil {
 		return nil, err
 	}
-	org := makeMakers(ids...)
 	err = loadHashers(c, prefixMaker, true, org)
 	if err != nil {
 		return nil, err
@@ -332,11 +328,10 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
-	ids, err = loadSyncIDs(c, prefixSpecACT, 0)
+	act, err := makeSpecsFromIDs(loadSyncIDs(c, prefixSpecACT, 0))
 	if err != nil {
 		return nil, err
 	}
-	act := makeSpecs(ids...)
 	err = loadHashers(c, prefixSpecACT, true, act)
 	if err != nil {
 		return nil, err
@@ -346,11 +341,10 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
-	ids, err = loadSyncIDs(c, prefixSpecINF, 0)
+	inf, err := makeSpecsFromIDs(loadSyncIDs(c, prefixSpecINF, 0))
 	if err != nil {
 		return nil, err
 	}
-	inf := makeSpecs(ids...)
 	err = loadHashers(c, prefixSpecINF, true, inf)
 	if err != nil {
 		return nil, err
@@ -360,11 +354,10 @@ func heatSearch(h *dbxHelper) (interface{}, error) {
 		return nil, err
 	}
 
-	ids, err = loadSyncIDs(c, prefixSpecDEC, 0)
+	dec, err := makeSpecsFromIDs(loadSyncIDs(c, prefixSpecDEC, 0))
 	if err != nil {
 		return nil, err
 	}
-	dec := makeSpecs(ids...)
 	err = loadHashers(c, prefixSpecDEC, true, dec)
 	if err != nil {
 		return nil, err

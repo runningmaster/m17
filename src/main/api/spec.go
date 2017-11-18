@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"internal/ctxutil"
 
@@ -284,7 +283,7 @@ func (v jsonSpecs) sort(lang string) {
 	)
 }
 
-func jsonToSpecs(data []byte) (jsonSpecs, error) {
+func makeSpecsFromJSON(data []byte) (jsonSpecs, error) {
 	var v []*jsonSpec
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -293,20 +292,15 @@ func jsonToSpecs(data []byte) (jsonSpecs, error) {
 	return jsonSpecs(v), nil
 }
 
-func jsonToSpecsFromIDs(data []byte) (jsonSpecs, error) {
-	v, err := jsonToIDs(data)
+func makeSpecsFromIDs(v []int64, err error) (jsonSpecs, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeSpecs(v...), nil
-}
-
-func makeSpecs(x ...int64) jsonSpecs {
-	v := make([]*jsonSpec, len(x))
-	for i := range v {
-		v[i] = &jsonSpec{ID: x[i]}
+	res := make([]*jsonSpec, len(v))
+	for i := range res {
+		res[i] = &jsonSpec{ID: v[i]}
 	}
-	return jsonSpecs(v)
+	return jsonSpecs(res), nil
 }
 
 func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
@@ -560,7 +554,7 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 }
 
 func getSpecXSync(h *dbxHelper, p string) ([]int64, error) {
-	v, err := jsonToID(h.data)
+	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -585,7 +579,7 @@ func getSpecXAbcd(h *dbxHelper, p string) ([]string, error) {
 }
 
 func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
-	a, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -594,7 +588,7 @@ func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, h.lang)
+	v, err := loadAbcdLs(c, p, s, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -603,7 +597,7 @@ func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 }
 
 func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
-	v, err := jsonToSpecsFromIDs(h.data)
+	v, err := makeSpecsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -625,7 +619,7 @@ func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
 }
 
 func getSpecXListAZ(h *dbxHelper, p string) (jsonSpecs, error) {
-	a, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -634,17 +628,17 @@ func getSpecXListAZ(h *dbxHelper, p string) (jsonSpecs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, h.lang)
+	v, err := loadAbcdLs(c, p, s, h.lang)
 	if err != nil {
 		return nil, err
 	}
 
-	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	h.data = int64sToJSON(v)
 	return getSpecXList(h, p)
 }
 
 func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
-	v, err := jsonToSpecsFromIDs(h.data)
+	v, err := makeSpecsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -669,7 +663,7 @@ func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 }
 
 func setSpecX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToSpecs(h.data)
+	v, err := makeSpecsFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -678,12 +672,11 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	i, err := findExistsIDs(c, p, mineIDsFromHashers(v)...)
+	x, err := makeSpecsFromIDs(findExistsIDs(c, p, mineIDsFromHashers(v)...))
 	if err != nil {
 		return nil, err
 	}
 
-	x := makeSpecs(i...)
 	if len(x) > 0 {
 		err = loadHashers(c, p, false, x)
 		if err != nil {
@@ -720,7 +713,7 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 }
 
 func delSpecX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToSpecsFromIDs(h.data)
+	v, err := makeSpecsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err

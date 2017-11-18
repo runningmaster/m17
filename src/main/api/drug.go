@@ -258,7 +258,7 @@ func (v jsonDrugs) sort(_ string) {
 	//)
 }
 
-func jsonToDrugs(data []byte) (jsonDrugs, error) {
+func makeDrugsFromJSON(data []byte) (jsonDrugs, error) {
 	var v []*jsonDrug
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -267,20 +267,15 @@ func jsonToDrugs(data []byte) (jsonDrugs, error) {
 	return jsonDrugs(v), nil
 }
 
-func jsonToDrugsFromIDs(data []byte) (jsonDrugs, error) {
-	v, err := jsonToIDs(data)
+func makeDrugsFromIDs(v []int64, err error) (jsonDrugs, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeDrugs(v...), nil
-}
-
-func makeDrugs(x ...int64) jsonDrugs {
-	v := make([]*jsonDrug, len(x))
-	for i := range v {
-		v[i] = &jsonDrug{ID: x[i]}
+	res := make([]*jsonDrug, len(v))
+	for i := range res {
+		res[i] = &jsonDrug{ID: v[i]}
 	}
-	return jsonDrugs(v)
+	return jsonDrugs(res), nil
 }
 
 func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
@@ -303,7 +298,7 @@ func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
 }
 
 func getDrugXSync(h *dbxHelper, p string) ([]int64, error) {
-	v, err := jsonToID(h.data)
+	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -316,7 +311,7 @@ func getDrugXSync(h *dbxHelper, p string) ([]int64, error) {
 }
 
 func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
-	v, err := jsonToDrugsFromIDs(h.data)
+	v, err := makeDrugsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -341,7 +336,7 @@ func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
 }
 
 func setDrugX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToDrugs(h.data)
+	v, err := makeDrugsFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -359,7 +354,7 @@ func setDrugX(h *dbxHelper, p string) (interface{}, error) {
 }
 
 func delDrugX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToDrugsFromIDs(h.data)
+	v, err := makeDrugsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err

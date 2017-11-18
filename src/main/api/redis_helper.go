@@ -2,12 +2,9 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -96,6 +93,12 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"set-maker":         setMaker,
 	"del-maker":         delMaker,
 
+	"get-drug-sync": getDrugSync,
+	"get-drug":      getDrug,
+	"set-drug":      setDrug,
+	"set-drug-sale": setDrugSale,
+	"del-drug":      delDrug,
+
 	"get-spec-act-sync":    getSpecACTSync,
 	"get-spec-act-abcd":    getSpecACTAbcd,
 	"get-spec-act-abcd-ls": getSpecACTAbcdLs,
@@ -122,12 +125,6 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-spec-dec":         getSpecDEC,
 	"set-spec-dec":         setSpecDEC,
 	"del-spec-dec":         delSpecDEC,
-
-	"get-drug-sync": getDrugSync,
-	"get-drug":      getDrug,
-	"set-drug":      setDrug,
-	"set-drug-sale": setDrugSale,
-	"del-drug":      delDrug,
 
 	"list-sugg":   listSugg,
 	"find-sugg":   findSugg,
@@ -210,33 +207,6 @@ func (h *dbxHelper) exec(s string) (interface{}, error) {
 //	Q  float64 `json:"q,omitempty"`
 //	V  float64 `json:"v,omitempty"`
 //}
-
-func jsonToA(data []byte) (string, error) {
-	var v string
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return "", err
-	}
-	return v, nil
-}
-
-func jsonToID(data []byte) (int64, error) {
-	var v int64
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return 0, err
-	}
-	return v, nil
-}
-
-func jsonToIDs(data []byte) ([]int64, error) {
-	var v []int64
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
-}
 
 func freeLinkIDs(c redis.Conn, p1, p2 string, s bool, x int64, v ...int64) error {
 	if len(v) == 0 {
@@ -343,10 +313,6 @@ func normLang(s, p string, v ruler) {
 			l.lang(s, p)
 		}
 	}
-}
-
-func notZeroValue(v interface{}) bool {
-	return !(v == nil || reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface()))
 }
 
 func mixKeyAndFields(p string, list bool, h hasher) []interface{} {
@@ -545,17 +511,6 @@ func findExistsIDs(c redis.Conn, p string, v ...int64) ([]int64, error) {
 	}
 
 	return res, nil
-}
-
-func normName(s string) string {
-	r := strings.NewReplacer(
-		"®", "",
-		"™", "",
-		"*", "",
-		"&", "",
-		"†", "",
-	)
-	return strings.TrimSpace(strings.ToLower(r.Replace(s)))
 }
 
 func saveSearchers(c redis.Conn, p string, v ruler) error {
@@ -813,82 +768,3 @@ func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
 
 	return res, nil
 }
-
-func genKey(v ...interface{}) string {
-	a := make([]string, 0, len(v))
-	for i := range v {
-		switch x := v[i].(type) {
-		case []byte:
-			a = append(a, string(x))
-		case int:
-			a = append(a, strconv.Itoa(x))
-		case int64:
-			a = append(a, strconv.Itoa(int(x)))
-		case string:
-			a = append(a, x)
-		default:
-			a = append(a, fmt.Sprintf("%v", x))
-		}
-	}
-	return strings.Join(a, ":")
-}
-
-func intsToInt64s(v ...int) []int64 {
-	r := make([]int64, len(v))
-	for i := range v {
-		r[i] = int64(v[i])
-	}
-	return r
-}
-
-func int64ToStrings(v ...int64) []string {
-	r := make([]string, len(v))
-	for i := range v {
-		r[i] = strconv.Itoa(int(v[i]))
-	}
-	return r
-}
-
-func uniqString(s []string) []string {
-	seen := make(map[string]struct{}, len(s))
-	j := 0
-	for _, v := range s {
-		if _, ok := seen[v]; ok {
-			continue
-		}
-		seen[v] = struct{}{}
-		s[j] = v
-		j++
-	}
-	return s[:j]
-}
-
-func uniqInt64(s []int64) []int64 {
-	seen := make(map[int64]struct{}, len(s))
-	j := 0
-	for _, v := range s {
-		if _, ok := seen[v]; ok {
-			continue
-		}
-		seen[v] = struct{}{}
-		s[j] = v
-		j++
-	}
-	return s[:j]
-}
-
-/*
-func SliceUniqMap(s []int) []int {
-    seen := make(map[int]struct{}, len(s))
-    j := 0
-    for _, v := range s {
-        if _, ok := seen[v]; ok {
-            continue
-        }
-        seen[v] = struct{}{}
-        s[j] = v
-        j++
-    }
-    return s[:j]
-}
-*/

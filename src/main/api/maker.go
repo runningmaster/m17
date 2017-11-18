@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
-	"strings"
 
 	"internal/ctxutil"
 
@@ -193,7 +192,7 @@ func (v jsonMakers) sort(lang string) {
 	)
 }
 
-func jsonToMakers(data []byte) (jsonMakers, error) {
+func makeMakersFromJSON(data []byte) (jsonMakers, error) {
 	var v []*jsonMaker
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -202,20 +201,15 @@ func jsonToMakers(data []byte) (jsonMakers, error) {
 	return jsonMakers(v), nil
 }
 
-func jsonToMakersFromIDs(data []byte) (jsonMakers, error) {
-	v, err := jsonToIDs(data)
+func makeMakersFromIDs(v []int64, err error) (jsonMakers, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeMakers(v...), nil
-}
-
-func makeMakers(x ...int64) jsonMakers {
-	v := make([]*jsonMaker, len(x))
-	for i := range v {
-		v[i] = &jsonMaker{ID: x[i]}
+	res := make([]*jsonMaker, len(v))
+	for i := range res {
+		res[i] = &jsonMaker{ID: v[i]}
 	}
-	return jsonMakers(v)
+	return jsonMakers(res), nil
 }
 
 func loadMakerLinks(c redis.Conn, p string, v []*jsonMaker) error {
@@ -238,7 +232,7 @@ func loadMakerLinks(c redis.Conn, p string, v []*jsonMaker) error {
 }
 
 func getMakerXSync(h *dbxHelper, p string) ([]int64, error) {
-	v, err := jsonToID(h.data)
+	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -263,7 +257,7 @@ func getMakerXAbcd(h *dbxHelper, p string) ([]string, error) {
 }
 
 func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
-	a, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -272,7 +266,7 @@ func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, h.lang)
+	v, err := loadAbcdLs(c, p, s, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +275,7 @@ func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 }
 
 func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
-	v, err := jsonToMakersFromIDs(h.data)
+	v, err := makeMakersFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -303,7 +297,7 @@ func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
 }
 
 func getMakerXListAZ(h *dbxHelper, p string) (jsonMakers, error) {
-	a, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -312,17 +306,17 @@ func getMakerXListAZ(h *dbxHelper, p string) (jsonMakers, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, h.lang)
+	v, err := loadAbcdLs(c, p, s, h.lang)
 	if err != nil {
 		return nil, err
 	}
 
-	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	h.data = int64sToJSON(v)
 	return getMakerXList(h, p)
 }
 
 func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
-	v, err := jsonToMakersFromIDs(h.data)
+	v, err := makeMakersFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -347,7 +341,7 @@ func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 }
 
 func setMakerX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToMakers(h.data)
+	v, err := makeMakersFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -356,12 +350,11 @@ func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	i, err := findExistsIDs(c, p, mineIDsFromHashers(v)...)
+	x, err := makeMakersFromIDs(findExistsIDs(c, p, mineIDsFromHashers(v)...))
 	if err != nil {
 		return nil, err
 	}
 
-	x := makeMakers(i...)
 	if len(x) > 0 {
 		err = loadHashers(c, p, false, x)
 		if err != nil {
@@ -386,7 +379,7 @@ func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 }
 
 func delMakerX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToMakersFromIDs(h.data)
+	v, err := makeMakersFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err

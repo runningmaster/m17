@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"internal/ctxutil"
 
@@ -136,7 +135,7 @@ func (v jsonINNs) sort(lang string) {
 	)
 }
 
-func jsonToINNs(data []byte) (jsonINNs, error) {
+func makeINNsFromJSON(data []byte) (jsonINNs, error) {
 	var v []*jsonINN
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -145,20 +144,15 @@ func jsonToINNs(data []byte) (jsonINNs, error) {
 	return jsonINNs(v), nil
 }
 
-func jsonToINNsFromIDs(data []byte) (jsonINNs, error) {
-	v, err := jsonToIDs(data)
+func makeINNsFromIDs(v []int64, err error) (jsonINNs, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeINNs(v...), nil
-}
-
-func makeINNs(x ...int64) jsonINNs {
-	v := make([]*jsonINN, len(x))
-	for i := range v {
-		v[i] = &jsonINN{ID: x[i]}
+	res := make([]*jsonINN, len(v))
+	for i := range res {
+		res[i] = &jsonINN{ID: v[i]}
 	}
-	return jsonINNs(v)
+	return jsonINNs(res), nil
 }
 
 func loadINNLinks(c redis.Conn, p string, v []*jsonINN) error {
@@ -181,7 +175,7 @@ func loadINNLinks(c redis.Conn, p string, v []*jsonINN) error {
 }
 
 func getINNXSync(h *dbxHelper, p string) ([]int64, error) {
-	v, err := jsonToID(h.data)
+	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -206,7 +200,7 @@ func getINNXAbcd(h *dbxHelper, p string) ([]string, error) {
 }
 
 func getINNXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
-	a, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -215,19 +209,19 @@ func getINNXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, h.lang)
+	v, err := loadAbcdLs(c, p, s, h.lang)
 	if err != nil {
 		return nil, err
 	}
 
-	//	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	//	h.data = int64sToJSON(v)
 	//	x, err := getINNXList
 
 	return v, nil
 }
 
 func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
-	v, err := jsonToINNsFromIDs(h.data)
+	v, err := makeINNsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -249,7 +243,7 @@ func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
 }
 
 func getINNXListAZ(h *dbxHelper, p string) (jsonINNs, error) {
-	a, err := jsonToA(h.data)
+	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -258,17 +252,17 @@ func getINNXListAZ(h *dbxHelper, p string) (jsonINNs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	v, err := loadAbcdLs(c, p, a, h.lang)
+	v, err := loadAbcdLs(c, p, s, h.lang)
 	if err != nil {
 		return nil, err
 	}
 
-	h.data = []byte("[" + strings.Join(int64ToStrings(v...), ",") + "]")
+	h.data = int64sToJSON(v)
 	return getINNXList(h, p)
 }
 
 func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
-	v, err := jsonToINNsFromIDs(h.data)
+	v, err := makeINNsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -293,7 +287,7 @@ func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 }
 
 func setINNX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToINNs(h.data)
+	v, err := makeINNsFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -302,12 +296,11 @@ func setINNX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	i, err := findExistsIDs(c, p, mineIDsFromHashers(v)...)
+	x, err := makeINNsFromIDs(findExistsIDs(c, p, mineIDsFromHashers(v)...))
 	if err != nil {
 		return nil, err
 	}
 
-	x := makeINNs(i...)
 	if len(x) > 0 {
 		err = loadHashers(c, p, false, x)
 		if err != nil {
@@ -332,7 +325,7 @@ func setINNX(h *dbxHelper, p string) (interface{}, error) {
 }
 
 func delINNX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToINNsFromIDs(h.data)
+	v, err := makeINNsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err

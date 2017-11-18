@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"internal/ctxutil"
 
@@ -160,7 +159,7 @@ func (v jsonClasses) sort(lang string) {
 	)
 }
 
-func jsonToClasses(data []byte) (jsonClasses, error) {
+func makeClassesFromJSON(data []byte) (jsonClasses, error) {
 	var v []*jsonClass
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -169,20 +168,15 @@ func jsonToClasses(data []byte) (jsonClasses, error) {
 	return jsonClasses(v), nil
 }
 
-func jsonToClassesFromIDs(data []byte) (jsonClasses, error) {
-	v, err := jsonToIDs(data)
+func makeClassesFromIDs(v []int64, err error) (jsonClasses, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeClasses(v...), nil
-}
-
-func makeClasses(x ...int64) jsonClasses {
-	v := make([]*jsonClass, len(x))
-	for i := range v {
-		v[i] = &jsonClass{ID: x[i]}
+	res := make([]*jsonClass, len(v))
+	for i := range res {
+		res[i] = &jsonClass{ID: v[i]}
 	}
-	return jsonClasses(v)
+	return jsonClasses(res), nil
 }
 
 func loadClassLinks(c redis.Conn, p string, v []*jsonClass) error {
@@ -239,7 +233,7 @@ func freeClassLinks(c redis.Conn, p string, v ...*jsonClass) error {
 }
 
 func getClassXSync(h *dbxHelper, p string) ([]int64, error) {
-	v, err := jsonToID(h.data)
+	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -282,7 +276,7 @@ func mineClassRootIDs(c redis.Conn, p string, v []*jsonClass) ([]int64, error) {
 
 func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
 	h.data = []byte("[0]")
-	v, err := jsonToClassesFromIDs(h.data)
+	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +289,7 @@ func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
 		return nil, err
 	}
 
-	h.data = []byte("[" + strings.Join(int64ToStrings(r...), ",") + "]")
+	h.data = int64sToJSON(r)
 	return getClassXNext(h, p)
 }
 
@@ -311,7 +305,7 @@ func getClassXNext(h *dbxHelper, p string) (jsonClasses, error) {
 }
 
 func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
-	v, err := jsonToClassesFromIDs(h.data)
+	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -336,7 +330,7 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 }
 
 func setClassX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToClasses(h.data)
+	v, err := makeClassesFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
@@ -345,12 +339,11 @@ func setClassX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	i, err := findExistsIDs(c, p, mineIDsFromHashers(v)...)
+	x, err := makeClassesFromIDs(findExistsIDs(c, p, mineIDsFromHashers(v)...))
 	if err != nil {
 		return nil, err
 	}
 
-	x := makeClasses(i...)
 	if len(x) > 0 {
 		err = loadHashers(c, p, false, x)
 		if err != nil {
@@ -391,7 +384,7 @@ func setClassX(h *dbxHelper, p string) (interface{}, error) {
 }
 
 func delClassX(h *dbxHelper, p string) (interface{}, error) {
-	v, err := jsonToClassesFromIDs(h.data)
+	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 		return nil, err
