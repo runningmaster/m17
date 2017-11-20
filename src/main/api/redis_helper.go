@@ -367,6 +367,18 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 	return c.Flush()
 }
 
+func loadHashFieldAsString(c redis.Conn, p, s string, x int64) (string, error) {
+	key := genKey(p, x)
+	res, err := redis.Strings(c.Do("HMGET", key, s))
+	if err != nil {
+		return "", err
+	}
+	if len(res) == 0 {
+		return "", fmt.Errorf("got %v", len(res))
+	}
+	return res[0], nil
+}
+
 func loadHashers(c redis.Conn, p string, list bool, v ruler) error {
 	if v.len() == 0 {
 		return nil

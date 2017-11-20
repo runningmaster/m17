@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sort"
 
@@ -89,9 +88,6 @@ func (j *jsonSpec) lang(l, p string) {
 			j.Name = j.NameRU
 			j.Head = j.HeadRU
 			j.Text = j.TextRU
-		}
-		if p == prefixSpecACT {
-			j.Name = fmt.Sprintf("%s (%s)", j.NameRU, j.NameEN)
 		}
 	case "ua":
 		if p == prefixSpecDEC {

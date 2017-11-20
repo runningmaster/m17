@@ -122,16 +122,7 @@ loop:
 		return nil, err
 	}
 
-	//var n int // FIXME: remove n
 	for i := range res {
-		//n = strings.Index(res[i], " (")
-		//if n > 0 {
-		//	res[i] = res[i][:n]
-		//}
-		//n = strings.Index(res[i], "|")
-		//if n > 0 {
-		//	res[i] = res[i][:n]
-		//}
 		res[i] = strings.ToUpper(res[i])
 	}
 	res = uniqString(res)
@@ -237,8 +228,11 @@ loop:
 		return nil, err
 	}
 
-	res = makeResult(pmap)
-	//res = mineResult(res)
+	//res =
+	res, err = mineResult(h, makeResult(pmap))
+	if err != nil {
+		return nil, err
+	}
 	// 			res = append(res, s)
 	return res, nil
 }
@@ -255,7 +249,7 @@ func makeResult(m map[string][]int64) []*result {
 			r.Item = []*item{
 				&item{
 					ID:        0,
-					IDSpecINF: m[k],
+					IDSpecINF: uniqInt64(m[k]),
 					IDSpecDEC: nil,
 					Name:      "",
 				},
@@ -265,7 +259,7 @@ func makeResult(m map[string][]int64) []*result {
 				&item{
 					ID:        0,
 					IDSpecINF: nil,
-					IDSpecDEC: m[k],
+					IDSpecDEC: uniqInt64(m[k]),
 					Name:      "",
 				},
 			}
@@ -279,6 +273,73 @@ func makeResult(m map[string][]int64) []*result {
 	}
 
 	return res
+}
+
+func mineResult(h *dbxHelper, v []*result) ([]*result, error) {
+	errc := make(chan error)
+	//	sugc := make(chan *item)
+	var wg sync.WaitGroup
+	for i := range v {
+		// FIXME: load list ?
+		if strings.HasPrefix(v[i].Kind, prefixSpecINF) || strings.HasPrefix(v[i].Kind, prefixSpecDEC) {
+			continue
+		}
+		p := v[i].Kind
+		for j := range v[i].Item {
+			x := v[i].Item[j]
+			wg.Add(1)
+			go func(p string, v *item) {
+				defer wg.Done()
+
+				c := h.getConn()
+				defer h.delConn(c)
+				var err error
+				// FIXME: lang
+				v.Name, err = loadHashFieldAsString(c, p, "name_ru", v.ID)
+				if err != nil {
+					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+					return
+				}
+
+				v.IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v.ID)
+				if err != nil {
+					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+					return
+				}
+			}(p, x)
+		}
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		done <- struct{}{}
+	}()
+
+	var err error
+loop:
+	for {
+		select {
+		case e := <-errc:
+			err = fmt.Errorf("%v", e)
+			if err != nil && strings.Compare(err.Error(), e.Error()) != 0 {
+				err = fmt.Errorf("%v: %v", err, e)
+			}
+			//		case s := <-sugc:
+			//			pmap[s.Name] = append(pmap[s.Name], s.ID)
+		case <-done:
+			close(done)
+			close(errc)
+			//			close(sugc)
+			break loop
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 func heatSearch(h *dbxHelper) (interface{}, error) {

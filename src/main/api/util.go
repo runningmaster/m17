@@ -70,18 +70,18 @@ func int64sToJSON(v []int64) []byte {
 	return r
 }
 
-func uniqInt64(s []int64) []int64 {
-	seen := make(map[int64]struct{}, len(s))
+func uniqInt64(x []int64) []int64 {
+	seen := make(map[int64]struct{}, len(x))
 	j := 0
-	for _, v := range s {
+	for _, v := range x {
 		if _, ok := seen[v]; ok {
 			continue
 		}
 		seen[v] = struct{}{}
-		s[j] = v
+		x[j] = v
 		j++
 	}
-	return s[:j]
+	return x[:j]
 }
 
 func uniqString(s []string) []string {
