@@ -55,8 +55,7 @@ type jsonSpec struct {
 	ImageBox   string  `json:"image_box,omitempty"`
 	CreatedAt  int64   `json:"created_at,omitempty"`
 	UpdatedAt  int64   `json:"updated_at,omitempty"`
-
-	Sale float64 `json:"sale,omitempty"`
+	Sale       float64 `json:"sale,omitempty"`
 }
 
 func (j *jsonSpec) getID() int64 {
@@ -141,6 +140,7 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 		"image_box",  // 15
 		"created_at", // 16
 		"updated_at", // 17
+		"sale",       // 18
 	}
 }
 
@@ -165,6 +165,7 @@ func (j *jsonSpec) getValues() []interface{} {
 		j.ImageBox,  // 15
 		j.CreatedAt, // 16
 		j.UpdatedAt, // 17
+		j.Sale,      // 18
 	}
 }
 
@@ -229,6 +230,8 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 			j.CreatedAt, _ = redis.Int64(v[i], nil)
 		case 17:
 			j.UpdatedAt, _ = redis.Int64(v[i], nil)
+		case 18:
+			j.Sale, _ = redis.Float64(v[i], nil)
 		}
 	}
 }
@@ -602,7 +605,7 @@ func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, true, v)
+	err = loadHashers(c, p, v, true)
 	if err != nil {
 		return nil, err
 	}
@@ -643,7 +646,7 @@ func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, v)
+	err = loadHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -674,7 +677,7 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 	}
 
 	if len(x) > 0 {
-		err = loadHashers(c, p, false, x)
+		err = loadHashers(c, p, x)
 		if err != nil {
 			return nil, err
 		}
@@ -708,6 +711,35 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
+func setSpecXSale(h *dbxHelper, p string) (interface{}, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := makeSpecsFromIDs(loadSyncIDs(c, p, 0))
+	if err != nil {
+		return nil, err
+	}
+
+	var d jsonDrugs
+	for i := range v {
+		d, err = makeDrugsFromIDs(loadLinkIDs(c, p, prefixDrug, v[i].ID))
+		err = loadHashers(c, prefixDrug, d)
+		if err != nil {
+			return nil, err
+		}
+		for j := range d {
+			v[i].Sale = v[i].Sale + d[j].Value
+		}
+	}
+
+	err = saveHashers(c, p, v, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
+}
+
 func delSpecX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := makeSpecsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
@@ -718,7 +750,7 @@ func delSpecX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, v)
+	err = loadHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -805,6 +837,10 @@ func setSpecINF(h *dbxHelper) (interface{}, error) {
 	return setSpecX(h, prefixSpecINF)
 }
 
+func setSpecINFSale(h *dbxHelper) (interface{}, error) {
+	return setSpecXSale(h, prefixSpecINF)
+}
+
 func delSpecINF(h *dbxHelper) (interface{}, error) {
 	return delSpecX(h, prefixSpecINF)
 }
@@ -837,6 +873,10 @@ func getSpecDEC(h *dbxHelper) (interface{}, error) {
 
 func setSpecDEC(h *dbxHelper) (interface{}, error) {
 	return setSpecX(h, prefixSpecDEC)
+}
+
+func setSpecDECSale(h *dbxHelper) (interface{}, error) {
+	return setSpecXSale(h, prefixSpecDEC)
 }
 
 func delSpecDEC(h *dbxHelper) (interface{}, error) {

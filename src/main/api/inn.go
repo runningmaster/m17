@@ -230,7 +230,7 @@ func getINNXList(h *dbxHelper, p string) (jsonINNs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, true, v)
+	err = loadHashers(c, p, v, true)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func getINNX(h *dbxHelper, p string) (jsonINNs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, v)
+	err = loadHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func setINNX(h *dbxHelper, p string) (interface{}, error) {
 	}
 
 	if len(x) > 0 {
-		err = loadHashers(c, p, false, x)
+		err = loadHashers(c, p, x)
 		if err != nil {
 			return nil, err
 		}
@@ -334,7 +334,7 @@ func delINNX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, v)
+	err = loadHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}

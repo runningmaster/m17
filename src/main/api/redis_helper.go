@@ -115,6 +115,7 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-spec-inf-list-az": getSpecINFListAZ,
 	"get-spec-inf":         getSpecINF,
 	"set-spec-inf":         setSpecINF,
+	"set-spec-inf-sale":    setSpecINFSale,
 	"del-spec-inf":         delSpecINF,
 
 	"get-spec-dec-sync":    getSpecDECSync,
@@ -124,11 +125,11 @@ var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
 	"get-spec-dec-list-az": getSpecDECListAZ,
 	"get-spec-dec":         getSpecDEC,
 	"set-spec-dec":         setSpecDEC,
+	"set-spec-dec-sale":    setSpecDECSale,
 	"del-spec-dec":         delSpecDEC,
 
-	"list-sugg":   listSugg,
-	"find-sugg":   findSugg,
-	"heat-search": heatSearch,
+	"list-sugg": listSugg,
+	"find-sugg": findSugg,
 }
 
 type rediser interface {
@@ -201,12 +202,6 @@ func (h *dbxHelper) exec(s string) (interface{}, error) {
 	h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
 	return nil, fmt.Errorf("unknown func %q", s)
 }
-
-//type jsonSale struct {
-//	ID int64   `json:"id,omitempty"`
-//	Q  float64 `json:"q,omitempty"`
-//	V  float64 `json:"v,omitempty"`
-//}
 
 func freeLinkIDs(c redis.Conn, p1, p2 string, s bool, x int64, v ...int64) error {
 	if len(v) == 0 {
@@ -334,7 +329,7 @@ func mixKeyAndFieldsAndValues(p string, h hasher) []interface{} {
 	return r
 }
 
-func saveHashers(c redis.Conn, p string, v ruler) error {
+func saveHashers(c redis.Conn, p string, v ruler, onlyUpdate ...bool) error {
 	if v.len() == 0 {
 		return nil
 	}
@@ -349,9 +344,11 @@ func saveHashers(c redis.Conn, p string, v ruler) error {
 			if h.getID() == 0 {
 				return fmt.Errorf("ID must have value (%s)", p)
 			}
-			err = c.Send("DEL", genKey(p, h.getID()))
-			if err != nil {
-				return err
+			if len(onlyUpdate) == 0 {
+				err = c.Send("DEL", genKey(p, h.getID()))
+				if err != nil {
+					return err
+				}
 			}
 			err = c.Send("HMSET", mixKeyAndFieldsAndValues(p, h)...)
 			if err != nil {
@@ -379,11 +376,12 @@ func loadHashFieldAsString(c redis.Conn, p, s string, x int64) (string, error) {
 	return res[0], nil
 }
 
-func loadHashers(c redis.Conn, p string, list bool, v ruler) error {
+func loadHashers(c redis.Conn, p string, v ruler, mustBeList ...bool) error {
 	if v.len() == 0 {
 		return nil
 	}
 
+	l := len(mustBeList) > 0
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if v.null(i) {
@@ -391,7 +389,7 @@ func loadHashers(c redis.Conn, p string, list bool, v ruler) error {
 		}
 
 		if h, ok := v.elem(i).(hasher); ok {
-			err = c.Send("HMGET", mixKeyAndFields(p, list, h)...)
+			err = c.Send("HMGET", mixKeyAndFields(p, l, h)...)
 			if err != nil {
 				return err
 			}
@@ -420,7 +418,7 @@ func loadHashers(c redis.Conn, p string, list bool, v ruler) error {
 			continue
 		}
 		if h, ok := v.elem(i).(hasher); ok {
-			h.setValues(list, r...)
+			h.setValues(l, r...)
 		}
 	}
 

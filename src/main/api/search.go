@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"internal/ctxutil"
 )
@@ -277,7 +276,6 @@ func makeResult(m map[string][]int64) []*result {
 
 func mineResult(h *dbxHelper, v []*result) ([]*result, error) {
 	errc := make(chan error)
-	//	sugc := make(chan *item)
 	var wg sync.WaitGroup
 	for i := range v {
 		// FIXME: load list ?
@@ -293,18 +291,25 @@ func mineResult(h *dbxHelper, v []*result) ([]*result, error) {
 
 				c := h.getConn()
 				defer h.delConn(c)
+
 				var err error
-				// FIXME: lang
-				v.Name, err = loadHashFieldAsString(c, p, "name_ru", v.ID)
+				v.Name, err = loadHashFieldAsString(c, p, iifString(h.lang == "ru", "name_ru", "name_ua"), v.ID)
 				if err != nil {
 					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
 					return
 				}
-
-				v.IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v.ID)
-				if err != nil {
-					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
-					return
+				if h.lang == "ru" {
+					v.IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v.ID)
+					if err != nil {
+						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+						return
+					}
+				} else {
+					v.IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v.ID)
+					if err != nil {
+						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+						return
+					}
 				}
 			}(p, x)
 		}
@@ -325,12 +330,9 @@ loop:
 			if err != nil && strings.Compare(err.Error(), e.Error()) != 0 {
 				err = fmt.Errorf("%v: %v", err, e)
 			}
-			//		case s := <-sugc:
-			//			pmap[s.Name] = append(pmap[s.Name], s.ID)
 		case <-done:
 			close(done)
 			close(errc)
-			//			close(sugc)
 			break loop
 		}
 	}
@@ -340,93 +342,4 @@ loop:
 	}
 
 	return v, nil
-}
-
-func heatSearch(h *dbxHelper) (interface{}, error) {
-	start := time.Now()
-
-	c := h.getConn()
-	defer h.delConn(c)
-
-	var err error
-
-	atc, err := makeClassesFromIDs(loadSyncIDs(c, prefixClassATC, 0))
-	if err != nil {
-		return nil, err
-	}
-	err = loadHashers(c, prefixClassATC, true, atc)
-	if err != nil {
-		return nil, err
-	}
-	err = saveSearchers(c, prefixClassATC, atc)
-	if err != nil {
-		return nil, err
-	}
-
-	inn, err := makeINNsFromIDs(loadSyncIDs(c, prefixINN, 0))
-	if err != nil {
-		return nil, err
-	}
-	err = loadHashers(c, prefixINN, true, inn)
-	if err != nil {
-		return nil, err
-	}
-	err = saveSearchers(c, prefixINN, inn)
-	if err != nil {
-		return nil, err
-	}
-
-	org, err := makeMakersFromIDs(loadSyncIDs(c, prefixMaker, 0))
-	if err != nil {
-		return nil, err
-	}
-	err = loadHashers(c, prefixMaker, true, org)
-	if err != nil {
-		return nil, err
-	}
-	err = saveSearchers(c, prefixMaker, org)
-	if err != nil {
-		return nil, err
-	}
-
-	act, err := makeSpecsFromIDs(loadSyncIDs(c, prefixSpecACT, 0))
-	if err != nil {
-		return nil, err
-	}
-	err = loadHashers(c, prefixSpecACT, true, act)
-	if err != nil {
-		return nil, err
-	}
-	err = saveSearchers(c, prefixSpecACT, act)
-	if err != nil {
-		return nil, err
-	}
-
-	inf, err := makeSpecsFromIDs(loadSyncIDs(c, prefixSpecINF, 0))
-	if err != nil {
-		return nil, err
-	}
-	err = loadHashers(c, prefixSpecINF, true, inf)
-	if err != nil {
-		return nil, err
-	}
-	err = saveSearchers(c, prefixSpecINF, inf)
-	if err != nil {
-		return nil, err
-	}
-
-	dec, err := makeSpecsFromIDs(loadSyncIDs(c, prefixSpecDEC, 0))
-	if err != nil {
-		return nil, err
-	}
-	err = loadHashers(c, prefixSpecDEC, true, dec)
-	if err != nil {
-		return nil, err
-	}
-	err = saveSearchers(c, prefixSpecDEC, dec)
-	if err != nil {
-		return nil, err
-	}
-
-	return time.Since(start).String(), nil
 }

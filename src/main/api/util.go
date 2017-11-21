@@ -101,3 +101,10 @@ func uniqString(s []string) []string {
 func notZeroValue(v interface{}) bool {
 	return !(v == nil || reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface()))
 }
+
+func iifString(cond bool, s1, s2 string) string {
+	if cond {
+		return s1
+	}
+	return s2
+}

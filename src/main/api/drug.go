@@ -42,8 +42,14 @@ type jsonDrug struct {
 	MakeRU    string  `json:"make_ru,omitempty"`
 	MakeUA    string  `json:"make_ua,omitempty"`
 	MakeEN    string  `json:"make_en,omitempty"`
+	Quant     float64 `json:"q,omitempty"`
+	Value     float64 `json:"v,omitempty"`
+}
 
-	Sale float64 `json:"sale,omitempty"`
+type jsonDrugSale struct {
+	ID    int64   `json:"id,omitempty"`
+	Quant float64 `json:"q,omitempty"`
+	Value float64 `json:"v,omitempty"`
 }
 
 func (j *jsonDrug) getID() int64 {
@@ -144,6 +150,8 @@ func (j *jsonDrug) getFields(_ bool) []interface{} {
 		"make_ru", // 17
 		"make_ua", // 18
 		"make_en", // 19
+		"quant",   // 20
+		"value",   // 21
 	}
 }
 
@@ -172,6 +180,8 @@ func (j *jsonDrug) getValues() []interface{} {
 		j.MakeRU, // 17
 		j.MakeUA, // 18
 		j.MakeEN, // 19
+		j.Quant,  // 20
+		j.Value,  // 21
 	}
 }
 
@@ -224,6 +234,10 @@ func (j *jsonDrug) setValues(_ bool, v ...interface{}) {
 			j.MakeUA, _ = redis.String(v[i], nil)
 		case 19:
 			j.MakeEN, _ = redis.String(v[i], nil)
+		case 20:
+			j.Quant, _ = redis.Float64(v[i], nil)
+		case 21:
+			j.Value, _ = redis.Float64(v[i], nil)
 		}
 	}
 }
@@ -320,7 +334,7 @@ func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, v)
+	err = loadHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -353,6 +367,24 @@ func setDrugX(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
+func setDrugXSale(h *dbxHelper, p string) (interface{}, error) {
+	v, err := makeDrugsFromJSON(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = saveHashers(c, p, v, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
+}
+
 func delDrugX(h *dbxHelper, p string) (interface{}, error) {
 	v, err := makeDrugsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
@@ -363,7 +395,7 @@ func delDrugX(h *dbxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
-	err = loadHashers(c, p, false, v)
+	err = loadHashers(c, p, v)
 	if err != nil {
 		return nil, err
 	}
@@ -390,32 +422,10 @@ func setDrug(h *dbxHelper) (interface{}, error) {
 	return setDrugX(h, prefixDrug)
 }
 
-func delDrug(h *dbxHelper) (interface{}, error) {
-	return delDrugX(h, prefixDrug)
+func setDrugSale(h *dbxHelper) (interface{}, error) {
+	return setDrugXSale(h, prefixDrug)
 }
 
-func setDrugSale(h *dbxHelper) (interface{}, error) {
-	/*
-		var v []struct{
-			ID
-		}
-		err := json.Unmarshal(data, &v)
-		if err != nil {
-			return nil, err
-		}
-
-		v, err := jsonToDrugs(h.data)
-		if err != nil {
-			return nil, err
-		}
-
-		c := h.getConn()
-		defer h.delConn(c)
-
-		err = saveHashers(c, prefixDrug, v)
-		if err != nil {
-			return nil, err
-		}
-	*/
-	return statusOK, nil
+func delDrug(h *dbxHelper) (interface{}, error) {
+	return delDrugX(h, prefixDrug)
 }
