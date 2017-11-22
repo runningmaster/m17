@@ -150,9 +150,12 @@ loop:
 //}
 
 type item struct {
-	ID   int64  `json:"id,omitempty"`
-	Code string `json:"code,omitempty"`
-	Name string `json:"name,omitempty"`
+	ID   int64   `json:"id,omitempty"`
+	Code string  `json:"code,omitempty"`
+	Name string  `json:"name,omitempty"`
+	Full bool    `json:"full,omitempty"`
+	Slug string  `json:"slug,omitempty"`
+	Sale float64 `json:"sale,omitempty"`
 }
 
 type result struct {
@@ -167,12 +170,7 @@ func findSugg(h *ctxHelper) (interface{}, error) {
 		return nil, err
 	}
 
-	var res []*result
 	spx := mapPX[h.lang]
-	if len(spx) == 0 {
-		return res, nil
-	}
-
 	errc := make(chan error)
 	sugc := make(chan *item)
 	var wg sync.WaitGroup
@@ -192,7 +190,7 @@ func findSugg(h *ctxHelper) (interface{}, error) {
 			}
 
 			for i := range r {
-				sugc <- &item{r[i].ID, nil, nil, p}
+				sugc <- &item{r[i].ID, p, "", false, "", 0}
 			}
 		}(s)
 	}
@@ -213,7 +211,7 @@ loop:
 				err = fmt.Errorf("%v: %v", err, e)
 			}
 		case s := <-sugc:
-			pmap[s.Name] = append(pmap[s.Name], s.ID)
+			pmap[s.Code] = append(pmap[s.Code], s.ID)
 		case <-done:
 			close(done)
 			close(errc)
@@ -226,99 +224,74 @@ loop:
 		return nil, err
 	}
 
-	res, err = mineResult(h, makeResult(pmap))
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return makeResult(h, pmap)
 }
 
-func makeResult(h *ctxHelper, m map[string][]int64) []*result {
-	res := make([]*result, 0, 5)
-	var r *result
-	for k := range m {
-		r = &result{
-			Kind: k,
-		}
-		switch k {
-		case prefixSpecINF:
-			r.List = []*item{
-				&item{
-					ID:        0,
-					IDSpecINF: uniqInt64(m[k]),
-					IDSpecDEC: nil,
-					Name:      "",
-				},
-			}
-		case prefixSpecDEC:
-			r.List = []*item{
-				&item{
-					ID:        0,
-					IDSpecINF: nil,
-					IDSpecDEC: uniqInt64(m[k]),
-					Name:      "",
-				},
-			}
-		default:
-			for _, v := range m[k] {
-				r.List = append(r.List, &item{v, nil, nil, ""})
-			}
-		}
-		res = append(res, r)
-	}
-
-	return res
-}
-
-/*
-h.data = int64sToJSON(x)
-	return getSpecXList(h, p1)
-*/
-func mineResult(h *ctxHelper, v []*result) ([]*result, error) {
+func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 	errc := make(chan error)
+	resc := make(chan *result)
 	var wg sync.WaitGroup
-	for i := range v {
-		//// FIXME: load list ?
-		//if strings.HasPrefix(v[i].Kind, prefixSpecINF) || strings.HasPrefix(v[i].Kind, prefixSpecDEC) {
-		//	continue
-		//}
-		p := v[i].Kind
-		for j := range v[i].List {
-			x := v[i].List[j]
-			wg.Add(1)
-			go func(p string, v *item) {
-				defer wg.Done()
-
-				c := h.getConn()
-				defer h.delConn(c)
-
-				switch p {
-				case prefixClassATC:
-				case prefixClassATC:
+	for k := range m {
+		wg.Add(1)
+		go func(p string, x []int64) {
+			defer wg.Done()
+			r := &result{
+				Kind: p,
+			}
+			c := h.clone()
+			c.data = int64sToJSON(uniqInt64(x))
+			switch p {
+			case prefixClassATC:
+				v, err := getClassXNext(c, p)
+				if err != nil {
+					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+					return
 				}
-
-				//var err error
-				//v.Name, err = loadHashFieldAsString(c, p, iifString(h.lang == "ru", "name_ru", "name_ua"), v.ID)
-				//if err != nil {
-				//	errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
-				//	return
-				//}
-				//if h.lang == "ru" {
-				//	v.IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v.ID)
-				//	if err != nil {
-				//		errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
-				//		return
-				//	}
-				//} else {
-				//	v.IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v.ID)
-				//	if err != nil {
-				//		errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
-				//		return
-				//	}
-				//}
-			}(p, x)
-		}
+				for i := range v {
+					if v[i] == nil {
+						continue
+					}
+					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0})
+				}
+			case prefixINN:
+				v, err := getINNXList(c, p)
+				if err != nil {
+					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+					return
+				}
+				for i := range v {
+					if v[i] == nil {
+						continue
+					}
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0})
+				}
+			case prefixMaker:
+				v, err := getMakerXList(c, p)
+				if err != nil {
+					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+					return
+				}
+				for i := range v {
+					if v[i] == nil {
+						continue
+					}
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0})
+				}
+			default: // prefixSpecINF, prefixSpecDEC
+				v, err := getSpecXList(c, p)
+				if err != nil {
+					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+					return
+				}
+				for i := range v {
+					if v[i] == nil {
+						continue
+					}
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, v[i].Full, v[i].Slug, v[i].Sale})
+				}
+			}
+			resc <- r
+		}(k, m[k])
 	}
 
 	done := make(chan struct{})
@@ -328,6 +301,7 @@ func mineResult(h *ctxHelper, v []*result) ([]*result, error) {
 	}()
 
 	var err error
+	res := make([]*result, 0, 5)
 loop:
 	for {
 		select {
@@ -336,9 +310,12 @@ loop:
 			if err != nil && strings.Compare(err.Error(), e.Error()) != 0 {
 				err = fmt.Errorf("%v: %v", err, e)
 			}
+		case r := <-resc:
+			res = append(res, r)
 		case <-done:
 			close(done)
 			close(errc)
+			close(resc)
 			break loop
 		}
 	}
@@ -347,5 +324,5 @@ loop:
 		return nil, err
 	}
 
-	return v, nil
+	return res, nil
 }

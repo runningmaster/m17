@@ -47,6 +47,7 @@ func (h *handler) prepareAPI() *handler {
 		"GET /test/:foo":   pipe.Join(mdware.Exec(test)),
 		"GET /redis/ping":  pipe.Join(mdware.Exec(ping(h.rdb))),
 		"POST /redis/ping": pipe.Join(mdware.Exec(ping(h.rdb))),
+
 		// FIXME GET POST /
 		"POST /get-class-atc-sync": pipe.Join(mdware.Exec(exec(h, getClassATCSync))),
 		"POST /get-class-atc-root": pipe.Join(mdware.Exec(exec(h, getClassATCRoot))),
@@ -306,6 +307,19 @@ func (h *ctxHelper) getConn() redis.Conn {
 
 func (h *ctxHelper) delConn(c io.Closer) {
 	_ = c.Close
+}
+
+func (h *ctxHelper) clone() *ctxHelper {
+	return &ctxHelper{
+		h.ctx,
+		h.rdb,
+		h.log,
+		h.r,
+		h.w,
+		h.meta,
+		h.data,
+		h.lang,
+	}
 }
 
 func exec(h *handler, f func(*ctxHelper) (interface{}, error)) http.HandlerFunc {
