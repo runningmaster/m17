@@ -232,7 +232,7 @@ func freeClassLinks(c redis.Conn, p string, v ...*jsonClass) error {
 	return nil
 }
 
-func getClassXSync(h *dbxHelper, p string) ([]int64, error) {
+func getClassXSync(h *ctxHelper, p string) ([]int64, error) {
 	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -274,7 +274,7 @@ func mineClassRootIDs(c redis.Conn, p string, v []*jsonClass) ([]int64, error) {
 	return v[0].IDNext, nil
 }
 
-func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
+func getClassXRoot(h *ctxHelper, p string) (jsonClasses, error) {
 	h.data = []byte("[0]")
 	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
@@ -293,7 +293,7 @@ func getClassXRoot(h *dbxHelper, p string) (jsonClasses, error) {
 	return getClassXNext(h, p)
 }
 
-func getClassXNext(h *dbxHelper, p string) (jsonClasses, error) {
+func getClassXNext(h *ctxHelper, p string) (jsonClasses, error) {
 	v, err := getClassX(h, p)
 	if err != nil {
 		return nil, err
@@ -304,7 +304,7 @@ func getClassXNext(h *dbxHelper, p string) (jsonClasses, error) {
 	return v, nil
 }
 
-func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
+func getClassX(h *ctxHelper, p string) (jsonClasses, error) {
 	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -329,7 +329,7 @@ func getClassX(h *dbxHelper, p string) (jsonClasses, error) {
 	return v, nil
 }
 
-func setClassX(h *dbxHelper, p string) (interface{}, error) {
+func setClassX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeClassesFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -383,7 +383,7 @@ func setClassX(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delClassX(h *dbxHelper, p string) (interface{}, error) {
+func delClassX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -420,208 +420,208 @@ func delClassX(h *dbxHelper, p string) (interface{}, error) {
 
 // ATC
 
-func getClassATCSync(h *dbxHelper) (interface{}, error) {
+func getClassATCSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassATC)
 }
 
-func getClassATCRoot(h *dbxHelper) (interface{}, error) {
+func getClassATCRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassATC)
 }
 
-func getClassATCNext(h *dbxHelper) (interface{}, error) {
+func getClassATCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassATC)
 }
 
-func getClassATC(h *dbxHelper) (interface{}, error) {
+func getClassATC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassATC)
 }
 
-func setClassATC(h *dbxHelper) (interface{}, error) {
+func setClassATC(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassATC)
 }
 
-func delClassATC(h *dbxHelper) (interface{}, error) {
+func delClassATC(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassATC)
 }
 
 // NFC
 
-func getClassNFCSync(h *dbxHelper) (interface{}, error) {
+func getClassNFCSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassNFC)
 }
 
-func getClassNFCRoot(h *dbxHelper) (interface{}, error) {
+func getClassNFCRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassNFC)
 }
 
-func getClassNFCNext(h *dbxHelper) (interface{}, error) {
+func getClassNFCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassNFC)
 }
 
-func getClassNFC(h *dbxHelper) (interface{}, error) {
+func getClassNFC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassNFC)
 }
 
-func setClassNFC(h *dbxHelper) (interface{}, error) {
+func setClassNFC(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassNFC)
 }
 
-func delClassNFC(h *dbxHelper) (interface{}, error) {
+func delClassNFC(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassNFC)
 }
 
 // FSC
 
-func getClassFSCSync(h *dbxHelper) (interface{}, error) {
+func getClassFSCSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassFSC)
 }
 
-func getClassFSCRoot(h *dbxHelper) (interface{}, error) {
+func getClassFSCRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassFSC)
 }
 
-func getClassFSCNext(h *dbxHelper) (interface{}, error) {
+func getClassFSCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassFSC)
 }
 
-func getClassFSC(h *dbxHelper) (interface{}, error) {
+func getClassFSC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassFSC)
 }
 
-func setClassFSC(h *dbxHelper) (interface{}, error) {
+func setClassFSC(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassFSC)
 }
 
-func delClassFSC(h *dbxHelper) (interface{}, error) {
+func delClassFSC(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassFSC)
 }
 
 // BFC
 
-func getClassBFCSync(h *dbxHelper) (interface{}, error) {
+func getClassBFCSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassBFC)
 }
 
-func getClassBFCRoot(h *dbxHelper) (interface{}, error) {
+func getClassBFCRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassBFC)
 }
 
-func getClassBFCNext(h *dbxHelper) (interface{}, error) {
+func getClassBFCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassBFC)
 }
 
-func getClassBFC(h *dbxHelper) (interface{}, error) {
+func getClassBFC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassBFC)
 }
 
-func setClassBFC(h *dbxHelper) (interface{}, error) {
+func setClassBFC(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassBFC)
 }
 
-func delClassBFC(h *dbxHelper) (interface{}, error) {
+func delClassBFC(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassBFC)
 }
 
 // CFC
 
-func getClassCFCSync(h *dbxHelper) (interface{}, error) {
+func getClassCFCSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCFC)
 }
 
-func getClassCFCRoot(h *dbxHelper) (interface{}, error) {
+func getClassCFCRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassCFC)
 }
 
-func getClassCFCNext(h *dbxHelper) (interface{}, error) {
+func getClassCFCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassCFC)
 }
 
-func getClassCFC(h *dbxHelper) (interface{}, error) {
+func getClassCFC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCFC)
 }
 
-func setClassCFC(h *dbxHelper) (interface{}, error) {
+func setClassCFC(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassCFC)
 }
 
-func delClassCFC(h *dbxHelper) (interface{}, error) {
+func delClassCFC(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassCFC)
 }
 
 // MPC
 
-func getClassMPCSync(h *dbxHelper) (interface{}, error) {
+func getClassMPCSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassMPC)
 }
 
-func getClassMPCRoot(h *dbxHelper) (interface{}, error) {
+func getClassMPCRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassMPC)
 }
 
-func getClassMPCNext(h *dbxHelper) (interface{}, error) {
+func getClassMPCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassMPC)
 }
 
-func getClassMPC(h *dbxHelper) (interface{}, error) {
+func getClassMPC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassMPC)
 }
 
-func setClassMPC(h *dbxHelper) (interface{}, error) {
+func setClassMPC(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassMPC)
 }
 
-func delClassMPC(h *dbxHelper) (interface{}, error) {
+func delClassMPC(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassMPC)
 }
 
 // CSC
 
-func getClassCSCSync(h *dbxHelper) (interface{}, error) {
+func getClassCSCSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassCSC)
 }
 
-func getClassCSCRoot(h *dbxHelper) (interface{}, error) {
+func getClassCSCRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassCSC)
 }
 
-func getClassCSCNext(h *dbxHelper) (interface{}, error) {
+func getClassCSCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassCSC)
 }
 
-func getClassCSC(h *dbxHelper) (interface{}, error) {
+func getClassCSC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCSC)
 }
 
-func setClassCSC(h *dbxHelper) (interface{}, error) {
+func setClassCSC(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassCSC)
 }
 
-func delClassCSC(h *dbxHelper) (interface{}, error) {
+func delClassCSC(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassCSC)
 }
 
 // ICD
 
-func getClassICDSync(h *dbxHelper) (interface{}, error) {
+func getClassICDSync(h *ctxHelper) (interface{}, error) {
 	return getClassXSync(h, prefixClassICD)
 }
 
-func getClassICDRoot(h *dbxHelper) (interface{}, error) {
+func getClassICDRoot(h *ctxHelper) (interface{}, error) {
 	return getClassXRoot(h, prefixClassICD)
 }
 
-func getClassICDNext(h *dbxHelper) (interface{}, error) {
+func getClassICDNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassICD)
 }
 
-func getClassICD(h *dbxHelper) (interface{}, error) {
+func getClassICD(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassICD)
 }
 
-func setClassICD(h *dbxHelper) (interface{}, error) {
+func setClassICD(h *ctxHelper) (interface{}, error) {
 	return setClassX(h, prefixClassICD)
 }
 
-func delClassICD(h *dbxHelper) (interface{}, error) {
+func delClassICD(h *ctxHelper) (interface{}, error) {
 	return delClassX(h, prefixClassICD)
 }

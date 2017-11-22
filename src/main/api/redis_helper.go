@@ -1,15 +1,10 @@
 package api
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	"internal/ctxutil"
-	"internal/logger"
 
 	"github.com/garyburd/redigo/redis"
 	"golang.org/x/text/collate"
@@ -17,120 +12,6 @@ import (
 )
 
 var statusOK = http.StatusText(http.StatusOK)
-
-var apiFunc = map[string]func(h *dbxHelper) (interface{}, error){
-	"get-class-atc-sync": getClassATCSync,
-	"get-class-atc-root": getClassATCRoot,
-	"get-class-atc-next": getClassATCNext,
-	"get-class-atc":      getClassATC,
-	"set-class-atc":      setClassATC,
-	"del-class-atc":      delClassATC,
-
-	"get-class-nfc-sync": getClassNFCSync,
-	"get-class-nfc-root": getClassNFCRoot,
-	"get-class-nfc-next": getClassNFCNext,
-	"get-class-nfc":      getClassNFC,
-	"set-class-nfc":      setClassNFC,
-	"del-class-nfc":      delClassNFC,
-
-	"get-class-fsc-sync": getClassFSCSync,
-	"get-class-fsc-root": getClassFSCRoot,
-	"get-class-fsc-next": getClassFSCNext,
-	"get-class-fsc":      getClassFSC,
-	"set-class-fsc":      setClassFSC,
-	"del-class-fsc":      delClassFSC,
-
-	"get-class-bfc-sync": getClassBFCSync,
-	"get-class-bfc-root": getClassBFCRoot,
-	"get-class-bfc-next": getClassBFCNext,
-	"get-class-bfc":      getClassBFC,
-	"set-class-bfc":      setClassBFC,
-	"del-class-bfc":      delClassBFC,
-
-	"get-class-cfc-sync": getClassCFCSync,
-	"get-class-cfc-root": getClassCFCRoot,
-	"get-class-cfc-next": getClassCFCNext,
-	"get-class-cfc":      getClassCFC,
-	"set-class-cfc":      setClassCFC,
-	"del-class-cfc":      delClassCFC,
-
-	"get-class-mpc-sync": getClassMPCSync,
-	"get-class-mpc-root": getClassMPCRoot,
-	"get-class-mpc-next": getClassMPCNext,
-	"get-class-mpc":      getClassMPC,
-	"set-class-mpc":      setClassMPC,
-	"del-class-mpc":      delClassMPC,
-
-	"get-class-csc-sync": getClassCSCSync,
-	"get-class-csc-root": getClassCSCRoot,
-	"get-class-csc-next": getClassCSCNext,
-	"get-class-csc":      getClassCSC,
-	"set-class-csc":      setClassCSC,
-	"del-class-csc":      delClassCSC,
-
-	"get-class-icd-sync": getClassICDSync,
-	"get-class-icd-root": getClassICDRoot,
-	"get-class-icd-next": getClassICDNext,
-	"get-class-icd":      getClassICD,
-	"set-class-icd":      setClassICD,
-	"del-class-icd":      delClassICD,
-
-	"get-inn-sync":    getINNSync,
-	"get-inn-abcd":    getINNAbcd,
-	"get-inn-abcd-ls": getINNAbcdLs,
-	"get-inn-list":    getINNList,
-	"get-inn-list-az": getINNListAZ,
-	"get-inn":         getINN,
-	"set-inn":         setINN,
-	"del-inn":         delINN,
-
-	"get-maker-sync":    getMakerSync,
-	"get-maker-abcd":    getMakerAbcd,
-	"get-maker-abcd-ls": getMakerAbcdLs,
-	"get-maker-list":    getMakerList,
-	"get-maker-list-az": getMakerListAZ,
-	"get-maker":         getMaker,
-	"set-maker":         setMaker,
-	"del-maker":         delMaker,
-
-	"get-drug-sync": getDrugSync,
-	"get-drug":      getDrug,
-	"set-drug":      setDrug,
-	"set-drug-sale": setDrugSale,
-	"del-drug":      delDrug,
-
-	"get-spec-act-sync":    getSpecACTSync,
-	"get-spec-act-abcd":    getSpecACTAbcd,
-	"get-spec-act-abcd-ls": getSpecACTAbcdLs,
-	"get-spec-act-list":    getSpecACTList,
-	"get-spec-act-list-az": getSpecACTListAZ,
-	"get-spec-act":         getSpecACT,
-	"set-spec-act":         setSpecACT,
-	"del-spec-act":         delSpecACT,
-
-	"get-spec-inf-sync":    getSpecINFSync,
-	"get-spec-inf-abcd":    getSpecINFAbcd,
-	"get-spec-inf-abcd-ls": getSpecINFAbcdLs,
-	"get-spec-inf-list":    getSpecINFList,
-	"get-spec-inf-list-az": getSpecINFListAZ,
-	"get-spec-inf":         getSpecINF,
-	"set-spec-inf":         setSpecINF,
-	"set-spec-inf-sale":    setSpecINFSale,
-	"del-spec-inf":         delSpecINF,
-
-	"get-spec-dec-sync":    getSpecDECSync,
-	"get-spec-dec-abcd":    getSpecDECAbcd,
-	"get-spec-dec-abcd-ls": getSpecDECAbcdLs,
-	"get-spec-dec-list":    getSpecDECList,
-	"get-spec-dec-list-az": getSpecDECListAZ,
-	"get-spec-dec":         getSpecDEC,
-	"set-spec-dec":         setSpecDEC,
-	"set-spec-dec-sale":    setSpecDECSale,
-	"del-spec-dec":         delSpecDEC,
-
-	"list-sugg": listSugg,
-	"find-sugg": findSugg,
-}
 
 type rediser interface {
 	Get() redis.Conn
@@ -166,41 +47,6 @@ type searcher interface {
 	getNameRU(string) string
 	getNameUA(string) string
 	getNameEN(string) string
-}
-
-type dbxHelper struct {
-	ctx  context.Context
-	rdb  rediser
-	log  logger.Logger
-	r    *http.Request
-	w    http.ResponseWriter
-	meta []byte
-	data []byte
-	lang string
-}
-
-func (h *dbxHelper) getConn() redis.Conn {
-	return h.rdb.Get()
-}
-
-func (h *dbxHelper) delConn(c io.Closer) {
-	_ = c.Close
-}
-
-func (h *dbxHelper) ping() (interface{}, error) {
-	c := h.getConn()
-	defer h.delConn(c)
-
-	return redis.Bytes(c.Do("PING"))
-}
-
-func (h *dbxHelper) exec(s string) (interface{}, error) {
-	if fn, ok := apiFunc[s]; ok {
-		return fn(h)
-	}
-
-	h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
-	return nil, fmt.Errorf("unknown func %q", s)
 }
 
 func freeLinkIDs(c redis.Conn, p1, p2 string, s bool, x int64, v ...int64) error {

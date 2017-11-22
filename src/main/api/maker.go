@@ -231,7 +231,7 @@ func loadMakerLinks(c redis.Conn, p string, v []*jsonMaker) error {
 	return nil
 }
 
-func getMakerXSync(h *dbxHelper, p string) ([]int64, error) {
+func getMakerXSync(h *ctxHelper, p string) ([]int64, error) {
 	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -244,7 +244,7 @@ func getMakerXSync(h *dbxHelper, p string) ([]int64, error) {
 	return loadSyncIDs(c, p, v)
 }
 
-func getMakerXAbcd(h *dbxHelper, p string) ([]string, error) {
+func getMakerXAbcd(h *ctxHelper, p string) ([]string, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
@@ -256,7 +256,7 @@ func getMakerXAbcd(h *dbxHelper, p string) ([]string, error) {
 	return v, nil
 }
 
-func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
+func getMakerXAbcdLs(h *ctxHelper, p string) ([]int64, error) {
 	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -274,7 +274,7 @@ func getMakerXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	return v, nil
 }
 
-func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
+func getMakerXList(h *ctxHelper, p string) (jsonMakers, error) {
 	v, err := makeMakersFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -296,7 +296,7 @@ func getMakerXList(h *dbxHelper, p string) (jsonMakers, error) {
 	return v, nil
 }
 
-func getMakerXListAZ(h *dbxHelper, p string) (jsonMakers, error) {
+func getMakerXListAZ(h *ctxHelper, p string) (jsonMakers, error) {
 	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -315,7 +315,7 @@ func getMakerXListAZ(h *dbxHelper, p string) (jsonMakers, error) {
 	return getMakerXList(h, p)
 }
 
-func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
+func getMakerX(h *ctxHelper, p string) (jsonMakers, error) {
 	v, err := makeMakersFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -340,7 +340,7 @@ func getMakerX(h *dbxHelper, p string) (jsonMakers, error) {
 	return v, nil
 }
 
-func setMakerX(h *dbxHelper, p string) (interface{}, error) {
+func setMakerX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeMakersFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -378,7 +378,7 @@ func setMakerX(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delMakerX(h *dbxHelper, p string) (interface{}, error) {
+func delMakerX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeMakersFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -408,34 +408,34 @@ func delMakerX(h *dbxHelper, p string) (interface{}, error) {
 
 // MAKER
 
-func getMakerSync(h *dbxHelper) (interface{}, error) {
+func getMakerSync(h *ctxHelper) (interface{}, error) {
 	return getMakerXSync(h, prefixMaker)
 }
 
-func getMakerAbcd(h *dbxHelper) (interface{}, error) {
+func getMakerAbcd(h *ctxHelper) (interface{}, error) {
 	return getMakerXAbcd(h, prefixMaker)
 }
 
-func getMakerAbcdLs(h *dbxHelper) (interface{}, error) {
+func getMakerAbcdLs(h *ctxHelper) (interface{}, error) {
 	return getMakerXAbcdLs(h, prefixMaker)
 }
 
-func getMakerList(h *dbxHelper) (interface{}, error) {
+func getMakerList(h *ctxHelper) (interface{}, error) {
 	return getMakerXList(h, prefixMaker)
 }
 
-func getMakerListAZ(h *dbxHelper) (interface{}, error) {
+func getMakerListAZ(h *ctxHelper) (interface{}, error) {
 	return getMakerXListAZ(h, prefixMaker)
 }
 
-func getMaker(h *dbxHelper) (interface{}, error) {
+func getMaker(h *ctxHelper) (interface{}, error) {
 	return getMakerX(h, prefixMaker)
 }
 
-func setMaker(h *dbxHelper) (interface{}, error) {
+func setMaker(h *ctxHelper) (interface{}, error) {
 	return setMakerX(h, prefixMaker)
 }
 
-func delMaker(h *dbxHelper) (interface{}, error) {
+func delMaker(h *ctxHelper) (interface{}, error) {
 	return delMakerX(h, prefixMaker)
 }

@@ -44,7 +44,7 @@ func convLayout(s, from, to string) string {
 	return string(res)
 }
 
-func listSugg(h *dbxHelper) (interface{}, error) {
+func listSugg(h *ctxHelper) (interface{}, error) {
 	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -150,18 +150,17 @@ loop:
 //}
 
 type item struct {
-	ID        int64   `json:"id,omitempty"`
-	IDSpecDEC []int64 `json:"id_spec_dec,omitempty"`
-	IDSpecINF []int64 `json:"id_spec_inf,omitempty"`
-	Name      string  `json:"name,omitempty"`
+	ID   int64  `json:"id,omitempty"`
+	Code string `json:"code,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 type result struct {
 	Kind string  `json:"kind,omitempty"`
-	Item []*item `json:"item,omitempty"`
+	List []*item `json:"list,omitempty"`
 }
 
-func findSugg(h *dbxHelper) (interface{}, error) {
+func findSugg(h *ctxHelper) (interface{}, error) {
 	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -227,16 +226,15 @@ loop:
 		return nil, err
 	}
 
-	//res =
 	res, err = mineResult(h, makeResult(pmap))
 	if err != nil {
 		return nil, err
 	}
-	// 			res = append(res, s)
+
 	return res, nil
 }
 
-func makeResult(m map[string][]int64) []*result {
+func makeResult(h *ctxHelper, m map[string][]int64) []*result {
 	res := make([]*result, 0, 5)
 	var r *result
 	for k := range m {
@@ -245,7 +243,7 @@ func makeResult(m map[string][]int64) []*result {
 		}
 		switch k {
 		case prefixSpecINF:
-			r.Item = []*item{
+			r.List = []*item{
 				&item{
 					ID:        0,
 					IDSpecINF: uniqInt64(m[k]),
@@ -254,7 +252,7 @@ func makeResult(m map[string][]int64) []*result {
 				},
 			}
 		case prefixSpecDEC:
-			r.Item = []*item{
+			r.List = []*item{
 				&item{
 					ID:        0,
 					IDSpecINF: nil,
@@ -264,27 +262,30 @@ func makeResult(m map[string][]int64) []*result {
 			}
 		default:
 			for _, v := range m[k] {
-				r.Item = append(r.Item, &item{v, nil, nil, ""})
+				r.List = append(r.List, &item{v, nil, nil, ""})
 			}
 		}
-
 		res = append(res, r)
 	}
 
 	return res
 }
 
-func mineResult(h *dbxHelper, v []*result) ([]*result, error) {
+/*
+h.data = int64sToJSON(x)
+	return getSpecXList(h, p1)
+*/
+func mineResult(h *ctxHelper, v []*result) ([]*result, error) {
 	errc := make(chan error)
 	var wg sync.WaitGroup
 	for i := range v {
-		// FIXME: load list ?
-		if strings.HasPrefix(v[i].Kind, prefixSpecINF) || strings.HasPrefix(v[i].Kind, prefixSpecDEC) {
-			continue
-		}
+		//// FIXME: load list ?
+		//if strings.HasPrefix(v[i].Kind, prefixSpecINF) || strings.HasPrefix(v[i].Kind, prefixSpecDEC) {
+		//	continue
+		//}
 		p := v[i].Kind
-		for j := range v[i].Item {
-			x := v[i].Item[j]
+		for j := range v[i].List {
+			x := v[i].List[j]
 			wg.Add(1)
 			go func(p string, v *item) {
 				defer wg.Done()
@@ -292,25 +293,30 @@ func mineResult(h *dbxHelper, v []*result) ([]*result, error) {
 				c := h.getConn()
 				defer h.delConn(c)
 
-				var err error
-				v.Name, err = loadHashFieldAsString(c, p, iifString(h.lang == "ru", "name_ru", "name_ua"), v.ID)
-				if err != nil {
-					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
-					return
+				switch p {
+				case prefixClassATC:
+				case prefixClassATC:
 				}
-				if h.lang == "ru" {
-					v.IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v.ID)
-					if err != nil {
-						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
-						return
-					}
-				} else {
-					v.IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v.ID)
-					if err != nil {
-						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
-						return
-					}
-				}
+
+				//var err error
+				//v.Name, err = loadHashFieldAsString(c, p, iifString(h.lang == "ru", "name_ru", "name_ua"), v.ID)
+				//if err != nil {
+				//	errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+				//	return
+				//}
+				//if h.lang == "ru" {
+				//	v.IDSpecINF, err = loadLinkIDs(c, p, prefixSpecINF, v.ID)
+				//	if err != nil {
+				//		errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+				//		return
+				//	}
+				//} else {
+				//	v.IDSpecDEC, err = loadLinkIDs(c, p, prefixSpecDEC, v.ID)
+				//	if err != nil {
+				//		errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+				//		return
+				//	}
+				//}
 			}(p, x)
 		}
 	}

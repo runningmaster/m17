@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -117,7 +118,7 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 			"name_ua", // 2
 			"name_en", // 3
 			"slug",    // 4
-			"fake",    // 5
+			"full",    // 5
 			"sale",    // 6
 		}
 	}
@@ -552,7 +553,7 @@ func freeSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	return nil
 }
 
-func getSpecXSync(h *dbxHelper, p string) ([]int64, error) {
+func getSpecXSync(h *ctxHelper, p string) ([]int64, error) {
 	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -565,7 +566,7 @@ func getSpecXSync(h *dbxHelper, p string) ([]int64, error) {
 	return loadSyncIDs(c, p, v)
 }
 
-func getSpecXAbcd(h *dbxHelper, p string) ([]string, error) {
+func getSpecXAbcd(h *ctxHelper, p string) ([]string, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
@@ -577,7 +578,7 @@ func getSpecXAbcd(h *dbxHelper, p string) ([]string, error) {
 	return v, nil
 }
 
-func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
+func getSpecXAbcdLs(h *ctxHelper, p string) ([]int64, error) {
 	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -595,7 +596,7 @@ func getSpecXAbcdLs(h *dbxHelper, p string) ([]int64, error) {
 	return v, nil
 }
 
-func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
+func getSpecXList(h *ctxHelper, p string) (jsonSpecs, error) {
 	v, err := makeSpecsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -617,7 +618,7 @@ func getSpecXList(h *dbxHelper, p string) (jsonSpecs, error) {
 	return v, nil
 }
 
-func getSpecXListAZ(h *dbxHelper, p string) (jsonSpecs, error) {
+func getSpecXListAZ(h *ctxHelper, p string) (jsonSpecs, error) {
 	s, err := stringFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -636,7 +637,26 @@ func getSpecXListAZ(h *dbxHelper, p string) (jsonSpecs, error) {
 	return getSpecXList(h, p)
 }
 
-func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
+func getSpecXListBy(h *ctxHelper, p1, p2 string) (jsonSpecs, error) {
+	v, err := int64FromJSON(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	x, err := loadLinkIDs(c, p2, p1, v)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(x)
+	h.data = int64sToJSON(x)
+	return getSpecXList(h, p1)
+}
+
+func getSpecX(h *ctxHelper, p string) (jsonSpecs, error) {
 	v, err := makeSpecsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -661,7 +681,7 @@ func getSpecX(h *dbxHelper, p string) (jsonSpecs, error) {
 	return v, nil
 }
 
-func setSpecX(h *dbxHelper, p string) (interface{}, error) {
+func setSpecX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeSpecsFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -711,7 +731,7 @@ func setSpecX(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func setSpecXSale(h *dbxHelper, p string) (interface{}, error) {
+func setSpecXSale(h *ctxHelper, p string) (interface{}, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
@@ -722,13 +742,20 @@ func setSpecXSale(h *dbxHelper, p string) (interface{}, error) {
 
 	var d jsonDrugs
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
 		d, err = makeDrugsFromIDs(loadLinkIDs(c, p, prefixDrug, v[i].ID))
 		err = loadHashers(c, prefixDrug, d)
 		if err != nil {
 			return nil, err
 		}
 		for j := range d {
+			if d[j] == nil {
+				continue
+			}
 			v[i].Sale = v[i].Sale + d[j].Value
+			fmt.Println(v[i].ID, v[i].Sale)
 		}
 	}
 
@@ -740,7 +767,7 @@ func setSpecXSale(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delSpecX(h *dbxHelper, p string) (interface{}, error) {
+func delSpecX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeSpecsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -775,110 +802,214 @@ func delSpecX(h *dbxHelper, p string) (interface{}, error) {
 
 // ACT
 
-func getSpecACTSync(h *dbxHelper) (interface{}, error) {
+func getSpecACTSync(h *ctxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecACT)
 }
 
-func getSpecACTAbcd(h *dbxHelper) (interface{}, error) {
+func getSpecACTAbcd(h *ctxHelper) (interface{}, error) {
 	return getSpecXAbcd(h, prefixSpecACT)
 }
 
-func getSpecACTAbcdLs(h *dbxHelper) (interface{}, error) {
+func getSpecACTAbcdLs(h *ctxHelper) (interface{}, error) {
 	return getSpecXAbcdLs(h, prefixSpecACT)
 }
 
-func getSpecACTList(h *dbxHelper) (interface{}, error) {
+func getSpecACTList(h *ctxHelper) (interface{}, error) {
 	return getSpecXList(h, prefixSpecACT)
 }
 
-func getSpecACTListAZ(h *dbxHelper) (interface{}, error) {
+func getSpecACTListAZ(h *ctxHelper) (interface{}, error) {
 	return getSpecXListAZ(h, prefixSpecACT)
 }
 
-func getSpecACT(h *dbxHelper) (interface{}, error) {
+func getSpecACT(h *ctxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecACT)
 }
 
-func setSpecACT(h *dbxHelper) (interface{}, error) {
+func setSpecACT(h *ctxHelper) (interface{}, error) {
 	return setSpecX(h, prefixSpecACT)
 }
 
-func delSpecACT(h *dbxHelper) (interface{}, error) {
+func delSpecACT(h *ctxHelper) (interface{}, error) {
 	return delSpecX(h, prefixSpecACT)
 }
 
 // INF
 
-func getSpecINFSync(h *dbxHelper) (interface{}, error) {
+func getSpecINFSync(h *ctxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecINF)
 }
 
-func getSpecINFAbcd(h *dbxHelper) (interface{}, error) {
+func getSpecINFAbcd(h *ctxHelper) (interface{}, error) {
 	return getSpecXAbcd(h, prefixSpecINF)
 }
 
-func getSpecINFAbcdLs(h *dbxHelper) (interface{}, error) {
+func getSpecINFAbcdLs(h *ctxHelper) (interface{}, error) {
 	return getSpecXAbcdLs(h, prefixSpecINF)
 }
 
-func getSpecINFList(h *dbxHelper) (interface{}, error) {
+func getSpecINFList(h *ctxHelper) (interface{}, error) {
 	return getSpecXList(h, prefixSpecINF)
 }
 
-func getSpecINFListAZ(h *dbxHelper) (interface{}, error) {
+func getSpecINFListAZ(h *ctxHelper) (interface{}, error) {
 	return getSpecXListAZ(h, prefixSpecINF)
 }
 
-func getSpecINF(h *dbxHelper) (interface{}, error) {
+func getSpecINFListByClassATC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassATC)
+}
+
+func getSpecINFListByClassNFC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassNFC)
+}
+
+func getSpecINFListByClassFSC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassFSC)
+}
+
+func getSpecINFListByClassBFC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassBFC)
+}
+
+func getSpecINFListByClassCFC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassCFC)
+}
+
+func getSpecINFListByClassMPC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassMPC)
+}
+
+func getSpecINFListByClassCSC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassCSC)
+}
+
+func getSpecINFListByClassICD(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixClassICD)
+}
+
+func getSpecINFListByINN(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixINN)
+}
+
+func getSpecINFListByMaker(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixMaker)
+}
+
+func getSpecINFListByDrug(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixDrug)
+}
+
+func getSpecINFListBySpecACT(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixSpecACT)
+}
+
+func getSpecINFListBySpecDEC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecINF, prefixSpecDEC)
+}
+
+func getSpecINF(h *ctxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecINF)
 }
 
-func setSpecINF(h *dbxHelper) (interface{}, error) {
+func setSpecINF(h *ctxHelper) (interface{}, error) {
 	return setSpecX(h, prefixSpecINF)
 }
 
-func setSpecINFSale(h *dbxHelper) (interface{}, error) {
+func setSpecINFSale(h *ctxHelper) (interface{}, error) {
 	return setSpecXSale(h, prefixSpecINF)
 }
 
-func delSpecINF(h *dbxHelper) (interface{}, error) {
+func delSpecINF(h *ctxHelper) (interface{}, error) {
 	return delSpecX(h, prefixSpecINF)
 }
 
 // DEC
 
-func getSpecDECSync(h *dbxHelper) (interface{}, error) {
+func getSpecDECSync(h *ctxHelper) (interface{}, error) {
 	return getSpecXSync(h, prefixSpecDEC)
 }
 
-func getSpecDECAbcd(h *dbxHelper) (interface{}, error) {
+func getSpecDECAbcd(h *ctxHelper) (interface{}, error) {
 	return getSpecXAbcd(h, prefixSpecDEC)
 }
 
-func getSpecDECAbcdLs(h *dbxHelper) (interface{}, error) {
+func getSpecDECAbcdLs(h *ctxHelper) (interface{}, error) {
 	return getSpecXAbcdLs(h, prefixSpecDEC)
 }
 
-func getSpecDECList(h *dbxHelper) (interface{}, error) {
+func getSpecDECList(h *ctxHelper) (interface{}, error) {
 	return getSpecXList(h, prefixSpecDEC)
 }
 
-func getSpecDECListAZ(h *dbxHelper) (interface{}, error) {
+func getSpecDECListAZ(h *ctxHelper) (interface{}, error) {
 	return getSpecXListAZ(h, prefixSpecDEC)
 }
 
-func getSpecDEC(h *dbxHelper) (interface{}, error) {
+func getSpecDECListByClassATC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassATC)
+}
+
+func getSpecDECListByClassNFC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassNFC)
+}
+
+func getSpecDECListByClassFSC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassFSC)
+}
+
+func getSpecDECListByClassBFC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassBFC)
+}
+
+func getSpecDECListByClassCFC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassCFC)
+}
+
+func getSpecDECListByClassMPC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassMPC)
+}
+
+func getSpecDECListByClassCSC(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassCSC)
+}
+
+func getSpecDECListByClassICD(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixClassICD)
+}
+
+func getSpecDECListByINN(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixINN)
+}
+
+func getSpecDECListByMaker(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixMaker)
+}
+
+func getSpecDECListByDrug(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixDrug)
+}
+
+func getSpecDECListBySpecACT(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixSpecACT)
+}
+
+func getSpecDECListBySpecINF(h *ctxHelper) (interface{}, error) {
+	return getSpecXListBy(h, prefixSpecDEC, prefixSpecINF)
+}
+
+func getSpecDEC(h *ctxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecDEC)
 }
 
-func setSpecDEC(h *dbxHelper) (interface{}, error) {
+func setSpecDEC(h *ctxHelper) (interface{}, error) {
 	return setSpecX(h, prefixSpecDEC)
 }
 
-func setSpecDECSale(h *dbxHelper) (interface{}, error) {
+func setSpecDECSale(h *ctxHelper) (interface{}, error) {
 	return setSpecXSale(h, prefixSpecDEC)
 }
 
-func delSpecDEC(h *dbxHelper) (interface{}, error) {
+func delSpecDEC(h *ctxHelper) (interface{}, error) {
 	return delSpecX(h, prefixSpecDEC)
 }

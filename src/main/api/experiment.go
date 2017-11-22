@@ -7,12 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"main/version"
 
 	"internal/ctxutil"
 	"internal/router"
+
+	"github.com/garyburd/redigo/redis"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +34,23 @@ func help() http.HandlerFunc {
 	})
 }
 
+func ping(rdb rediser) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		c := rdb.Get()
+		defer c.Close()
+
+		res, err := redis.String(c.Do("PING"))
+		if err != nil {
+			ctx = ctxutil.WithError(ctx, err)
+		}
+
+		ctx = ctxutil.WithResult(ctx, res)
+		*r = *r.WithContext(ctx)
+	})
+}
+
 func test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -43,61 +61,4 @@ func test(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Value foo: %s\n", v)
 
 	*r = *r.WithContext(ctx)
-}
-
-func ping(rdb rediser) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		dbx := &dbxHelper{
-			ctx: ctx,
-			rdb: rdb,
-		}
-		res, err := dbx.ping()
-		if err != nil {
-			ctx = ctxutil.WithError(ctx, err)
-		}
-
-		ctx = ctxutil.WithResult(ctx, res)
-		*r = *r.WithContext(ctx)
-	})
-}
-
-func exec(rdb rediser) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		dbx := &dbxHelper{
-			ctx,
-			rdb,
-			nil,
-			r,
-			w,
-			[]byte(r.Header.Get("Content-Meta")),
-			ctxutil.BodyFrom(ctx),
-			mineLang(r.Header.Get("Accept-Language")),
-		}
-
-		res, err := dbx.exec(router.ParamValueFrom(ctx, "func"))
-		ctx = dbx.ctx // get ctx from func
-		if err != nil {
-			ctx = ctxutil.WithError(ctx, err)
-		}
-
-		ctx = ctxutil.WithResult(ctx, res)
-		*r = *r.WithContext(ctx)
-	})
-}
-
-func mineLang(s string) string {
-	s = strings.ToLower(s)
-	if strings.Contains(s, "uk") || strings.Contains(s, "ua") {
-		return "ua"
-	}
-	if strings.Contains(s, "ru") {
-		return "ru"
-	}
-	if strings.Contains(s, "en") {
-		return "en"
-	}
-	return ""
 }

@@ -311,7 +311,7 @@ func loadDrugLinks(c redis.Conn, p string, v []*jsonDrug) error {
 	return nil
 }
 
-func getDrugXSync(h *dbxHelper, p string) ([]int64, error) {
+func getDrugXSync(h *ctxHelper, p string) ([]int64, error) {
 	v, err := int64FromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -324,7 +324,7 @@ func getDrugXSync(h *dbxHelper, p string) ([]int64, error) {
 	return loadSyncIDs(c, p, v)
 }
 
-func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
+func getDrugX(h *ctxHelper, p string) (jsonDrugs, error) {
 	v, err := makeDrugsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -349,7 +349,7 @@ func getDrugX(h *dbxHelper, p string) (jsonDrugs, error) {
 	return v, nil
 }
 
-func setDrugX(h *dbxHelper, p string) (interface{}, error) {
+func setDrugX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeDrugsFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -367,7 +367,7 @@ func setDrugX(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func setDrugXSale(h *dbxHelper, p string) (interface{}, error) {
+func setDrugXSale(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeDrugsFromJSON(h.data)
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -385,7 +385,7 @@ func setDrugXSale(h *dbxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
-func delDrugX(h *dbxHelper, p string) (interface{}, error) {
+func delDrugX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeDrugsFromIDs(int64sFromJSON(h.data))
 	if err != nil {
 		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
@@ -410,22 +410,22 @@ func delDrugX(h *dbxHelper, p string) (interface{}, error) {
 
 // DRUG
 
-func getDrugSync(h *dbxHelper) (interface{}, error) {
+func getDrugSync(h *ctxHelper) (interface{}, error) {
 	return getDrugXSync(h, prefixDrug)
 }
 
-func getDrug(h *dbxHelper) (interface{}, error) {
+func getDrug(h *ctxHelper) (interface{}, error) {
 	return getDrugX(h, prefixDrug)
 }
 
-func setDrug(h *dbxHelper) (interface{}, error) {
+func setDrug(h *ctxHelper) (interface{}, error) {
 	return setDrugX(h, prefixDrug)
 }
 
-func setDrugSale(h *dbxHelper) (interface{}, error) {
+func setDrugSale(h *ctxHelper) (interface{}, error) {
 	return setDrugXSale(h, prefixDrug)
 }
 
-func delDrug(h *dbxHelper) (interface{}, error) {
+func delDrug(h *ctxHelper) (interface{}, error) {
 	return delDrugX(h, prefixDrug)
 }
