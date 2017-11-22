@@ -322,7 +322,7 @@ func mixKeyAndFieldsAndValues(p string, h hasher) []interface{} {
 	r := make([]interface{}, 0, 1+len(f)*2)
 	r = append(r, genKey(p, h.getID()))
 	for i := range v {
-		if notZeroValue(v) {
+		if !zeroValue(v[i]) {
 			r = append(r, f[i], v[i])
 		}
 	}

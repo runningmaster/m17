@@ -98,8 +98,8 @@ func uniqString(s []string) []string {
 	return s[:j]
 }
 
-func notZeroValue(v interface{}) bool {
-	return !(v == nil || reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface()))
+func zeroValue(v interface{}) bool {
+	return v == nil || reflect.DeepEqual(v, reflect.Zero(reflect.TypeOf(v)).Interface())
 }
 
 func iifString(cond bool, s1, s2 string) string {
