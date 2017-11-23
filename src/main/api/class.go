@@ -35,6 +35,7 @@ type jsonClass struct {
 	NameUA    string  `json:"name_ua,omitempty"`
 	NameEN    string  `json:"name_en,omitempty"`
 	Slug      string  `json:"slug,omitempty"`
+	Full      bool    `json:"full,omitempty"`
 }
 
 func (j *jsonClass) getID() int64 {
@@ -304,6 +305,51 @@ func getClassXNext(h *ctxHelper, p string) (jsonClasses, error) {
 	return v, nil
 }
 
+func getClassXNextByID(h *ctxHelper, p string) (jsonClasses, error) {
+	x, err := int64FromJSON(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := makeClassesFromIDs([]int64{x}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var r []int64
+	if v[0].ID != 0 {
+		r, err = loadLinkIDs(c, p, "next", v[0].ID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		r, err = mineClassRootIDs(c, p, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	h.data = int64sToJSON(r)
+	v, err = getClassXNext(h, p)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range v {
+		v[i].Full = len(v[i].IDSpecINF) > 0 || len(v[i].IDSpecDEC) > 0
+		v[i].IDNode = 0
+		v[i].IDNext = nil
+		v[i].IDSpecINF = nil
+		v[i].IDSpecDEC = nil
+	}
+
+	return v, nil
+}
+
 func getClassX(h *ctxHelper, p string) (jsonClasses, error) {
 	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
@@ -432,6 +478,10 @@ func getClassATCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassATC)
 }
 
+func getClassATCNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassATC)
+}
+
 func getClassATC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassATC)
 }
@@ -456,6 +506,10 @@ func getClassNFCRoot(h *ctxHelper) (interface{}, error) {
 
 func getClassNFCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassNFC)
+}
+
+func getClassNFCNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassNFC)
 }
 
 func getClassNFC(h *ctxHelper) (interface{}, error) {
@@ -484,6 +538,10 @@ func getClassFSCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassFSC)
 }
 
+func getClassFSCNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassFSC)
+}
+
 func getClassFSC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassFSC)
 }
@@ -508,6 +566,10 @@ func getClassBFCRoot(h *ctxHelper) (interface{}, error) {
 
 func getClassBFCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassBFC)
+}
+
+func getClassBFCNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassBFC)
 }
 
 func getClassBFC(h *ctxHelper) (interface{}, error) {
@@ -536,6 +598,10 @@ func getClassCFCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassCFC)
 }
 
+func getClassCFCNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassCFC)
+}
+
 func getClassCFC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCFC)
 }
@@ -560,6 +626,10 @@ func getClassMPCRoot(h *ctxHelper) (interface{}, error) {
 
 func getClassMPCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassMPC)
+}
+
+func getClassMPCNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassMPC)
 }
 
 func getClassMPC(h *ctxHelper) (interface{}, error) {
@@ -588,6 +658,10 @@ func getClassCSCNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassCSC)
 }
 
+func getClassCSCNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassCSC)
+}
+
 func getClassCSC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCSC)
 }
@@ -612,6 +686,10 @@ func getClassICDRoot(h *ctxHelper) (interface{}, error) {
 
 func getClassICDNext(h *ctxHelper) (interface{}, error) {
 	return getClassXNext(h, prefixClassICD)
+}
+
+func getClassICDNextByID(h *ctxHelper) (interface{}, error) {
+	return getClassXNextByID(h, prefixClassICD)
 }
 
 func getClassICD(h *ctxHelper) (interface{}, error) {
