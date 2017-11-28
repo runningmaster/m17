@@ -161,6 +161,7 @@ type item struct {
 type result struct {
 	Kind string  `json:"kind,omitempty"`
 	List []*item `json:"list,omitempty"`
+	Sort int     `json:"sort,omitempty"`
 }
 
 func findSugg(h *ctxHelper) (interface{}, error) {
@@ -252,6 +253,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 						continue
 					}
 					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0})
+					r.Sort = 1 // max's magic :)
 				}
 			case prefixINN:
 				v, err := getINNXList(c, p)
@@ -264,6 +266,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 						continue
 					}
 					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0})
+					r.Sort = 2
 				}
 			case prefixMaker:
 				v, err := getMakerXList(c, p)
@@ -276,8 +279,9 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 						continue
 					}
 					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0})
+					r.Sort = 4
 				}
-			default: // prefixSpecINF, prefixSpecDEC
+			default: // prefixSpecINF, prefixSpecDEC, prefixSpecACT
 				v, err := getSpecXList(c, p)
 				if err != nil {
 					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
@@ -288,6 +292,9 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 						continue
 					}
 					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, v[i].Full, v[i].Slug, v[i].Sale})
+					if p == prefixSpecACT {
+						r.Sort = 3
+					}
 				}
 			}
 			resc <- r
@@ -322,6 +329,18 @@ loop:
 
 	if err != nil {
 		return nil, err
+	}
+
+	// FIXME: if not
+
+	sort.Slice(res,
+		func(i, j int) bool {
+			return res[i].Sort < res[j].Sort
+		},
+	)
+
+	for i := range res {
+		res[i].Sort = 0
 	}
 
 	return res, nil
