@@ -28,6 +28,9 @@ func genKey(v ...interface{}) string {
 }
 
 func normName(s string) string {
+	if s == "" {
+		return s
+	}
 	r := strings.NewReplacer(
 		"®", "",
 		"™", "",

@@ -59,27 +59,6 @@ func (j *jsonDrug) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonDrug) getNameRU(_ string) string {
-	if j == nil {
-		return ""
-	}
-	return j.NameRU
-}
-
-func (j *jsonDrug) getNameUA(_ string) string {
-	if j == nil {
-		return ""
-	}
-	return j.NameUA
-}
-
-func (j *jsonDrug) getNameEN(_ string) string {
-	if j == nil {
-		return ""
-	}
-	return j.NameEN
-}
-
 func (j *jsonDrug) lang(l, _ string) {
 	if j == nil {
 		return

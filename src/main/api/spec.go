@@ -63,22 +63,28 @@ func (j *jsonSpec) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonSpec) getNameRU(p string) string {
-	if p != prefixSpecDEC {
-		return j.NameRUSrc
+func (j *jsonSpec) getSrchRU(p string) (string, rune) {
+	if p == prefixSpecDEC || j.NameRUSrc == "" {
+		return "", 0
 	}
-	return ""
+	s := normName(j.NameRUSrc)
+	return s, []rune(s)[0]
 }
 
-func (j *jsonSpec) getNameUA(p string) string {
-	if p == prefixSpecDEC {
-		return j.NameUASrc
+func (j *jsonSpec) getSrchUA(p string) (string, rune) {
+	if p != prefixSpecDEC || j.NameUASrc == "" {
+		return "", 0
 	}
-	return ""
+	s := normName(j.NameUASrc)
+	return s, []rune(s)[0]
 }
 
-func (j *jsonSpec) getNameEN(p string) string {
-	return j.NameENSrc
+func (j *jsonSpec) getSrchEN(p string) (string, rune) {
+	if j.NameENSrc == "" {
+		return "", 0
+	}
+	s := normName(j.NameENSrc)
+	return s, []rune(s)[0]
 }
 
 func (j *jsonSpec) lang(l, p string) {

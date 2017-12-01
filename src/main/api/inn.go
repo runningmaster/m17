@@ -30,16 +30,28 @@ func (j *jsonINN) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonINN) getNameRU(_ string) string {
-	return j.NameRU
+func (j *jsonINN) getSrchRU(_ string) (string, rune) {
+	if j.NameRU == "" {
+		return "", 0
+	}
+	s := normName(j.NameRU)
+	return s, []rune(s)[0]
 }
 
-func (j *jsonINN) getNameUA(_ string) string {
-	return j.NameUA
+func (j *jsonINN) getSrchUA(_ string) (string, rune) {
+	if j.NameUA == "" {
+		return "", 0
+	}
+	s := normName(j.NameUA)
+	return s, []rune(s)[0]
 }
 
-func (j *jsonINN) getNameEN(_ string) string {
-	return j.NameEN
+func (j *jsonINN) getSrchEN(_ string) (string, rune) {
+	if j.NameEN == "" {
+		return "", 0
+	}
+	s := normName(j.NameEN)
+	return s, []rune(s)[0]
 }
 
 func (j *jsonINN) lang(l, _ string) {

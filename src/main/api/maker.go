@@ -35,16 +35,40 @@ func (j *jsonMaker) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonMaker) getNameRU(_ string) string {
-	return j.NameRU
+func (j *jsonMaker) getSrchRU(_ string) (string, rune) {
+	if j.NameRU == "" {
+		return "", 0
+	}
+	s := normName(j.NameRU)
+	r := []rune(s)[0]
+	if !j.MarkGP {
+		r = 0
+	}
+	return s, r
 }
 
-func (j *jsonMaker) getNameUA(_ string) string {
-	return j.NameUA
+func (j *jsonMaker) getSrchUA(_ string) (string, rune) {
+	if j.NameUA == "" {
+		return "", 0
+	}
+	s := normName(j.NameUA)
+	r := []rune(s)[0]
+	if !j.MarkGP {
+		r = 0
+	}
+	return s, r
 }
 
-func (j *jsonMaker) getNameEN(_ string) string {
-	return j.NameEN
+func (j *jsonMaker) getSrchEN(_ string) (string, rune) {
+	if j.NameEN == "" {
+		return "", 0
+	}
+	s := normName(j.NameEN)
+	r := []rune(s)[0]
+	if !j.MarkGP {
+		r = 0
+	}
+	return s, r
 }
 
 func (j *jsonMaker) lang(l, _ string) {

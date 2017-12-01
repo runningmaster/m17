@@ -44,9 +44,9 @@ type langer interface {
 
 type searcher interface {
 	ider
-	getNameRU(string) string
-	getNameUA(string) string
-	getNameEN(string) string
+	getSrchRU(string) (string, rune)
+	getSrchUA(string) (string, rune)
+	getSrchEN(string) (string, rune)
 }
 
 func freeLinkIDs(c redis.Conn, p1, p2 string, s bool, x int64, v ...int64) error {
@@ -385,22 +385,21 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 
 		if s, ok := v.elem(i).(searcher); ok {
 			id = s.getID()
-			nameRU = normName(s.getNameRU(p))
-			nameUA = normName(s.getNameUA(p))
-			nameEN = normName(s.getNameEN(p))
+			nameRU, abcdRU = s.getSrchRU(p)
+			nameUA, abcdUA = s.getSrchUA(p)
+			nameEN, abcdEN = s.getSrchEN(p)
 
 			if nameRU != "" {
 				err = c.Send("ZADD", genKey(p, "srch", "ru"), id, nameRU)
 				if err != nil {
 					return err
 				}
-
-				abcdRU = []rune(nameRU)[0]
+			}
+			if abcdRU != 0 {
 				err = c.Send("ZADD", genKey(p, "abcd", "ru"), abcdRU, id)
 				if err != nil {
 					return err
 				}
-
 				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), 1, abcdRU)
 				if err != nil {
 					return err
@@ -412,13 +411,12 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 				if err != nil {
 					return err
 				}
-
-				abcdUA = []rune(nameUA)[0]
+			}
+			if abcdUA != 0 {
 				err = c.Send("ZADD", genKey(p, "abcd", "ua"), abcdUA, id)
 				if err != nil {
 					return err
 				}
-
 				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), 1, abcdUA)
 				if err != nil {
 					return err
@@ -430,13 +428,12 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 				if err != nil {
 					return err
 				}
-
-				abcdEN = []rune(nameEN)[0]
+			}
+			if abcdEN != 0 {
 				err = c.Send("ZADD", genKey(p, "abcd", "en"), abcdEN, id)
 				if err != nil {
 					return err
 				}
-
 				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), 1, abcdEN)
 				if err != nil {
 					return err
@@ -464,22 +461,21 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 
 		if s, ok := v.elem(i).(searcher); ok {
 			id = s.getID()
-			nameRU = normName(s.getNameRU(p))
-			nameUA = normName(s.getNameUA(p))
-			nameEN = normName(s.getNameEN(p))
+			nameRU, abcdRU = s.getSrchRU(p)
+			nameUA, abcdUA = s.getSrchUA(p)
+			nameEN, abcdEN = s.getSrchEN(p)
 
 			if nameRU != "" {
 				err = c.Send("ZREMRANGEBYSCORE", genKey(p, "srch", "ru"), id, id)
 				if err != nil {
 					return err
 				}
-
+			}
+			if abcdRU != 0 {
 				err = c.Send("ZREM", genKey(p, "abcd", "ru"), id)
 				if err != nil {
 					return err
 				}
-
-				abcdRU = []rune(nameRU)[0]
 				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), -1, abcdRU)
 				if err != nil {
 					return err
@@ -491,13 +487,12 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 				if err != nil {
 					return err
 				}
-
+			}
+			if abcdUA != 0 {
 				err = c.Send("ZREM", genKey(p, "abcd", "ua"), id)
 				if err != nil {
 					return err
 				}
-
-				abcdUA = []rune(nameUA)[0]
 				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), -1, abcdUA)
 				if err != nil {
 					return err
@@ -509,13 +504,12 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 				if err != nil {
 					return err
 				}
-
+			}
+			if abcdEN != 0 {
 				err = c.Send("ZREM", genKey(p, "abcd", "en"), id)
 				if err != nil {
 					return err
 				}
-
-				abcdEN = []rune(nameEN)[0]
 				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), -1, abcdEN)
 				if err != nil {
 					return err

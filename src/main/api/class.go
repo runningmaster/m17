@@ -42,16 +42,16 @@ func (j *jsonClass) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonClass) getNameRU(_ string) string {
-	return j.NameRU
+func (j *jsonClass) getSrchRU(_ string) (string, rune) {
+	return normName(j.NameRU), 0
 }
 
-func (j *jsonClass) getNameUA(_ string) string {
-	return j.NameUA
+func (j *jsonClass) getSrchUA(_ string) (string, rune) {
+	return normName(j.NameUA), 0
 }
 
-func (j *jsonClass) getNameEN(_ string) string {
-	return j.NameEN
+func (j *jsonClass) getSrchEN(_ string) (string, rune) {
+	return normName(j.NameEN), 0
 }
 
 func (j *jsonClass) lang(l, _ string) {
