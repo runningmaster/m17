@@ -35,38 +35,41 @@ func (j *jsonMaker) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonMaker) getSrchRU(_ string) (string, rune) {
+func (j *jsonMaker) getSrchRU(_ string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if j.NameRU == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameRU)
-	r := []rune(s)[0]
-	if !j.MarkGP {
-		r = 0
+	s = append(s, normName(j.NameRU))
+	if j.MarkGP {
+		r = append(r, []rune(s[0])[0])
 	}
 	return s, r
 }
 
-func (j *jsonMaker) getSrchUA(_ string) (string, rune) {
+func (j *jsonMaker) getSrchUA(_ string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if j.NameUA == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameUA)
-	r := []rune(s)[0]
-	if !j.MarkGP {
-		r = 0
+	s = append(s, normName(j.NameUA))
+	if j.MarkGP {
+		r = append(r, []rune(s[0])[0])
 	}
 	return s, r
 }
 
-func (j *jsonMaker) getSrchEN(_ string) (string, rune) {
+func (j *jsonMaker) getSrchEN(_ string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if j.NameEN == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameEN)
-	r := []rune(s)[0]
-	if !j.MarkGP {
-		r = 0
+	s = append(s, normName(j.NameEN))
+	if j.MarkGP {
+		r = append(r, []rune(s[0])[0])
 	}
 	return s, r
 }

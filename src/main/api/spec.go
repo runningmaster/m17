@@ -50,7 +50,7 @@ type jsonSpec struct {
 	TextUA     string  `json:"text_ua,omitempty"`
 	TextEN     string  `json:"text_en,omitempty"`
 	Slug       string  `json:"slug,omitempty"`
-	Fake       string  `json:"fake,omitempty"` // [{"name":"foo", "slug": "bar"}]
+	Fake       string  `json:"fake,omitempty"` // [{"name": "foo", "slug": "bar"}]
 	Full       bool    `json:"full,omitempty"`
 	ImageOrg   string  `json:"image_org,omitempty"`
 	ImageBox   string  `json:"image_box,omitempty"`
@@ -63,28 +63,47 @@ func (j *jsonSpec) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonSpec) getSrchRU(p string) (string, rune) {
+func (j *jsonSpec) getSrchRU(p string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if p == prefixSpecDEC || j.NameRUSrc == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameRUSrc)
-	return s, []rune(s)[0]
+	s = append(s, normName(j.NameRUSrc))
+	r = append(r, []rune(s[0])[0])
+	if j.Fake != "" {
+		var v []*item
+		err := json.Unmarshal([]byte(j.Fake), &v)
+		if err == nil {
+			for i := range v {
+				s = append(s, normName(v[i].Name))
+				r = append(r, []rune(s[i+1])[0])
+			}
+		}
+	}
+	return s, r
 }
 
-func (j *jsonSpec) getSrchUA(p string) (string, rune) {
+func (j *jsonSpec) getSrchUA(p string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if p != prefixSpecDEC || j.NameUASrc == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameUASrc)
-	return s, []rune(s)[0]
+	s = append(s, normName(j.NameUASrc))
+	r = append(r, []rune(s[0])[0])
+	return s, r
 }
 
-func (j *jsonSpec) getSrchEN(p string) (string, rune) {
+func (j *jsonSpec) getSrchEN(p string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if j.NameENSrc == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameENSrc)
-	return s, []rune(s)[0]
+	s = append(s, normName(j.NameENSrc))
+	r = append(r, []rune(s[0])[0])
+	return s, r
 }
 
 func (j *jsonSpec) lang(l, p string) {
@@ -105,8 +124,11 @@ func (j *jsonSpec) lang(l, p string) {
 
 	if l == "ru" || l == "ua" {
 		j.NameRU = ""
+		j.NameRUSrc = ""
 		j.NameUA = ""
+		j.NameUASrc = ""
 		j.NameEN = ""
+		j.NameENSrc = ""
 		j.HeadRU = ""
 		j.HeadUA = ""
 		j.HeadEN = ""
@@ -129,25 +151,28 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 		}
 	}
 	return []interface{}{
-		"id",         // 0
-		"id_make_gp", // 1
-		"name_ru",    // 2
-		"name_ua",    // 3
-		"name_en",    // 4
-		"head_ru",    // 5
-		"head_ua",    // 6
-		"head_en",    // 7
-		"text_ru",    // 8
-		"text_ua",    // 9
-		"text_en",    // 10
-		"slug",       // 11
-		"fake",       // 12
-		"full",       // 13
-		"image_org",  // 14
-		"image_box",  // 15
-		"created_at", // 16
-		"updated_at", // 17
-		"sale",       // 18
+		"id",          // 0
+		"id_make_gp",  // 1
+		"name_ru",     // 2
+		"name_ru_src", // 3
+		"name_ua",     // 4
+		"name_ua_src", // 5
+		"name_en",     // 6
+		"name_en_src", // 7
+		"head_ru",     // 8
+		"head_ua",     // 9
+		"head_en",     // 10
+		"text_ru",     // 11
+		"text_ua",     // 12
+		"text_en",     // 13
+		"slug",        // 14
+		"fake",        // 15
+		"full",        // 16
+		"image_org",   // 17
+		"image_box",   // 18
+		"created_at",  // 19
+		"updated_at",  // 20
+		"sale",        // 21
 	}
 }
 
@@ -157,22 +182,25 @@ func (j *jsonSpec) getValues() []interface{} {
 		j.ID,        // 0
 		j.IDMakeGP,  // 1
 		j.NameRU,    // 2
-		j.NameUA,    // 3
-		j.NameEN,    // 4
-		j.HeadRU,    // 5
-		j.HeadUA,    // 6
-		j.HeadEN,    // 7
-		j.TextRU,    // 8
-		j.TextUA,    // 9
-		j.TextEN,    // 10
-		j.Slug,      // 11
-		j.Fake,      // 12
-		j.Full,      // 13
-		j.ImageOrg,  // 14
-		j.ImageBox,  // 15
-		j.CreatedAt, // 16
-		j.UpdatedAt, // 17
-		j.Sale,      // 18
+		j.NameRUSrc, // 3
+		j.NameUA,    // 4
+		j.NameUASrc, // 5
+		j.NameEN,    // 6
+		j.NameENSrc, // 7
+		j.HeadRU,    // 8
+		j.HeadUA,    // 9
+		j.HeadEN,    // 10
+		j.TextRU,    // 11
+		j.TextUA,    // 12
+		j.TextEN,    // 13
+		j.Slug,      // 14
+		j.Fake,      // 15
+		j.Full,      // 16
+		j.ImageOrg,  // 17
+		j.ImageBox,  // 18
+		j.CreatedAt, // 19
+		j.UpdatedAt, // 20
+		j.Sale,      // 21
 	}
 }
 
@@ -208,36 +236,42 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 		case 2:
 			j.NameRU, _ = redis.String(v[i], nil)
 		case 3:
-			j.NameUA, _ = redis.String(v[i], nil)
+			j.NameRUSrc, _ = redis.String(v[i], nil)
 		case 4:
-			j.NameEN, _ = redis.String(v[i], nil)
+			j.NameUA, _ = redis.String(v[i], nil)
 		case 5:
-			j.HeadRU, _ = redis.String(v[i], nil)
+			j.NameUASrc, _ = redis.String(v[i], nil)
 		case 6:
-			j.HeadUA, _ = redis.String(v[i], nil)
+			j.NameEN, _ = redis.String(v[i], nil)
 		case 7:
-			j.HeadEN, _ = redis.String(v[i], nil)
+			j.NameENSrc, _ = redis.String(v[i], nil)
 		case 8:
-			j.TextRU, _ = redis.String(v[i], nil)
+			j.HeadRU, _ = redis.String(v[i], nil)
 		case 9:
-			j.TextUA, _ = redis.String(v[i], nil)
+			j.HeadUA, _ = redis.String(v[i], nil)
 		case 10:
-			j.TextEN, _ = redis.String(v[i], nil)
+			j.HeadEN, _ = redis.String(v[i], nil)
 		case 11:
-			j.Slug, _ = redis.String(v[i], nil)
+			j.TextRU, _ = redis.String(v[i], nil)
 		case 12:
-			j.Fake, _ = redis.String(v[i], nil)
+			j.TextUA, _ = redis.String(v[i], nil)
 		case 13:
-			j.Full, _ = redis.Bool(v[i], nil)
+			j.TextEN, _ = redis.String(v[i], nil)
 		case 14:
-			j.ImageOrg, _ = redis.String(v[i], nil)
+			j.Slug, _ = redis.String(v[i], nil)
 		case 15:
-			j.ImageBox, _ = redis.String(v[i], nil)
+			j.Fake, _ = redis.String(v[i], nil)
 		case 16:
-			j.CreatedAt, _ = redis.Int64(v[i], nil)
+			j.Full, _ = redis.Bool(v[i], nil)
 		case 17:
-			j.UpdatedAt, _ = redis.Int64(v[i], nil)
+			j.ImageOrg, _ = redis.String(v[i], nil)
 		case 18:
+			j.ImageBox, _ = redis.String(v[i], nil)
+		case 19:
+			j.CreatedAt, _ = redis.Int64(v[i], nil)
+		case 20:
+			j.UpdatedAt, _ = redis.Int64(v[i], nil)
+		case 21:
 			j.Sale, _ = redis.Float64(v[i], nil)
 		}
 	}

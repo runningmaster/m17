@@ -30,28 +30,37 @@ func (j *jsonINN) getID() int64 {
 	return j.ID
 }
 
-func (j *jsonINN) getSrchRU(_ string) (string, rune) {
+func (j *jsonINN) getSrchRU(_ string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if j.NameRU == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameRU)
-	return s, []rune(s)[0]
+	s = append(s, normName(j.NameRU))
+	r = append(r, []rune(s[0])[0])
+	return s, r
 }
 
-func (j *jsonINN) getSrchUA(_ string) (string, rune) {
+func (j *jsonINN) getSrchUA(_ string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if j.NameUA == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameUA)
-	return s, []rune(s)[0]
+	s = append(s, normName(j.NameUA))
+	r = append(r, []rune(s[0])[0])
+	return s, r
 }
 
-func (j *jsonINN) getSrchEN(_ string) (string, rune) {
+func (j *jsonINN) getSrchEN(_ string) ([]string, []rune) {
+	var s []string
+	var r []rune
 	if j.NameEN == "" {
-		return "", 0
+		return s, r
 	}
-	s := normName(j.NameEN)
-	return s, []rune(s)[0]
+	s = append(s, normName(j.NameEN))
+	r = append(r, []rune(s[0])[0])
+	return s, r
 }
 
 func (j *jsonINN) lang(l, _ string) {

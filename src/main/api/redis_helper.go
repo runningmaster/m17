@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,9 +45,9 @@ type langer interface {
 
 type searcher interface {
 	ider
-	getSrchRU(string) (string, rune)
-	getSrchUA(string) (string, rune)
-	getSrchEN(string) (string, rune)
+	getSrchRU(string) ([]string, []rune)
+	getSrchUA(string) ([]string, []rune)
+	getSrchEN(string) ([]string, []rune)
 }
 
 func freeLinkIDs(c redis.Conn, p1, p2 string, s bool, x int64, v ...int64) error {
@@ -375,8 +376,9 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 	}
 
 	var id int64
-	var nameRU, nameUA, nameEN string
-	var abcdRU, abcdUA, abcdEN rune
+	var sx string
+	var nameRU, nameUA, nameEN []string
+	var abcdRU, abcdUA, abcdEN []rune
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if v.null(i) {
@@ -385,56 +387,57 @@ func saveSearchers(c redis.Conn, p string, v ruler) error {
 
 		if s, ok := v.elem(i).(searcher); ok {
 			id = s.getID()
+			sx = "|" + strconv.Itoa(int(id))
 			nameRU, abcdRU = s.getSrchRU(p)
 			nameUA, abcdUA = s.getSrchUA(p)
 			nameEN, abcdEN = s.getSrchEN(p)
 
-			if nameRU != "" {
-				err = c.Send("ZADD", genKey(p, "srch", "ru"), id, nameRU)
+			for _, v := range nameRU {
+				err = c.Send("ZADD", genKey(p, "srch", "ru"), id, v+sx)
 				if err != nil {
 					return err
 				}
 			}
-			if abcdRU != 0 {
-				err = c.Send("ZADD", genKey(p, "abcd", "ru"), abcdRU, id)
+			for _, v := range abcdRU {
+				err = c.Send("ZADD", genKey(p, "abcd", "ru"), v, id)
 				if err != nil {
 					return err
 				}
-				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), 1, abcdRU)
-				if err != nil {
-					return err
-				}
-			}
-
-			if nameUA != "" {
-				err = c.Send("ZADD", genKey(p, "srch", "ua"), id, nameUA)
-				if err != nil {
-					return err
-				}
-			}
-			if abcdUA != 0 {
-				err = c.Send("ZADD", genKey(p, "abcd", "ua"), abcdUA, id)
-				if err != nil {
-					return err
-				}
-				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), 1, abcdUA)
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), 1, v)
 				if err != nil {
 					return err
 				}
 			}
 
-			if nameEN != "" {
-				err = c.Send("ZADD", genKey(p, "srch", "en"), id, nameEN)
+			for _, v := range nameUA {
+				err = c.Send("ZADD", genKey(p, "srch", "ua"), id, v+sx)
 				if err != nil {
 					return err
 				}
 			}
-			if abcdEN != 0 {
-				err = c.Send("ZADD", genKey(p, "abcd", "en"), abcdEN, id)
+			for _, v := range abcdUA {
+				err = c.Send("ZADD", genKey(p, "abcd", "ua"), v, id)
 				if err != nil {
 					return err
 				}
-				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), 1, abcdEN)
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), 1, v)
+				if err != nil {
+					return err
+				}
+			}
+
+			for _, v := range nameEN {
+				err = c.Send("ZADD", genKey(p, "srch", "en"), id, v+sx)
+				if err != nil {
+					return err
+				}
+			}
+			for _, v := range abcdEN {
+				err = c.Send("ZADD", genKey(p, "abcd", "en"), v, id)
+				if err != nil {
+					return err
+				}
+				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), 1, v)
 				if err != nil {
 					return err
 				}
@@ -451,8 +454,8 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 	}
 
 	var id int64
-	var nameRU, nameUA, nameEN string
-	var abcdRU, abcdUA, abcdEN rune
+	var nameRU, nameUA, nameEN []string
+	var abcdRU, abcdUA, abcdEN []rune
 	var err error
 	for i := 0; i < v.len(); i++ {
 		if v.null(i) {
@@ -465,52 +468,52 @@ func freeSearchers(c redis.Conn, p string, v ruler) error {
 			nameUA, abcdUA = s.getSrchUA(p)
 			nameEN, abcdEN = s.getSrchEN(p)
 
-			if nameRU != "" {
+			for range nameRU {
 				err = c.Send("ZREMRANGEBYSCORE", genKey(p, "srch", "ru"), id, id)
 				if err != nil {
 					return err
 				}
 			}
-			if abcdRU != 0 {
+			for _, v := range abcdRU {
 				err = c.Send("ZREM", genKey(p, "abcd", "ru"), id)
 				if err != nil {
 					return err
 				}
-				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), -1, abcdRU)
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ru"), -1, v)
 				if err != nil {
 					return err
 				}
 			}
 
-			if nameUA != "" {
+			for range nameUA {
 				err = c.Send("ZREMRANGEBYSCORE", genKey(p, "srch", "ua"), id, id)
 				if err != nil {
 					return err
 				}
 			}
-			if abcdUA != 0 {
+			for _, v := range abcdUA {
 				err = c.Send("ZREM", genKey(p, "abcd", "ua"), id)
 				if err != nil {
 					return err
 				}
-				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), -1, abcdUA)
+				err = c.Send("ZINCRBY", genKey(p, "rune", "ua"), -1, v)
 				if err != nil {
 					return err
 				}
 			}
 
-			if nameEN != "" {
+			for range nameEN {
 				err = c.Send("ZREMRANGEBYSCORE", genKey(p, "srch", "en"), id, id)
 				if err != nil {
 					return err
 				}
 			}
-			if abcdEN != 0 {
+			for _, v := range abcdEN {
 				err = c.Send("ZREM", genKey(p, "abcd", "en"), id)
 				if err != nil {
 					return err
 				}
-				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), -1, abcdEN)
+				err = c.Send("ZINCRBY", genKey(p, "rune", "en"), -1, v)
 				if err != nil {
 					return err
 				}
@@ -574,8 +577,12 @@ type findRes struct {
 
 //
 func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
-	flds := strings.Fields(strings.ToLower(text))
-	text = flds[0]
+	text = strings.ToLower(text)
+	var flds []string
+	if conj {
+		flds = strings.Fields(text)
+		text = flds[0]
+	}
 
 	res := make([]*findRes, 0, 100)
 	var next int
@@ -609,7 +616,7 @@ func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
 			if y {
 				r = &findRes{}
 				r.ID, _ = redis.Int64(vals[i], err)
-				r.Name = s
+				r.Name = strings.Split(s, "|")[0]
 				res = append(res, r)
 			}
 		}
