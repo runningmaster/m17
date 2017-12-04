@@ -52,6 +52,7 @@ type jsonSpec struct {
 	Slug       string  `json:"slug,omitempty"`
 	Fake       string  `json:"fake,omitempty"` // [{"name": "foo", "slug": "bar"}]
 	Full       bool    `json:"full,omitempty"`
+	IsInfo     int     `json:"is_info,omitempty"`
 	ImageOrg   string  `json:"image_org,omitempty"`
 	ImageBox   string  `json:"image_box,omitempty"`
 	CreatedAt  int64   `json:"created_at,omitempty"`
@@ -69,15 +70,18 @@ func (j *jsonSpec) getSrchRU(p string) ([]string, []rune) {
 	if p == prefixSpecDEC || j.NameRUSrc == "" {
 		return s, r
 	}
-	s = append(s, normName(j.NameRUSrc))
-	r = append(r, []rune(s[0])[0])
-	if j.Fake != "" {
-		var v []*item
+	if j.Fake == "" {
+		s = append(s, normName(j.NameRUSrc))
+		r = append(r, []rune(s[0])[0])
+	} else {
+		var v []struct {
+			NameSrc string `json:"name_src,omitempty"`
+		}
 		err := json.Unmarshal([]byte(j.Fake), &v)
 		if err == nil {
 			for i := range v {
-				s = append(s, normName(v[i].Name))
-				r = append(r, []rune(s[i+1])[0])
+				s = append(s, normName(v[i].NameSrc))
+				r = append(r, []rune(s[i])[0])
 			}
 		}
 	}
@@ -177,7 +181,7 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 }
 
 func (j *jsonSpec) getValues() []interface{} {
-	j.Full = len(j.TextRU) > 0 || len(j.TextUA) > 0
+	j.Full = j.IsInfo != 0
 	return []interface{}{
 		j.ID,        // 0
 		j.IDMakeGP,  // 1
