@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"internal/ctxutil"
 
@@ -239,16 +240,27 @@ func (j jsonDrugs) nill(i int) {
 	j[i] = nil
 }
 
-func (v jsonDrugs) sort(_ string) {
-	//coll := newCollator(lang)
-	//sort.Slice(v,
-	//	func(i, j int) bool {
-	//		if v[i] == nil || v[j] == nil {
-	//			return true
-	//		}
-	//		return coll.CompareString(v[i].Slug, v[j].Slug) < 0
-	//	},
-	//)
+func (v jsonDrugs) sort(lang string) {
+	coll := newCollator(lang)
+	sort.Slice(v,
+		func(i, j int) bool {
+			if v[i] == nil && v[j] == nil {
+				return true
+			}
+			if v[i] != nil && v[j] == nil {
+				return true
+			}
+			if v[i] == nil && v[j] != nil {
+				return false
+			}
+			if v[i].Value > v[j].Value {
+				return true
+			} else if v[i].Value < v[j].Value {
+				return false
+			}
+			return coll.CompareString(v[i].Name, v[j].Name) < 0
+		},
+	)
 }
 
 func makeDrugsFromJSON(data []byte) (jsonDrugs, error) {
@@ -328,6 +340,28 @@ func getDrugX(h *ctxHelper, p string) (jsonDrugs, error) {
 	return v, nil
 }
 
+func getDrugXList(h *ctxHelper, p string) (jsonDrugs, error) {
+	v, err := makeDrugsFromIDs(int64sFromJSON(h.data))
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	err = loadHashers(c, p, v, true)
+	if err != nil {
+		return nil, err
+	}
+
+	normLang(h.lang, p, v)
+
+	v.sort(h.lang)
+
+	return v, nil
+}
+
 func setDrugX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeDrugsFromJSON(h.data)
 	if err != nil {
@@ -395,6 +429,10 @@ func getDrugSync(h *ctxHelper) (interface{}, error) {
 
 func getDrug(h *ctxHelper) (interface{}, error) {
 	return getDrugX(h, prefixDrug)
+}
+
+func getDrugList(h *ctxHelper) (interface{}, error) {
+	return getDrugXList(h, prefixDrug)
 }
 
 func setDrug(h *ctxHelper) (interface{}, error) {

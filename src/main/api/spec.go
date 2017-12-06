@@ -33,30 +33,43 @@ type jsonSpec struct {
 	IDClassMPC []int64 `json:"id_class_mpc,omitempty"`
 	IDClassCSC []int64 `json:"id_class_csc,omitempty"`
 	IDClassICD []int64 `json:"id_class_icd,omitempty"`
-	Name       string  `json:"name,omitempty"` // *
-	NameRU     string  `json:"name_ru,omitempty"`
-	NameRUSrc  string  `json:"name_ru_src,omitempty"`
-	NameUA     string  `json:"name_ua,omitempty"`
-	NameUASrc  string  `json:"name_ua_src,omitempty"`
-	NameEN     string  `json:"name_en,omitempty"`
-	NameENSrc  string  `json:"name_en_src,omitempty"`
-	Head       string  `json:"head,omitempty"` // *
-	HeadRU     string  `json:"head_ru,omitempty"`
-	HeadUA     string  `json:"head_ua,omitempty"`
-	HeadEN     string  `json:"head_en,omitempty"`
-	Text       string  `json:"text,omitempty"` // *
-	TextRU     string  `json:"text_ru,omitempty"`
-	TextUA     string  `json:"text_ua,omitempty"`
-	TextEN     string  `json:"text_en,omitempty"`
-	Slug       string  `json:"slug,omitempty"`
-	Fake       string  `json:"fake,omitempty"` // [{"name": "foo", "slug": "bar"}]
-	Full       bool    `json:"full,omitempty"`
-	IsInfo     int     `json:"is_info,omitempty"`
-	ImageOrg   string  `json:"image_org,omitempty"`
-	ImageBox   string  `json:"image_box,omitempty"`
-	CreatedAt  int64   `json:"created_at,omitempty"`
-	UpdatedAt  int64   `json:"updated_at,omitempty"`
-	Sale       float64 `json:"sale,omitempty"`
+
+	INN      jsonINNs    `json:"inn,omitempty"`
+	Drug     jsonDrugs   `json:"drug,omitempty"`
+	Make     jsonMakers  `json:"make,omitempty"`
+	ClassATC jsonClasses `json:"class_atc,omitempty"`
+	ClassNFC jsonClasses `json:"class_nfc,omitempty"`
+	ClassFSC jsonClasses `json:"class_fsc,omitempty"`
+	ClassBFC jsonClasses `json:"class_bfc,omitempty"`
+	ClassCFC jsonClasses `json:"class_cfc,omitempty"`
+	ClassMPC jsonClasses `json:"class_mpc,omitempty"`
+	ClassCSC jsonClasses `json:"class_csc,omitempty"`
+	ClassICD jsonClasses `json:"class_icd,omitempty"`
+
+	Name      string  `json:"name,omitempty"` // *
+	NameRU    string  `json:"name_ru,omitempty"`
+	NameRUSrc string  `json:"name_ru_src,omitempty"`
+	NameUA    string  `json:"name_ua,omitempty"`
+	NameUASrc string  `json:"name_ua_src,omitempty"`
+	NameEN    string  `json:"name_en,omitempty"`
+	NameENSrc string  `json:"name_en_src,omitempty"`
+	Head      string  `json:"head,omitempty"` // *
+	HeadRU    string  `json:"head_ru,omitempty"`
+	HeadUA    string  `json:"head_ua,omitempty"`
+	HeadEN    string  `json:"head_en,omitempty"`
+	Text      string  `json:"text,omitempty"` // *
+	TextRU    string  `json:"text_ru,omitempty"`
+	TextUA    string  `json:"text_ua,omitempty"`
+	TextEN    string  `json:"text_en,omitempty"`
+	Slug      string  `json:"slug,omitempty"`
+	Fake      string  `json:"fake,omitempty"` // [{"name": "foo", "slug": "bar"}]
+	Full      bool    `json:"full,omitempty"`
+	IsInfo    int     `json:"is_info,omitempty"`
+	ImageOrg  string  `json:"image_org,omitempty"`
+	ImageBox  string  `json:"image_box,omitempty"`
+	CreatedAt int64   `json:"created_at,omitempty"`
+	UpdatedAt int64   `json:"updated_at,omitempty"`
+	Sale      float64 `json:"sale,omitempty"`
 }
 
 func (j *jsonSpec) getID() int64 {
@@ -724,6 +737,119 @@ func getSpecX(h *ctxHelper, p string) (jsonSpecs, error) {
 	return v, nil
 }
 
+func getSpecXWithDeps(h *ctxHelper, p string) (jsonSpecs, error) {
+	v, err := getSpecX(h, p)
+	if err != nil {
+		return nil, err
+	}
+	cleanup := func(v ...*jsonClass) {
+		for i := range v {
+			v[i].IDSpecDEC = nil
+			v[i].IDSpecINF = nil
+		}
+	}
+	for i := range v {
+		if len(v[i].IDINN) > 0 {
+			h.data = int64sToJSON(v[i].IDINN)
+			v[i].INN, err = getINNXList(h, prefixINN)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDINN = nil
+		}
+		if len(v[i].IDDrug) > 0 {
+			h.data = int64sToJSON(v[i].IDDrug)
+			v[i].Drug, err = getDrugXList(h, prefixDrug)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDDrug = nil
+		}
+		if len(v[i].IDMake) > 0 {
+			h.data = int64sToJSON(v[i].IDMake)
+			v[i].Make, err = getMakerXList(h, prefixMaker)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDMake = nil
+		}
+		if len(v[i].IDClassATC) > 0 {
+			h.data = int64sToJSON(v[i].IDClassATC)
+			v[i].ClassATC, err = getClassXNext(h, prefixClassATC)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassATC = nil
+			cleanup(v[i].ClassATC...)
+		}
+		if len(v[i].IDClassNFC) > 0 {
+			h.data = int64sToJSON(v[i].IDClassNFC)
+			v[i].ClassNFC, err = getClassXNext(h, prefixClassNFC)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassNFC = nil
+			cleanup(v[i].ClassNFC...)
+		}
+		if len(v[i].IDClassFSC) > 0 {
+			h.data = int64sToJSON(v[i].IDClassFSC)
+			v[i].ClassFSC, err = getClassXNext(h, prefixClassFSC)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassFSC = nil
+			cleanup(v[i].ClassFSC...)
+		}
+		if len(v[i].IDClassBFC) > 0 {
+			h.data = int64sToJSON(v[i].IDClassBFC)
+			v[i].ClassBFC, err = getClassXNext(h, prefixClassBFC)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassBFC = nil
+			cleanup(v[i].ClassBFC...)
+		}
+		if len(v[i].IDClassCFC) > 0 {
+			h.data = int64sToJSON(v[i].IDClassCFC)
+			v[i].ClassCFC, err = getClassXNext(h, prefixClassCFC)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassCFC = nil
+			cleanup(v[i].ClassCFC...)
+		}
+		if len(v[i].IDClassMPC) > 0 {
+			h.data = int64sToJSON(v[i].IDClassMPC)
+			v[i].ClassMPC, err = getClassXNext(h, prefixClassMPC)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassMPC = nil
+			cleanup(v[i].ClassMPC...)
+		}
+		if len(v[i].IDClassCSC) > 0 {
+			h.data = int64sToJSON(v[i].IDClassCSC)
+			v[i].ClassCSC, err = getClassXNext(h, prefixClassCSC)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassCSC = nil
+			cleanup(v[i].ClassCSC...)
+		}
+		if len(v[i].IDClassICD) > 0 {
+			h.data = int64sToJSON(v[i].IDClassICD)
+			v[i].ClassICD, err = getClassXNext(h, prefixClassICD)
+			if err != nil {
+				return nil, err
+			}
+			v[i].IDClassICD = nil
+			cleanup(v[i].ClassICD...)
+		}
+	}
+
+	return v, nil
+}
+
 func setSpecX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeSpecsFromJSON(h.data)
 	if err != nil {
@@ -954,6 +1080,10 @@ func getSpecINF(h *ctxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecINF)
 }
 
+func getSpecINFWithDeps(h *ctxHelper) (interface{}, error) {
+	return getSpecXWithDeps(h, prefixSpecINF)
+}
+
 func setSpecINF(h *ctxHelper) (interface{}, error) {
 	return setSpecX(h, prefixSpecINF)
 }
@@ -1042,6 +1172,10 @@ func getSpecDECListBySpecINF(h *ctxHelper) (interface{}, error) {
 
 func getSpecDEC(h *ctxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecDEC)
+}
+
+func getSpecDECWithDeps(h *ctxHelper) (interface{}, error) {
+	return getSpecXWithDeps(h, prefixSpecDEC)
 }
 
 func setSpecDEC(h *ctxHelper) (interface{}, error) {

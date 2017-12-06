@@ -133,6 +133,7 @@ func (h *handler) prepareAPI() *handler {
 
 		"POST /get-drug-sync": pipe.Join(mdware.Exec(exec(h, getDrugSync))),
 		"POST /get-drug":      pipe.Join(mdware.Exec(exec(h, getDrug))),
+		"POST /get-drug-list": pipe.Join(mdware.Exec(exec(h, getDrugList))),
 		"POST /set-drug":      pipe.Join(mdware.Exec(exec(h, setDrug))),
 		"POST /set-drug-sale": pipe.Join(mdware.Exec(exec(h, setDrugSale))),
 		"POST /del-drug":      pipe.Join(mdware.Exec(exec(h, delDrug))),
@@ -165,6 +166,7 @@ func (h *handler) prepareAPI() *handler {
 		"POST /get-spec-inf-list-by-id-spec-act":  pipe.Join(mdware.Exec(exec(h, getSpecINFListBySpecACT))),
 		"POST /get-spec-inf-list-by-id-spec-dec":  pipe.Join(mdware.Exec(exec(h, getSpecINFListBySpecDEC))),
 		"POST /get-spec-inf":                      pipe.Join(mdware.Exec(exec(h, getSpecINF))),
+		"POST /get-spec-inf-with-deps":            pipe.Join(mdware.Exec(exec(h, getSpecINFWithDeps))),
 		"POST /set-spec-inf":                      pipe.Join(mdware.Exec(exec(h, setSpecINF))),
 		"POST /set-spec-inf-sale":                 pipe.Join(mdware.Exec(exec(h, setSpecINFSale))),
 		"POST /del-spec-inf":                      pipe.Join(mdware.Exec(exec(h, delSpecINF))),
@@ -188,6 +190,7 @@ func (h *handler) prepareAPI() *handler {
 		"POST /get-spec-dec-list-by-id-spec-act":  pipe.Join(mdware.Exec(exec(h, getSpecDECListBySpecACT))),
 		"POST /get-spec-dec-list-by-id-spec-inf":  pipe.Join(mdware.Exec(exec(h, getSpecDECListBySpecINF))),
 		"POST /get-spec-dec":                      pipe.Join(mdware.Exec(exec(h, getSpecDEC))),
+		"POST /get-spec-dec-with-deps":            pipe.Join(mdware.Exec(exec(h, getSpecDECWithDeps))),
 		"POST /set-spec-dec":                      pipe.Join(mdware.Exec(exec(h, setSpecDEC))),
 		"POST /set-spec-dec-sale":                 pipe.Join(mdware.Exec(exec(h, setSpecDECSale))),
 		"POST /del-spec-dec":                      pipe.Join(mdware.Exec(exec(h, delSpecDEC))),
