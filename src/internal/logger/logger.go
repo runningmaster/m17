@@ -25,5 +25,5 @@ func NewDefault() Logger {
 
 // systemdBasedOS returns true if systmd is running.
 func isSystemdBasedOS() bool {
-	return exec.Command("/usr/bin/pidof", "systemd").Run() == nil
+	return exec.Command("/usr/bin/pidof", "systemd").Run() == nil || exec.Command("/bin/pidof", "systemd").Run() == nil
 }

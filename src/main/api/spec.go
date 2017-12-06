@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sort"
 
@@ -695,7 +694,7 @@ func getSpecXListBy(h *ctxHelper, p1, p2 string) (jsonSpecs, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(x)
+
 	h.data = int64sToJSON(x)
 	return getSpecXList(h, p1)
 }
@@ -799,7 +798,6 @@ func setSpecXSale(h *ctxHelper, p string) (interface{}, error) {
 				continue
 			}
 			v[i].Sale = v[i].Sale + d[j].Value
-			fmt.Println(v[i].ID, v[i].Sale)
 		}
 	}
 
