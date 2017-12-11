@@ -581,6 +581,9 @@ func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
 	var flds []string
 	if conj {
 		flds = strings.Fields(text)
+		if len(flds) == 0 {
+			return nil, fmt.Errorf("empty string for search %q", text)
+		}
 		text = flds[0]
 	}
 
