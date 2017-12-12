@@ -68,6 +68,11 @@ func int64sFromJSON(data []byte) ([]int64, error) {
 	return v, nil
 }
 
+func int64ToJSON(v int64) []byte {
+	r, _ := json.Marshal(v)
+	return r
+}
+
 func int64sToJSON(v []int64) []byte {
 	r, _ := json.Marshal(v)
 	return r

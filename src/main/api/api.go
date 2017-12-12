@@ -310,6 +310,7 @@ type ctxHelper struct {
 	meta []byte
 	data []byte
 	lang string
+	atag string
 }
 
 func (h *ctxHelper) getConn() redis.Conn {
@@ -330,6 +331,7 @@ func (h *ctxHelper) clone() *ctxHelper {
 		h.meta,
 		h.data,
 		h.lang,
+		h.atag,
 	}
 }
 
@@ -346,6 +348,7 @@ func exec(h *handler, f func(*ctxHelper) (interface{}, error)) http.HandlerFunc 
 			[]byte(r.Header.Get("Content-Meta")),
 			ctxutil.BodyFrom(ctx),
 			mineLang(r.Header.Get("Accept-Language")),
+			"",
 		}
 
 		res, err := f(hlp)

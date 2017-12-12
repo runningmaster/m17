@@ -584,14 +584,16 @@ func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
 		if len(flds) == 0 {
 			return nil, fmt.Errorf("empty string for search %q", text)
 		}
-		text = flds[0]
+		text = "*" + flds[0] + "*"
+	} else {
+		text = text + "|*"
 	}
 
 	res := make([]*findRes, 0, 100)
 	var next int
 	var vals []interface{}
 	for done := false; !done; {
-		v, err := redis.Values(c.Do("ZSCAN", genKey(p, "srch", lang), next, "MATCH", "*"+text+"*", "COUNT", 100))
+		v, err := redis.Values(c.Do("ZSCAN", genKey(p, "srch", lang), next, "MATCH", text, "COUNT", 100))
 		if err != nil {
 			return nil, err
 		}

@@ -157,13 +157,14 @@ func (j *jsonSpec) lang(l, p string) {
 func (j *jsonSpec) getFields(list bool) []interface{} {
 	if list {
 		return []interface{}{
-			"id",      // 0
-			"name_ru", // 1
-			"name_ua", // 2
-			"name_en", // 3
-			"slug",    // 4
-			"full",    // 5
-			"sale",    // 6
+			"id",         // 0
+			"id_make_gp", // 1
+			"name_ru",    // 2
+			"name_ua",    // 3
+			"name_en",    // 4
+			"slug",       // 5
+			"full",       // 6
+			"sale",       // 7
 		}
 	}
 	return []interface{}{
@@ -230,16 +231,18 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 			case 0:
 				j.ID, _ = redis.Int64(v[i], nil)
 			case 1:
-				j.NameRU, _ = redis.String(v[i], nil)
+				j.IDMakeGP, _ = redis.Int64(v[i], nil)
 			case 2:
-				j.NameUA, _ = redis.String(v[i], nil)
+				j.NameRU, _ = redis.String(v[i], nil)
 			case 3:
-				j.NameEN, _ = redis.String(v[i], nil)
+				j.NameUA, _ = redis.String(v[i], nil)
 			case 4:
-				j.Slug, _ = redis.String(v[i], nil)
+				j.NameEN, _ = redis.String(v[i], nil)
 			case 5:
-				j.Full, _ = redis.Bool(v[i], nil)
+				j.Slug, _ = redis.String(v[i], nil)
 			case 6:
+				j.Full, _ = redis.Bool(v[i], nil)
+			case 7:
 				j.Sale, _ = redis.Float64(v[i], nil)
 			}
 			continue
@@ -670,6 +673,64 @@ func getSpecXList(h *ctxHelper, p string) (jsonSpecs, error) {
 	normLang(h.lang, p, v)
 
 	v.sort(h.lang)
+
+	if h.atag != "" {
+		v, err = crazyPermutation(h, p, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return v, nil
+}
+
+/*
+	v, err = crazyPermutation(c, p, 208, v)
+	if err != nil {
+		errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+		return
+	}
+*/
+func crazyPermutation(h *ctxHelper, p string, v jsonSpecs) (jsonSpecs, error) {
+	if len(v) == 0 {
+		return v, nil
+	}
+
+	x := int64(24) // FIXME
+	h.atag = ""    //
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	atc, err := loadLinkIDs(c, p, prefixClassATC, v[0].ID)
+	if err != nil {
+		return v, err
+	}
+	if len(atc) == 0 {
+		return v, nil
+	}
+
+	h.data = int64ToJSON(atc[0])
+	a, err := getSpecXListBy(h, p, prefixClassATC)
+	if err != nil {
+		return v, err
+	}
+
+	res := make([]*jsonSpec, 0, len(v)+len(a))
+	for i := range a {
+		if a[i].IDMakeGP == x {
+			res = append(res, a[i])
+		}
+	}
+
+	if len(res) > 0 {
+		for i := range v {
+			if v[i].IDMakeGP != x {
+				res = append(res, v[i])
+			}
+		}
+		return res, nil
+	}
 
 	return v, nil
 }
