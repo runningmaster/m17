@@ -287,6 +287,13 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
 					return
 				}
+				if c.atag != "" {
+					v, err = crazyPermutation(c, p, v)
+					if err != nil {
+						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+						return
+					}
+				}
 				for i := range v {
 					if v[i] == nil {
 						continue

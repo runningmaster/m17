@@ -31,14 +31,16 @@ func normName(s string) string {
 	if s == "" {
 		return s
 	}
-	r := strings.NewReplacer(
-		"®", "",
-		"™", "",
-		"*", "",
-		"&", "",
-		"†", "",
-	)
-	return strings.TrimSpace(strings.ToLower(r.Replace(s)))
+	//r := strings.NewReplacer(
+	//	"®", "",
+	//	"™", "",
+	//	"*", "",
+	//	"&", "",
+	//	"†", "",
+	//	"«", "",
+	//	"»", "",
+	//)
+	return strings.TrimSpace(strings.ToLower( /*r.Replace(*/ s /*)*/))
 }
 
 func stringFromJSON(data []byte) (string, error) {
