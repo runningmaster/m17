@@ -120,6 +120,39 @@ func loadLinkIDs(c redis.Conn, p1, p2 string, x int64) ([]int64, error) {
 	return out, nil
 }
 
+func loadLinkIDsForClass(c redis.Conn, p1, p2 string, x int64) ([]int64, error) {
+	res := make([]int64, 0, 100)
+	res = append(res, x)
+	var i int
+	for done := false; !done; {
+		pre := len(res)
+		for _, v := range res[i:] {
+			tmp, err := loadLinkIDs(c, p1, "next", v)
+			if err != nil {
+				return nil, err
+			}
+			if len(tmp) > 0 {
+				res = append(res, tmp...)
+			}
+		}
+		i = pre
+		done = len(res)-i == 0
+	}
+
+	out := make([]int64, 0, len(res))
+	for i := range res {
+		tmp, err := loadLinkIDs(c, p1, p2, res[i])
+		if err != nil {
+			return nil, err
+		}
+		if len(tmp) > 0 {
+			out = append(out, tmp...)
+		}
+	}
+
+	return uniqInt64(out), nil
+}
+
 func loadSyncIDs(c redis.Conn, p string, v int64) ([]int64, error) {
 	val := make([]interface{}, 0, 3)
 	val = append(val, genKey(p, "sync"))

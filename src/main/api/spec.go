@@ -718,11 +718,40 @@ func getSpecXListBy(h *ctxHelper, p1, p2 string) (jsonSpecs, error) {
 	return getSpecXList(h, p1)
 }
 
-func getSpecXListByWithCrazyPermutation(h *ctxHelper, p1, p2 string) (jsonSpecs, error) {
-	v, err := getSpecXListBy(h, p1, p2)
+func getSpecXListByForClass(h *ctxHelper, p1, p2 string) (jsonSpecs, error) {
+	v, err := int64FromJSON(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	x, err := loadLinkIDsForClass(c, p2, p1, v)
 	if err != nil {
 		return nil, err
 	}
+
+	h.data = int64sToJSON(x)
+	return getSpecXList(h, p1)
+}
+
+func getSpecXListByWithCrazyPermutation(h *ctxHelper, p1, p2 string, deepForClass ...bool) (jsonSpecs, error) {
+	var v jsonSpecs
+	var err error
+	if len(deepForClass) == 0 {
+		v, err = getSpecXListBy(h, p1, p2)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		v, err = getSpecXListByForClass(h, p1, p2)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if h.atag != "" {
 		v, err = crazyPermutation(h, p1, v)
 		if err != nil {
@@ -1091,32 +1120,64 @@ func getSpecINFListByClassATC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassATC)
 }
 
+func getSpecINFListByClassATCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassATC, true)
+}
+
 func getSpecINFListByClassNFC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassNFC)
+}
+
+func getSpecINFListByClassNFCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassNFC, true)
 }
 
 func getSpecINFListByClassFSC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassFSC)
 }
 
+func getSpecINFListByClassFSCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassFSC, true)
+}
+
 func getSpecINFListByClassBFC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassBFC)
+}
+
+func getSpecINFListByClassBFCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassBFC, true)
 }
 
 func getSpecINFListByClassCFC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassCFC)
 }
 
+func getSpecINFListByClassCFCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassCFC, true)
+}
+
 func getSpecINFListByClassMPC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassMPC)
+}
+
+func getSpecINFListByClassMPCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassMPC, true)
 }
 
 func getSpecINFListByClassCSC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassCSC)
 }
 
+func getSpecINFListByClassCSCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassCSC, true)
+}
+
 func getSpecINFListByClassICD(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassICD)
+}
+
+func getSpecINFListByClassICDDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassICD, true)
 }
 
 func getSpecINFListByINN(h *ctxHelper) (interface{}, error) {
@@ -1185,32 +1246,64 @@ func getSpecDECListByClassATC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassATC)
 }
 
+func getSpecDECListByClassATCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassATC, true)
+}
+
 func getSpecDECListByClassNFC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassNFC)
+}
+
+func getSpecDECListByClassNFCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassNFC, true)
 }
 
 func getSpecDECListByClassFSC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassFSC)
 }
 
+func getSpecDECListByClassFSCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassFSC, true)
+}
+
 func getSpecDECListByClassBFC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassBFC)
+}
+
+func getSpecDECListByClassBFCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassBFC, true)
 }
 
 func getSpecDECListByClassCFC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassCFC)
 }
 
+func getSpecDECListByClassCFCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassCFC, true)
+}
+
 func getSpecDECListByClassMPC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassMPC)
+}
+
+func getSpecDECListByClassMPCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassMPC, true)
 }
 
 func getSpecDECListByClassCSC(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassCSC)
 }
 
+func getSpecDECListByClassCSCDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassCSC, true)
+}
+
 func getSpecDECListByClassICD(h *ctxHelper) (interface{}, error) {
 	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassICD)
+}
+
+func getSpecDECListByClassICDDeep(h *ctxHelper) (interface{}, error) {
+	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixClassICD, true)
 }
 
 func getSpecDECListByINN(h *ctxHelper) (interface{}, error) {
