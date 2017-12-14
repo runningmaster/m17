@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -366,9 +367,10 @@ func exec(h *handler, f func(*ctxHelper) (interface{}, error)) http.HandlerFunc 
 			[]byte(r.Header.Get("Content-Meta")),
 			ctxutil.BodyFrom(ctx),
 			mineLang(r.Header.Get("Accept-Language")),
-			"",
+			mineATag(r.Header.Get("User-Agent-Tag")),
 			"",
 		}
+		fmt.Println(hlp.atag)
 
 		res, err := f(hlp)
 		ctx = hlp.ctx // get ctx from func f
@@ -379,6 +381,10 @@ func exec(h *handler, f func(*ctxHelper) (interface{}, error)) http.HandlerFunc 
 		ctx = ctxutil.WithResult(ctx, res)
 		*r = *r.WithContext(ctx)
 	})
+}
+
+func mineATag(s string) string {
+	return strings.TrimSpace(s)
 }
 
 func mineLang(s string) string {
