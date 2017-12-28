@@ -234,9 +234,11 @@ func saveHashers(c redis.Conn, p string, v ruler, onlyUpdate ...bool) error {
 			if err != nil {
 				return err
 			}
-			err = c.Send("ZADD", genKey(p, "sync"), "CH", time.Now().Unix(), h.getID())
-			if err != nil {
-				return err
+			if len(onlyUpdate) == 0 {
+				err = c.Send("ZADD", genKey(p, "sync"), "CH", time.Now().Unix(), h.getID())
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
