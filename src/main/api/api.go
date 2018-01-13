@@ -215,6 +215,8 @@ func (h *handler) prepareAPI() *handler {
 		"POST /get-sugg-by-text": pipe.Join(mdware.Exec(exec(h, listSugg))),
 		"POST /get-list-by-sugg": pipe.Join(mdware.Exec(exec(h, findSugg))),
 
+		//"POST /run-hotfix": pipe.Join(mdware.Exec(exec(h, runHotfix))),
+
 		// => Debug mode only, when pref.Debug == true
 		"GET /debug/vars":               pipe.Join(mdware.Exec(mdware.Stdh)), // expvar
 		"GET /debug/pprof/":             pipe.Join(mdware.Exec(mdware.Stdh)), // net/http/pprof

@@ -150,12 +150,13 @@ loop:
 //}
 
 type item struct {
-	ID   int64   `json:"id,omitempty"`
-	Code string  `json:"code,omitempty"`
-	Name string  `json:"name,omitempty"`
-	Full bool    `json:"full,omitempty"`
-	Slug string  `json:"slug,omitempty"`
-	Sale float64 `json:"sale,omitempty"`
+	ID    int64   `json:"id,omitempty"`
+	Code  string  `json:"code,omitempty"`
+	Name  string  `json:"name,omitempty"`
+	Full  bool    `json:"full,omitempty"`
+	Slug  string  `json:"slug,omitempty"`
+	Sale  float64 `json:"sale,omitempty"`
+	Maker string  `json:"maker,omitempty"`
 }
 
 type result struct {
@@ -191,7 +192,7 @@ func findSugg(h *ctxHelper) (interface{}, error) {
 			}
 
 			for i := range r {
-				sugc <- &item{r[i].ID, p, "", false, "", 0}
+				sugc <- &item{r[i].ID, p, "", false, "", 0, ""}
 			}
 		}(s)
 	}
@@ -252,7 +253,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0})
+					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0, ""})
 					r.Sort = 1 // max's magic :)
 				}
 			case prefixINN:
@@ -265,7 +266,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0})
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, ""})
 					r.Sort = 2
 				}
 			case prefixMaker:
@@ -278,7 +279,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0})
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, ""})
 					r.Sort = 4
 				}
 			default: // prefixSpecINF, prefixSpecDEC, prefixSpecACT
@@ -298,7 +299,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, v[i].Full, v[i].Slug, v[i].Sale})
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, v[i].Full, v[i].Slug, v[i].Sale, v[i].Maker})
 					if p == prefixSpecACT {
 						r.Sort = 3
 					}

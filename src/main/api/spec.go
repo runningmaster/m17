@@ -70,6 +70,8 @@ type jsonSpec struct {
 	CreatedAt int64   `json:"created_at,omitempty"`
 	UpdatedAt int64   `json:"updated_at,omitempty"`
 	Sale      float64 `json:"sale,omitempty"`
+
+	Maker string `json:"maker,omitempty"` // for list only
 }
 
 func (j *jsonSpec) getID() int64 {
@@ -136,9 +138,13 @@ func (j *jsonSpec) lang(l, p string) {
 			j.Head = j.HeadUA
 			j.Text = j.TextUA
 		}
+	case "en":
+		j.Name = j.NameEN
+		j.Head = j.HeadEN
+		j.Text = j.TextEN
 	}
 
-	if l == "ru" || l == "ua" {
+	if l != "" {
 		j.NameRU = ""
 		j.NameRUSrc = ""
 		j.NameUA = ""
@@ -431,6 +437,20 @@ func loadSpecLinks(c redis.Conn, p string, v []*jsonSpec) error {
 	return nil
 }
 
+func loadSpecMakerLinks(c redis.Conn, p string, v []*jsonSpec) error {
+	var err error
+	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+		v[i].IDMake, err = loadLinkIDs(c, p, prefixMaker, v[i].ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func saveSpecLinks(c redis.Conn, p string, v ...*jsonSpec) error {
 	var err error
 	for i := range v {
@@ -672,6 +692,34 @@ func getSpecXList(h *ctxHelper, p string) (jsonSpecs, error) {
 		return nil, err
 	}
 
+	if p != prefixSpecACT {
+		// mine maker
+		err = loadSpecMakerLinks(c, p, v)
+		if err != nil {
+			return nil, err
+		}
+		var m jsonMakers
+		for i := range v {
+			if v[i] == nil {
+				continue
+			}
+			if v[i].IDMakeGP != 0 {
+				h.data = int64sToJSON([]int64{v[i].IDMakeGP})
+			} else if len(v[i].IDMake) > 0 {
+				h.data = int64sToJSON([]int64{v[i].IDMake[0]})
+			}
+			if len(h.data) > 0 {
+				m, err = getMakerXList(h, prefixMaker)
+				if err != nil {
+					return nil, err
+				}
+				v[i].IDMake = nil
+			}
+			if len(m) > 0 && m[0] != nil {
+				v[i].Maker = m[0].Name
+			}
+		}
+	}
 	normLang(h.lang, p, v)
 
 	v.sort(h.lang, h.hack != "")

@@ -71,10 +71,11 @@ func (j *jsonClass) lang(l, _ string) {
 	case "ua":
 		j.Name = j.NameUA
 		j.IDSpecINF = nil
+	case "en":
+		j.Name = j.NameEN
 	}
 
-	if l == "ru" || l == "ua" {
-		j.IDRoot = 0
+	if l != "" {
 		j.NameRU = ""
 		j.NameUA = ""
 		j.NameEN = ""

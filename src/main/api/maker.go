@@ -38,39 +38,33 @@ func (j *jsonMaker) getID() int64 {
 func (j *jsonMaker) getSrchRU(_ string) ([]string, []rune) {
 	var s []string
 	var r []rune
-	if j.NameRU == "" {
+	if j.NameRU == "" || !j.MarkGP {
 		return s, r
 	}
 	s = append(s, normName(j.NameRU))
-	if j.MarkGP {
-		r = append(r, []rune(s[0])[0])
-	}
+	r = append(r, []rune(s[0])[0])
 	return s, r
 }
 
 func (j *jsonMaker) getSrchUA(_ string) ([]string, []rune) {
 	var s []string
 	var r []rune
-	if j.NameUA == "" {
+	if j.NameUA == "" || !j.MarkGP {
 		return s, r
 	}
 	s = append(s, normName(j.NameUA))
-	if j.MarkGP {
-		r = append(r, []rune(s[0])[0])
-	}
+	r = append(r, []rune(s[0])[0])
 	return s, r
 }
 
 func (j *jsonMaker) getSrchEN(_ string) ([]string, []rune) {
 	var s []string
 	var r []rune
-	if j.NameEN == "" {
+	if j.NameEN == "" || !j.MarkGP {
 		return s, r
 	}
 	s = append(s, normName(j.NameEN))
-	if j.MarkGP {
-		r = append(r, []rune(s[0])[0])
-	}
+	r = append(r, []rune(s[0])[0])
 	return s, r
 }
 
@@ -84,9 +78,12 @@ func (j *jsonMaker) lang(l, _ string) {
 		j.Name = j.NameUA
 		j.Text = j.TextUA
 		j.IDSpecINF = nil
+	case "en":
+		j.Name = j.NameEN
+		j.Text = j.TextEN
 	}
 
-	if l == "ru" || l == "ua" {
+	if l != "" {
 		j.NameRU = ""
 		j.NameUA = ""
 		j.NameEN = ""
@@ -405,6 +402,37 @@ func setMakerX(h *ctxHelper, p string) (interface{}, error) {
 	return statusOK, nil
 }
 
+func runXHotfix(h *ctxHelper, p string) (interface{}, error) {
+	c := h.getConn()
+	defer h.delConn(c)
+
+	v, err := makeMakersFromIDs(loadSyncIDs(c, p, 0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadHashers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = c.Do("DEL",
+		genKey(p, "srch", "ru"), genKey(p, "abcd", "ru"), genKey(p, "rune", "ru"),
+		genKey(p, "srch", "ua"), genKey(p, "abcd", "ua"), genKey(p, "rune", "ua"),
+		genKey(p, "srch", "en"), genKey(p, "abcd", "en"), genKey(p, "rune", "en"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = saveSearchers(c, p, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusOK, nil
+}
+
 func delMakerX(h *ctxHelper, p string) (interface{}, error) {
 	v, err := makeMakersFromIDs(int64sFromJSON(h.data))
 	if err != nil {
@@ -431,6 +459,10 @@ func delMakerX(h *ctxHelper, p string) (interface{}, error) {
 	}
 
 	return statusOK, nil
+}
+
+func runHotfix(h *ctxHelper) (interface{}, error) {
+	return runXHotfix(h, prefixMaker)
 }
 
 // MAKER

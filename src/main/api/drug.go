@@ -61,9 +61,6 @@ func (j *jsonDrug) getID() int64 {
 }
 
 func (j *jsonDrug) lang(l, _ string) {
-	if j == nil {
-		return
-	}
 	switch l {
 	case "ru":
 		j.Name = j.NameRU
@@ -81,9 +78,16 @@ func (j *jsonDrug) lang(l, _ string) {
 		j.Note = j.NoteRU
 		j.Make = j.MakeRU
 		j.IDSpecINF = nil
+	case "en":
+		j.Name = j.NameEN
+		j.Form = j.FormEN
+		j.Dose = j.DoseEN
+		j.Pack = j.PackEN
+		j.Note = j.NoteEN
+		j.Make = j.MakeEN
 	}
 
-	if l == "ru" || l == "ua" {
+	if l != "" {
 		j.NameRU = ""
 		j.NameUA = ""
 		j.NameEN = ""

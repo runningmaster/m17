@@ -71,9 +71,11 @@ func (j *jsonINN) lang(l, _ string) {
 	case "ua":
 		j.Name = fmt.Sprintf("%s (%s)", j.NameEN, j.NameUA)
 		j.IDSpecINF = nil
+	case "en":
+		j.Name = fmt.Sprintf("%s", j.NameEN)
 	}
 
-	if l == "ru" || l == "ua" {
+	if l != "" {
 		j.NameRU = ""
 		j.NameUA = ""
 		j.NameEN = ""
@@ -273,11 +275,17 @@ func getINNXListAZ(h *ctxHelper, p string) (jsonINNs, error) {
 	c := h.getConn()
 	defer h.delConn(c)
 
+	// start fucking workaround
+	l := h.lang
+	h.lang = "en"
+	// <--
 	v, err := loadAbcdLs(c, p, s, h.lang)
 	if err != nil {
 		return nil, err
 	}
-
+	// finish fucking workaround
+	h.lang = l
+	// <--
 	h.data = int64sToJSON(v)
 	return getINNXList(h, p)
 }
