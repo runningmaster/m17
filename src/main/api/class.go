@@ -76,6 +76,7 @@ func (j *jsonClass) lang(l, _ string) {
 	}
 
 	if l != "" {
+		j.IDRoot = 0
 		j.NameRU = ""
 		j.NameUA = ""
 		j.NameEN = ""
@@ -360,6 +361,40 @@ func getClassXNextByID(h *ctxHelper, p string) (jsonClasses, error) {
 	return v, nil
 }
 
+func getClassXPathByID(h *ctxHelper, p string) (jsonClasses, error) {
+	x, err := int64FromJSON(h.data)
+	if err != nil {
+		h.ctx = ctxutil.WithCode(h.ctx, http.StatusBadRequest)
+		return nil, err
+	}
+
+	c := h.getConn()
+	defer h.delConn(c)
+
+	r, err := minePath(c, p, "id_node", x)
+	if err != nil {
+		return nil, err
+	}
+
+	h.data = int64sToJSON(r)
+	v, err := getClassX(h, p)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range v {
+		v[i].Full = len(v[i].IDSpecINF) > 0 || len(v[i].IDSpecDEC) > 0
+		v[i].IDNode = 0
+		v[i].IDNext = nil
+		v[i].IDSpecINF = nil
+		v[i].IDSpecDEC = nil
+	}
+
+	v.sort(h.lang)
+
+	return v, nil
+}
+
 func getClassX(h *ctxHelper, p string) (jsonClasses, error) {
 	v, err := makeClassesFromIDs(int64sFromJSON(h.data))
 	if err != nil {
@@ -492,6 +527,10 @@ func getClassATCNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassATC)
 }
 
+func getClassATCPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassATC)
+}
+
 func getClassATC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassATC)
 }
@@ -520,6 +559,10 @@ func getClassNFCNext(h *ctxHelper) (interface{}, error) {
 
 func getClassNFCNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassNFC)
+}
+
+func getClassNFCPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassNFC)
 }
 
 func getClassNFC(h *ctxHelper) (interface{}, error) {
@@ -552,6 +595,10 @@ func getClassFSCNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassFSC)
 }
 
+func getClassFSCPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassFSC)
+}
+
 func getClassFSC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassFSC)
 }
@@ -580,6 +627,10 @@ func getClassBFCNext(h *ctxHelper) (interface{}, error) {
 
 func getClassBFCNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassBFC)
+}
+
+func getClassBFCPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassBFC)
 }
 
 func getClassBFC(h *ctxHelper) (interface{}, error) {
@@ -612,6 +663,10 @@ func getClassCFCNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassCFC)
 }
 
+func getClassCFCPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassCFC)
+}
+
 func getClassCFC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCFC)
 }
@@ -640,6 +695,10 @@ func getClassMPCNext(h *ctxHelper) (interface{}, error) {
 
 func getClassMPCNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassMPC)
+}
+
+func getClassMPCPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassMPC)
 }
 
 func getClassMPC(h *ctxHelper) (interface{}, error) {
@@ -672,6 +731,10 @@ func getClassCSCNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassCSC)
 }
 
+func getClassCSCPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassCSC)
+}
+
 func getClassCSC(h *ctxHelper) (interface{}, error) {
 	return getClassX(h, prefixClassCSC)
 }
@@ -700,6 +763,10 @@ func getClassICDNext(h *ctxHelper) (interface{}, error) {
 
 func getClassICDNextByID(h *ctxHelper) (interface{}, error) {
 	return getClassXNextByID(h, prefixClassICD)
+}
+
+func getClassICDPathByID(h *ctxHelper) (interface{}, error) {
+	return getClassXPathByID(h, prefixClassICD)
 }
 
 func getClassICD(h *ctxHelper) (interface{}, error) {

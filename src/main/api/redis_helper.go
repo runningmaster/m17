@@ -665,3 +665,32 @@ func findIn(c redis.Conn, p, lang, text string, conj bool) ([]*findRes, error) {
 
 	return res, nil
 }
+
+func minePath(c redis.Conn, p, fld string, x int64) ([]int64, error) {
+	res := []int64{x}
+	var err error
+	for done := false; !done; {
+		x, err = redis.Int64(c.Do("HGET", genKey(p, x), fld))
+		if err != nil && err != redis.ErrNil {
+			return nil, err
+		}
+		if x != 0 {
+			res = append(res, x)
+		}
+		done = x == 0
+	}
+
+	// revert
+	if len(res) > 1 {
+		for left, right := 0, len(res)-1; left < right; left, right = left+1, right-1 {
+			res[left], res[right] = res[right], res[left]
+		}
+	}
+
+	// fucking workaround for CFC
+	if p != prefixClassCFC {
+		res = res[1:]
+	}
+
+	return res, nil
+}
