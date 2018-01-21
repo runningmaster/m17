@@ -72,6 +72,7 @@ type jsonSpec struct {
 	Sale      float64 `json:"sale,omitempty"`
 
 	Maker string `json:"maker,omitempty"` // for list only
+	UATag bool   `json:"uatag,omitempty"` // for list only
 }
 
 func (j *jsonSpec) getID() int64 {
@@ -320,7 +321,7 @@ func (j jsonSpecs) nill(i int) {
 	j[i] = nil
 }
 
-func (v jsonSpecs) sort(lang string, forAZ ...bool) {
+func (v jsonSpecs) sort(lang string, notAZ ...bool) {
 	coll := newCollator(lang)
 	sort.Slice(v,
 		func(i, j int) bool {
@@ -338,7 +339,7 @@ func (v jsonSpecs) sort(lang string, forAZ ...bool) {
 			} else if !v[i].Full && v[j].Full {
 				return false
 			}
-			if len(forAZ) > 0 {
+			if len(notAZ) > 0 && notAZ[0] {
 				if v[i].Sale > v[j].Sale {
 					return true
 				} else if v[i].Sale < v[j].Sale {
@@ -717,12 +718,16 @@ func getSpecXList(h *ctxHelper, p string) (jsonSpecs, error) {
 			}
 			if len(m) > 0 && m[0] != nil {
 				v[i].Maker = m[0].Name
+				// workaround for crazyPermutation()
+				if v[i].IDMakeGP == 0 {
+					v[i].IDMakeGP = m[0].ID
+				}
 			}
 		}
 	}
 	normLang(h.lang, p, v)
 
-	v.sort(h.lang, h.hack != "")
+	v.sort(h.lang, h.hack == "")
 
 	return v, nil
 }
@@ -1092,7 +1097,17 @@ func crazyPermutation(h *ctxHelper, p string, v jsonSpecs) (jsonSpecs, error) {
 	res := make([]*jsonSpec, 0, len(v)+len(a))
 	for i := range a {
 		if a[i].IDMakeGP == x {
+			a[i].UATag = true
 			res = append(res, a[i])
+		}
+	}
+
+	if len(res) == 0 {
+		for i := range v {
+			if v[i].IDMakeGP == x {
+				v[i].UATag = true
+				res = append(res, v[i])
+			}
 		}
 	}
 
@@ -1233,19 +1248,20 @@ func getSpecINFListByINN(h *ctxHelper) (interface{}, error) {
 }
 
 func getSpecINFListByMaker(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixMaker)
+	h.hack = "foo"
+	return getSpecXListBy(h, prefixSpecINF, prefixMaker)
 }
 
 func getSpecINFListByDrug(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixDrug)
+	return getSpecXListBy(h, prefixSpecINF, prefixDrug)
 }
 
 func getSpecINFListBySpecACT(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixSpecACT)
+	return getSpecXListBy(h, prefixSpecINF, prefixSpecACT)
 }
 
 func getSpecINFListBySpecDEC(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixSpecDEC)
+	return getSpecXListBy(h, prefixSpecINF, prefixSpecDEC)
 }
 
 func getSpecINF(h *ctxHelper) (interface{}, error) {
@@ -1359,19 +1375,20 @@ func getSpecDECListByINN(h *ctxHelper) (interface{}, error) {
 }
 
 func getSpecDECListByMaker(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixMaker)
+	h.hack = "foo"
+	return getSpecXListBy(h, prefixSpecDEC, prefixMaker)
 }
 
 func getSpecDECListByDrug(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixDrug)
+	return getSpecXListBy(h, prefixSpecDEC, prefixDrug)
 }
 
 func getSpecDECListBySpecACT(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixSpecACT)
+	return getSpecXListBy(h, prefixSpecDEC, prefixSpecACT)
 }
 
 func getSpecDECListBySpecINF(h *ctxHelper) (interface{}, error) {
-	return getSpecXListByWithCrazyPermutation(h, prefixSpecDEC, prefixSpecINF)
+	return getSpecXListBy(h, prefixSpecDEC, prefixSpecINF)
 }
 
 func getSpecDEC(h *ctxHelper) (interface{}, error) {

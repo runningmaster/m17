@@ -157,6 +157,8 @@ type item struct {
 	Slug  string  `json:"slug,omitempty"`
 	Sale  float64 `json:"sale,omitempty"`
 	Maker string  `json:"maker,omitempty"`
+	UATag bool    `json:"uatag,omitempty"`
+	List  *result `json:"list,omitempty"`
 }
 
 type result struct {
@@ -192,7 +194,7 @@ func findSugg(h *ctxHelper) (interface{}, error) {
 			}
 
 			for i := range r {
-				sugc <- &item{r[i].ID, p, "", false, "", 0, ""}
+				sugc <- &item{r[i].ID, p, "", false, "", 0, "", false, nil}
 			}
 		}(s)
 	}
@@ -253,7 +255,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0, ""})
+					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0, "", false, nil})
 					r.Sort = 1 // max's magic :)
 				}
 			case prefixINN:
@@ -266,7 +268,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, ""})
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, "", false, nil})
 					r.Sort = 2
 				}
 			case prefixMaker:
@@ -279,7 +281,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, ""})
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, "", false, nil})
 					r.Sort = 4
 				}
 			default: // prefixSpecINF, prefixSpecDEC, prefixSpecACT
@@ -299,7 +301,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, v[i].Full, v[i].Slug, v[i].Sale, v[i].Maker})
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, v[i].Full, v[i].Slug, v[i].Sale, v[i].Maker, v[i].UATag, nil})
 					if p == prefixSpecACT {
 						r.Sort = 3
 					}
@@ -349,6 +351,65 @@ loop:
 
 	for i := range res {
 		res[i].Sort = 0
+	}
+
+	// f2k
+	r := &result{
+		Kind: "x",
+	}
+	for i := range res {
+		if res[i].Kind == prefixSpecINF || res[i].Kind == prefixSpecDEC {
+			r.List = append(r.List, res[i].List[0])
+			break
+		}
+	}
+
+	if len(r.List) == 0 {
+		for i := range res {
+			if res[i].Kind != prefixINN {
+				continue
+			}
+			for j := range res[i].List {
+				h.data = int64sToJSON([]int64{res[i].List[j].ID})
+				v, err := getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixINN)
+				if err != nil {
+					return nil, err
+				}
+				for k := range v {
+					if v[k] == nil {
+						continue
+					}
+					if v[k].Full {
+						r.List = append(r.List, &item{v[k].ID, "", v[k].Name, v[k].Full, v[k].Slug, v[k].Sale, v[k].Maker, v[k].UATag, nil})
+						break
+					}
+				}
+				if len(res[i].List) > 0 {
+					break
+				}
+			}
+		}
+	}
+
+	if len(r.List) == 0 {
+		for i := range res {
+			if res[i].Kind == prefixClassATC {
+				for j := range res[i].List {
+					h.data = int64sToJSON([]int64{res[i].List[j].ID})
+					v, err := getSpecXListByWithCrazyPermutation(h, prefixSpecINF, prefixClassATC)
+					if err != nil {
+						return nil, err
+					}
+				}
+				if len(res[i].List) > 0 {
+					break
+				}
+			}
+		}
+	}
+
+	if len(r.List) > 0 {
+		res = append(res, r)
 	}
 
 	return res, nil
