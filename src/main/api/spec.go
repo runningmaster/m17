@@ -793,12 +793,12 @@ func getSpecXListByForClass(h *ctxHelper, p1, p2 string) (jsonSpecs, error) {
 func getSpecXListByWithCrazyPermutation(h *ctxHelper, p1, p2 string, deepForClass ...bool) (jsonSpecs, error) {
 	var v jsonSpecs
 	var err error
-	if len(deepForClass) == 0 {
+	if len(deepForClass) == 0 || !deepForClass[0] {
 		v, err = getSpecXListBy(h, p1, p2)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	} else if deepForClass[0] {
 		v, err = getSpecXListByForClass(h, p1, p2)
 		if err != nil {
 			return nil, err

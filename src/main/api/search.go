@@ -158,7 +158,7 @@ type item struct {
 	Sale  float64 `json:"sale,omitempty"`
 	Maker string  `json:"maker,omitempty"`
 	UATag bool    `json:"uatag,omitempty"`
-	List  *result `json:"list,omitempty"`
+	List  []*item `json:"list,omitempty"`
 }
 
 type result struct {
@@ -255,7 +255,12 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0, "", false, nil})
+					l, err := mineItemListByID(c, p, v[i].ID)
+					if err != nil {
+						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+						return
+					}
+					r.List = append(r.List, &item{v[i].ID, v[i].Code, v[i].Name, false, v[i].Slug, 0, "", false, l})
 					r.Sort = 1 // max's magic :)
 				}
 			case prefixINN:
@@ -268,7 +273,12 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, "", false, nil})
+					l, err := mineItemListByID(c, p, v[i].ID)
+					if err != nil {
+						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+						return
+					}
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, "", false, l})
 					r.Sort = 2
 				}
 			case prefixMaker:
@@ -281,7 +291,12 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, "", false, nil})
+					l, err := mineItemListByID(c, p, v[i].ID)
+					if err != nil {
+						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
+						return
+					}
+					r.List = append(r.List, &item{v[i].ID, "", v[i].Name, false, v[i].Slug, 0, "", false, l})
 					r.Sort = 4
 				}
 			default: // prefixSpecINF, prefixSpecDEC, prefixSpecACT
@@ -341,8 +356,6 @@ loop:
 		return nil, err
 	}
 
-	// FIXME: if not
-
 	sort.Slice(res,
 		func(i, j int) bool {
 			return res[i].Sort < res[j].Sort
@@ -363,6 +376,108 @@ loop:
 			break
 		}
 	}
+
+	if len(r.List) == 0 {
+		for i := range res {
+			if res[i].Kind == prefixINN {
+				for j := range res[i].List {
+					for k := range res[i].List[j].List {
+						if res[i].List[j].List[k].Full {
+							r.List = append(r.List, res[i].List[j].List[k])
+							break
+						}
+					}
+					if len(r.List) > 0 {
+						break
+					}
+				}
+				if len(r.List) > 0 {
+					break
+				}
+			}
+		}
+	}
+
+	if len(r.List) == 0 {
+		for i := range res {
+			if res[i].Kind == prefixClassATC {
+				for j := range res[i].List {
+					for k := range res[i].List[j].List {
+						if res[i].List[j].List[k].Full {
+							r.List = append(r.List, res[i].List[j].List[k])
+							break
+						}
+					}
+					if len(r.List) > 0 {
+						break
+					}
+				}
+				if len(r.List) > 0 {
+					break
+				} else {
+					r.List = append(r.List, res[i].List[0].List[0])
+					break
+				}
+			}
+		}
+	}
+
+	if len(r.List) == 0 {
+		for i := range res {
+			if res[i].Kind == prefixMaker {
+				for j := range res[i].List {
+					for k := range res[i].List[j].List {
+						if res[i].List[j].List[k].Full {
+							r.List = append(r.List, res[i].List[j].List[k])
+							break
+						}
+					}
+					if len(r.List) > 0 {
+						break
+					}
+				}
+				if len(r.List) > 0 {
+					break
+				}
+			}
+		}
+	}
+
+	if len(r.List) > 0 {
+		res = append(res, r)
+	}
+
+	return res, nil
+}
+
+func mineItemListByID(h *ctxHelper, p string, x int64) ([]*item, error) {
+	h.data = int64ToJSON(x)
+	s := prefixSpecINF
+	if h.lang == "ua" {
+		s = prefixSpecDEC
+	}
+	if p == prefixMaker {
+		h.atag = ""
+	}
+
+	v, err := getSpecXListByWithCrazyPermutation(h, s, p, p == prefixClassATC)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*item, 0, len(v))
+	for i := range v {
+		if v[i] == nil {
+			continue
+		}
+		res = append(res, &item{v[i].ID, "", v[i].Name, v[i].Full, v[i].Slug, v[i].Sale, v[i].Maker, v[i].UATag, nil})
+	}
+
+	return res, nil
+}
+
+/*
+
 
 	if len(r.List) == 0 {
 		for i := range res {
@@ -408,9 +523,5 @@ loop:
 		}
 	}
 
-	if len(r.List) > 0 {
-		res = append(res, r)
-	}
 
-	return res, nil
-}
+*/
