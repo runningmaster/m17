@@ -228,6 +228,7 @@ loop:
 		return nil, err
 	}
 
+	h.hack = "foo"
 	return makeResult(h, pmap)
 }
 
@@ -291,6 +292,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
+					c.hack = "" // do not sort by sale
 					l, err := mineItemListByID(c, p, v[i].ID)
 					if err != nil {
 						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
@@ -474,6 +476,31 @@ func mineItemListByID(h *ctxHelper, p string, x int64) ([]*item, error) {
 	}
 
 	return res, nil
+}
+
+// REWRITE
+func getSpecXListByWithCrazyPermutation(h *ctxHelper, p1, p2 string, deepForClass ...bool) (jsonSpecs, error) {
+	var v jsonSpecs
+	var err error
+	if len(deepForClass) == 0 || !deepForClass[0] {
+		v, err = getSpecXListBy(h, p1, p2)
+		if err != nil {
+			return nil, err
+		}
+	} else if deepForClass[0] {
+		v, err = getSpecXListByForClass(h, p1, p2)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if h.atag != "" {
+		v, err = crazyPermutation(h, p1, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return v, nil
 }
 
 /*
