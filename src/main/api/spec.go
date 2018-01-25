@@ -1124,6 +1124,10 @@ func getSpecACT(h *ctxHelper) (interface{}, error) {
 	return getSpecX(h, prefixSpecACT)
 }
 
+func getSpecACTWithDeps(h *ctxHelper) (interface{}, error) {
+	return getSpecXWithDeps(h, prefixSpecACT)
+}
+
 func setSpecACT(h *ctxHelper) (interface{}, error) {
 	return setSpecX(h, prefixSpecACT)
 }

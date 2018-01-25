@@ -292,7 +292,7 @@ func makeResult(h *ctxHelper, m map[string][]int64) ([]*result, error) {
 					if v[i] == nil {
 						continue
 					}
-					c.hack = "" // do not sort by sale
+					//c.hack = "" // do not sort by sale
 					l, err := mineItemListByID(c, p, v[i].ID)
 					if err != nil {
 						errc <- fmt.Errorf("%s %s: %v", p, h.lang, err)
