@@ -826,6 +826,9 @@ func getSpecXWithDeps(h *ctxHelper, p string) (jsonSpecs, error) {
 		}
 	}
 	for i := range v {
+		if v[i] == nil {
+			continue
+		}
 		if len(v[i].IDINN) > 0 {
 			h.data = int64sToJSON(v[i].IDINN)
 			v[i].INN, err = getINNXList(h, prefixINN)
