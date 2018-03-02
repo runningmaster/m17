@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
+	"strings"
 
 	"internal/ctxutil"
 
@@ -46,30 +47,31 @@ type jsonSpec struct {
 	ClassCSC jsonClasses `json:"class_csc,omitempty"`
 	ClassICD jsonClasses `json:"class_icd,omitempty"`
 
-	Name      string  `json:"name,omitempty"` // *
-	NameRU    string  `json:"name_ru,omitempty"`
-	NameRUSrc string  `json:"name_ru_src,omitempty"`
-	NameUA    string  `json:"name_ua,omitempty"`
-	NameUASrc string  `json:"name_ua_src,omitempty"`
-	NameEN    string  `json:"name_en,omitempty"`
-	NameENSrc string  `json:"name_en_src,omitempty"`
-	Head      string  `json:"head,omitempty"` // *
-	HeadRU    string  `json:"head_ru,omitempty"`
-	HeadUA    string  `json:"head_ua,omitempty"`
-	HeadEN    string  `json:"head_en,omitempty"`
-	Text      string  `json:"text,omitempty"` // *
-	TextRU    string  `json:"text_ru,omitempty"`
-	TextUA    string  `json:"text_ua,omitempty"`
-	TextEN    string  `json:"text_en,omitempty"`
-	Slug      string  `json:"slug,omitempty"`
-	Fake      string  `json:"fake,omitempty"` // [{"name": "foo", "slug": "bar"}]
-	Full      bool    `json:"full,omitempty"`
-	IsInfo    int     `json:"is_info,omitempty"`
-	ImageOrg  string  `json:"image_org,omitempty"`
-	ImageBox  string  `json:"image_box,omitempty"`
-	CreatedAt int64   `json:"created_at,omitempty"`
-	UpdatedAt int64   `json:"updated_at,omitempty"`
-	Sale      float64 `json:"sale,omitempty"`
+	Name      string   `json:"name,omitempty"` // *
+	NameRU    string   `json:"name_ru,omitempty"`
+	NameRUSrc string   `json:"name_ru_src,omitempty"`
+	NameUA    string   `json:"name_ua,omitempty"`
+	NameUASrc string   `json:"name_ua_src,omitempty"`
+	NameEN    string   `json:"name_en,omitempty"`
+	NameENSrc string   `json:"name_en_src,omitempty"`
+	Head      string   `json:"head,omitempty"` // *
+	HeadRU    string   `json:"head_ru,omitempty"`
+	HeadUA    string   `json:"head_ua,omitempty"`
+	HeadEN    string   `json:"head_en,omitempty"`
+	Text      string   `json:"text,omitempty"` // *
+	TextRU    string   `json:"text_ru,omitempty"`
+	TextUA    string   `json:"text_ua,omitempty"`
+	TextEN    string   `json:"text_en,omitempty"`
+	Slug      string   `json:"slug,omitempty"`
+	Fake      string   `json:"fake,omitempty"` // [{"name": "foo", "slug": "bar"}]
+	Full      bool     `json:"full,omitempty"`
+	IsInfo    int      `json:"is_info,omitempty"`
+	ImageOrg  string   `json:"image_org,omitempty"`
+	ImageBox  string   `json:"image_box,omitempty"`
+	ImageBoxS []string `json:"image_box_s,omitempty"`
+	CreatedAt int64    `json:"created_at,omitempty"`
+	UpdatedAt int64    `json:"updated_at,omitempty"`
+	Sale      float64  `json:"sale,omitempty"`
 
 	Maker string `json:"maker,omitempty"` // for list only
 	UATag bool   `json:"uatag,omitempty"` // for list only
@@ -194,37 +196,39 @@ func (j *jsonSpec) getFields(list bool) []interface{} {
 		"full",        // 16
 		"image_org",   // 17
 		"image_box",   // 18
-		"created_at",  // 19
-		"updated_at",  // 20
-		"sale",        // 21
+		"image_box_s", // 19
+		"created_at",  // 20
+		"updated_at",  // 21
+		"sale",        // 22
 	}
 }
 
 func (j *jsonSpec) getValues() []interface{} {
 	j.Full = j.IsInfo != 0
 	return []interface{}{
-		j.ID,        // 0
-		j.IDMakeGP,  // 1
-		j.NameRU,    // 2
-		j.NameRUSrc, // 3
-		j.NameUA,    // 4
-		j.NameUASrc, // 5
-		j.NameEN,    // 6
-		j.NameENSrc, // 7
-		j.HeadRU,    // 8
-		j.HeadUA,    // 9
-		j.HeadEN,    // 10
-		j.TextRU,    // 11
-		j.TextUA,    // 12
-		j.TextEN,    // 13
-		j.Slug,      // 14
-		j.Fake,      // 15
-		j.Full,      // 16
-		j.ImageOrg,  // 17
-		j.ImageBox,  // 18
-		j.CreatedAt, // 19
-		j.UpdatedAt, // 20
-		j.Sale,      // 21
+		j.ID,                           // 0
+		j.IDMakeGP,                     // 1
+		j.NameRU,                       // 2
+		j.NameRUSrc,                    // 3
+		j.NameUA,                       // 4
+		j.NameUASrc,                    // 5
+		j.NameEN,                       // 6
+		j.NameENSrc,                    // 7
+		j.HeadRU,                       // 8
+		j.HeadUA,                       // 9
+		j.HeadEN,                       // 10
+		j.TextRU,                       // 11
+		j.TextUA,                       // 12
+		j.TextEN,                       // 13
+		j.Slug,                         // 14
+		j.Fake,                         // 15
+		j.Full,                         // 16
+		j.ImageOrg,                     // 17
+		j.ImageBox,                     // 18
+		strings.Join(j.ImageBoxS, "|"), // 19
+		j.CreatedAt,                    // 20
+		j.UpdatedAt,                    // 21
+		j.Sale,                         // 22
 	}
 }
 
@@ -294,10 +298,14 @@ func (j *jsonSpec) setValues(list bool, v ...interface{}) {
 		case 18:
 			j.ImageBox, _ = redis.String(v[i], nil)
 		case 19:
-			j.CreatedAt, _ = redis.Int64(v[i], nil)
+			var s string
+			s, _ = redis.String(v[i], nil)
+			j.ImageBoxS = strings.Split(s, "|")
 		case 20:
-			j.UpdatedAt, _ = redis.Int64(v[i], nil)
+			j.CreatedAt, _ = redis.Int64(v[i], nil)
 		case 21:
+			j.UpdatedAt, _ = redis.Int64(v[i], nil)
+		case 22:
 			j.Sale, _ = redis.Float64(v[i], nil)
 		}
 	}
