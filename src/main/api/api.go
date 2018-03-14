@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/sha1"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -380,7 +382,10 @@ func exec(h *handler, f func(*ctxHelper) (interface{}, error)) http.HandlerFunc 
 			mineATag(r.Header.Get("User-Agent-Tag")),
 			"",
 		}
-
+		//FIXME temp workaround
+		if (hlp.atag != "") && (strToSHA1(hlp.atag) == "fe5fca9e408b3f3c2346ae5dafa6d57e1856ac2a") {
+			hlp.atag = ""
+		}
 		res, err := f(hlp)
 		ctx = hlp.ctx // get ctx from func f
 		if err != nil {
@@ -408,4 +413,12 @@ func mineLang(s string) string {
 		return "en"
 	}
 	return ""
+}
+
+func btsToSHA1(b []byte) string {
+	return fmt.Sprintf("%x", sha1.Sum(b))
+}
+
+func strToSHA1(s string) string {
+	return btsToSHA1([]byte(s))
 }
