@@ -84,7 +84,7 @@ func (j *jsonSpec) getID() int64 {
 func (j *jsonSpec) getSrchRU(p string) ([]string, []rune) {
 	var s []string
 	var r []rune
-	if p == prefixSpecDEC || j.NameRUSrc == "" {
+	if j.NameRUSrc == "" {
 		return s, r
 	}
 	if j.Fake == "" {
@@ -108,7 +108,7 @@ func (j *jsonSpec) getSrchRU(p string) ([]string, []rune) {
 func (j *jsonSpec) getSrchUA(p string) ([]string, []rune) {
 	var s []string
 	var r []rune
-	if p != prefixSpecDEC || j.NameUASrc == "" {
+	if j.NameUASrc == "" {
 		return s, r
 	}
 	s = append(s, normName(j.NameUASrc))
@@ -130,17 +130,13 @@ func (j *jsonSpec) getSrchEN(p string) ([]string, []rune) {
 func (j *jsonSpec) lang(l, p string) {
 	switch l {
 	case "ru":
-		if p != prefixSpecDEC {
-			j.Name = j.NameRU
-			j.Head = j.HeadRU
-			j.Text = j.TextRU
-		}
+		j.Name = j.NameRU
+		j.Head = j.HeadRU
+		j.Text = j.TextRU
 	case "ua":
-		if p == prefixSpecDEC {
-			j.Name = j.NameUA
-			j.Head = j.HeadUA
-			j.Text = j.TextUA
-		}
+		j.Name = j.NameUA
+		j.Head = j.HeadUA
+		j.Text = j.TextUA
 	case "en":
 		j.Name = j.NameEN
 		j.Head = j.HeadEN
