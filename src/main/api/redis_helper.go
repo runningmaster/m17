@@ -224,12 +224,12 @@ func saveHashers(c redis.Conn, p string, v ruler, onlyUpdate ...bool) error {
 			if h.getID() == 0 {
 				return fmt.Errorf("ID must have value (%s)", p)
 			}
-			if len(onlyUpdate) == 0 {
-				err = c.Send("DEL", genKey(p, h.getID()))
-				if err != nil {
-					return err
-				}
-			}
+			//if len(onlyUpdate) == 0 {
+			//	err = c.Send("DEL", genKey(p, h.getID()))
+			//	if err != nil {
+			//		return err
+			//	}
+			//}
 			err = c.Send("HMSET", mixKeyAndFieldsAndValues(p, h)...)
 			if err != nil {
 				return err
