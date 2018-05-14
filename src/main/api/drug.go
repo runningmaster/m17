@@ -72,11 +72,11 @@ func (j *jsonDrug) lang(l, _ string) {
 		j.IDSpecDEC = nil
 	case "ua":
 		j.Name = j.NameUA
-		j.Form = j.FormRU
-		j.Dose = j.DoseRU
-		j.Pack = j.PackRU
-		j.Note = j.NoteRU
-		j.Make = j.MakeRU
+		j.Form = j.FormUA
+		j.Dose = j.DoseUA
+		j.Pack = j.PackUA
+		j.Note = j.NoteUA
+		j.Make = j.MakeUA
 		j.IDSpecINF = nil
 	case "en":
 		j.Name = j.NameEN
