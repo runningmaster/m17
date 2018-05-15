@@ -238,6 +238,8 @@ func (h *handler) prepareAPI() *handler {
 		"GET /debug/pprof/threadcreate": pipe.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
 		"GET /debug/pprof/heap":         pipe.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
 		"GET /debug/pprof/block":        pipe.Join(mdware.Exec(mdware.Stdh)), // runtime/pprof
+
+		"GET /debug/check": pipe.Join(mdware.Exec(exec(h, getCheck))),
 	}
 
 	h.err404 = mdware.Join(
