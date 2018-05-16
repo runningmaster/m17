@@ -25,14 +25,10 @@ func getCheck(h *ctxHelper) (interface{}, error) {
 	}
 	m := make(map[string]struct{}, len(v)*3)
 	for i := range v {
-		if len(v[i].IDSpecDEC) == 0 {
-			fmt.Println(v[i].ID)
-		}
+		//if len(v[i].IDSpecDEC) == 0 {
+		//	fmt.Println(v[i].ID)
+		//}
 		for j := range v[i].IDSpecDEC {
-			_, ok := m[fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecDEC[j])]
-			if ok {
-				fmt.Println(fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecDEC[j]))
-			}
 			m[fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecDEC[j])] = struct{}{}
 		}
 	}
@@ -50,6 +46,10 @@ func getCheck(h *ctxHelper) (interface{}, error) {
 		return nil, err
 	}
 	for i := range v {
+		//if len(v[i].IDSpecINF) == 0 {
+		//	fmt.Println(v[i].ID)
+		//}
+
 		for j := range v[i].IDSpecINF {
 			delete(m, fmt.Sprintf("%d+%d", v[i].IDSpecINF[j], v[i].ID))
 		}
@@ -67,7 +67,7 @@ func scanIDs(c redis.Conn, p string) ([]int64, error) {
 	var next int
 	var vals []interface{}
 	for done := false; !done; {
-		v, err := redis.Values(c.Do("SCAN", next, "MATCH", p+"*", "COUNT", 100))
+		v, err := redis.Values(c.Do("SCAN", next, "MATCH", p+"*", "COUNT", 1000))
 		if err != nil {
 			return nil, err
 		}
