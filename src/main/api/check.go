@@ -13,7 +13,7 @@ func getCheck(h *ctxHelper) (interface{}, error) {
 	defer h.delConn(c)
 
 	//
-	p := prefixSpecDEC
+	p := prefixSpecINF
 	//v, err := makeSpecsFromIDs(loadSyncIDs(c, p, 0))
 	v, err := makeSpecsFromIDs(scanIDs(c, p))
 	if err != nil {
@@ -25,21 +25,21 @@ func getCheck(h *ctxHelper) (interface{}, error) {
 	}
 	m := make(map[string]struct{}, len(v)*3)
 	for i := range v {
-		if len(v[i].IDSpecINF) == 0 {
+		if len(v[i].IDSpecDEC) == 0 {
 			fmt.Println(v[i].ID)
 		}
-		for j := range v[i].IDSpecINF {
-			_, ok := m[fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecINF[j])]
+		for j := range v[i].IDSpecDEC {
+			_, ok := m[fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecDEC[j])]
 			if ok {
-				fmt.Println(fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecINF[j]))
+				fmt.Println(fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecDEC[j]))
 			}
-			m[fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecINF[j])] = struct{}{}
+			m[fmt.Sprintf("%d+%d", v[i].ID, v[i].IDSpecDEC[j])] = struct{}{}
 		}
 	}
 
 	fmt.Println(len(v), len(m))
 	//
-	p = prefixSpecINF
+	p = prefixSpecDEC
 	//v, err = makeSpecsFromIDs(loadSyncIDs(c, p, 0))
 	v, err = makeSpecsFromIDs(scanIDs(c, p))
 	if err != nil {
@@ -50,8 +50,8 @@ func getCheck(h *ctxHelper) (interface{}, error) {
 		return nil, err
 	}
 	for i := range v {
-		for j := range v[i].IDSpecDEC {
-			delete(m, fmt.Sprintf("%d+%d", v[i].IDSpecDEC[j], v[i].ID))
+		for j := range v[i].IDSpecINF {
+			delete(m, fmt.Sprintf("%d+%d", v[i].IDSpecINF[j], v[i].ID))
 		}
 	}
 
